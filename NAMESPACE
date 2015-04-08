@@ -2,6 +2,7 @@
 
 export(queue)
 export(worker)
+export(worker_group)
 importFrom(R6,R6Class)
 importFrom(digest,digest)
 importFrom(remoji,emoji)

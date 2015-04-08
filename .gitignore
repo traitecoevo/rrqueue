@@ -1,6 +1,6 @@
 .Rproj.user
 .Rhistory
 .RData
-tests/testthat/worker.log
 notes.md
 tmp.R
+*.log

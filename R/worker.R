@@ -353,17 +353,9 @@ rrqueue_worker_spawn <- function(queue_name, logfile, con=NULL,
 
 ## Copied from remake
 install_rrqueue_worker <- function(destination_directory, overwrite=FALSE) {
-  if (!file.exists(destination_directory) ||
-      !is_directory(destination_directory)) {
-    stop("Destination must be an existing directory")
-  }
-  file <- file.path(destination_directory, "rrqueue_worker")
-  if (file.exists(file) && !overwrite) {
-    stop(sprintf("File %s already exists", file))
-  }
   code <- c("#!/usr/bin/env Rscript",
             "library(methods)",
             "w <- rrqueue:::rrqueue_worker_main()")
-  writeLines(code, file)
-  Sys.chmod(file, "0755")
+  dest <- file.path(destimation_directory, "rrqueue_worker")
+  install_script(code, dest, overwrite)
 }

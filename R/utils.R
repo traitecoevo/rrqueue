@@ -47,3 +47,25 @@ viapply <- function(X, FUN, ...) {
 vlapply <- function(X, FUN, ...) {
   vapply(X, FUN, logical(1), ...)
 }
+
+install_script <- function(contents, dest, overwrite=FALSE) {
+  destination_directory <- dirname(dest)
+  if (!file.exists(destination_directory) ||
+      !is_directory(destination_directory)) {
+    stop("Destination must be an existing directory")
+  }
+
+  if (file.exists(dest) && !overwrite) {
+    stop(sprintf("File %s already exists", dest))
+  }
+  writeLines(contents, dest)
+  Sys.chmod(dest, "0755")
+}
+
+docopt_parse <- function(...) {
+  oo <- options(warnPartialMatchArgs=FALSE)
+  if (isTRUE(oo$warnPartialMatchArgs)) {
+    on.exit(options(oo))
+  }
+  docopt::docopt(...)
+}
