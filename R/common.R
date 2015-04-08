@@ -18,7 +18,11 @@ rrqueue_keys <- function(queue) {
 
 ## Special key for worker-specific commands to be published to.
 rrqueue_key_worker <- function(queue, worker) {
+  ## TODO: rename -> rrqueue_key_worker_message
   sprintf("%s:worker:%s:message", queue, worker)
+}
+rrqueue_key_worker_log <- function(queue, worker) {
+  sprintf("%s:worker:%s:log", queue, worker)
 }
 rrqueue_key_task_objects <- function(queue, task_id) {
   sprintf("%s:tasks:objects:%s", queue, task_id)
@@ -83,4 +87,16 @@ parse_worker_name <- function(str) {
   }
   list(host=vcapply(res, "[[", 1),
        pid=vcapply(res, "[[", 2))
+}
+
+parse_worker_log <- function(log) {
+  re <- "^([0-9]+) ([^ ]+) ?(.*)$"
+  ok <- grepl(re, log)
+  if (!all(ok)) {
+    stop("Corrupt log")
+  }
+  time <- as.integer(sub(re, "\\1", log))
+  command <- sub(re, "\\2", log)
+  message <- lstrip(sub(re, "\\3", log))
+  data.frame(time, command, message, stringsAsFactors=FALSE)
 }

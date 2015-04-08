@@ -110,13 +110,23 @@ test_that("controller", {
   ## enough to set up with enqueue, and then trigger later.
 
   ## TODO: get statistics off the workers about completed jobs
-  ## perhaps?  That can be stored within the worker rather than the
-  ## database I guess?
+  ## perhaps?  Can be done by parsing the worker log.
 
   obj$send_message("STOP", w)
   Sys.sleep(.5)
   expect_that(obj$n_workers(), equals(0))
   expect_that(obj$workers(), equals(character(0)))
+
+  log_key <- rrqueue_key_worker_log(obj$name, w)
+  log <- as.character(obj$con$LRANGE(log_key, 0, -1))
+  dlog <- parse_worker_log(log)
+  expect_that(dlog, is_a("data.frame"))
+
+  expect_that(dlog$command, equals(c("ALIVE",
+                                     "JOB_START", "JOB_COMPLETE",
+                                     "JOB_START", "JOB_COMPLETE",
+                                     "STOP")))
+  expect_that(dlog$message, equals(c("", "3", "3", "4", "4", "")))
 
   ## TODO: cleanup properly.
 })

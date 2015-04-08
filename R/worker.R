@@ -29,6 +29,7 @@ WORKER_BUSY <- 1L
 
       self$keys <- rrqueue_keys(self$queue_name)
       self$keys$worker_message <- rrqueue_key_worker(self$queue_name, self$name)
+      self$keys$worker_log <- rrqueue_key_worker_log(self$queue_name, self$name)
 
       self$objects <- object_cache(con, self$keys$objects)
 
@@ -43,6 +44,7 @@ WORKER_BUSY <- 1L
         self$con$SADD(self$keys$workers, self$name)
         self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
         self$con$HDEL(self$keys$workers_task, self$name)
+        self$log("ALIVE")
       })
 
       ## TODO: first interrupt should be to kill currently evaluating
@@ -90,6 +92,16 @@ WORKER_BUSY <- 1L
         }
       }
       !is.null(self$env)
+    },
+
+    log=function(label, message=NULL) {
+      t <- as.integer(Sys.time()) # to nearest second
+      if (is.null(message)) {
+        msg <- sprintf("%d %s", t, label)
+      } else {
+        msg <- sprintf("%d %s %s", t, label, message)
+      }
+      self$con$RPUSH(self$keys$worker_log, msg)
     },
 
     ## TODO: Store time since last job.
@@ -147,6 +159,9 @@ WORKER_BUSY <- 1L
       keys <- self$keys
       con <- self$con
 
+      message("Running job ", id)
+      self$log("JOB_START", id)
+
       if (!self$initialize_environment()) {
         ## This should be handled carefully; probably the best bet is
         ## to flag upstream (send a message to the controller) and
@@ -165,8 +180,6 @@ WORKER_BUSY <- 1L
 
       envir <- new.env(parent=self$env)
       expr <- restore_expression(expr_stored, envir, self$objects)
-
-      message("Running job ", id)
       message("\t", deparse(expr))
 
       redis_multi(con, {
@@ -177,6 +190,7 @@ WORKER_BUSY <- 1L
 
       res <- try(eval(expr, envir))
       if (is_error(res)) {
+        self$log("JOB_ERROR", id)
         message(sprintf("\tjob %s failed", id))
       }
 
@@ -185,6 +199,7 @@ WORKER_BUSY <- 1L
         con$HDEL(keys$workers_task, self$name)
         con$HSET(keys$tasks_status, id, TASK_COMPLETE)
         con$HSET(keys$workers_status, self$name, WORKER_IDLE)
+        self$log("JOB_COMPLETE", id)
       })
 
       message(sprintf("job %s complete", id))
@@ -211,6 +226,7 @@ WORKER_BUSY <- 1L
       message("shutting down")
       self$con$SREM(self$keys$workers, self$name)
       self$con$HDEL(self$keys$workers_status, self$name)
+      self$log("STOP")
     }))
 
 ##' Create an rrqueue worker.  This blocks the main loop.

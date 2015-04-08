@@ -69,3 +69,7 @@ docopt_parse <- function(...) {
   }
   docopt::docopt(...)
 }
+
+lstrip <- function(x) {
+  sub("^\\s+", "", x, perl=TRUE)
+}
