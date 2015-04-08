@@ -16,11 +16,13 @@ TASK_COMPLETE <- 2L
     con=NULL,
     name=NULL,
     keys=NULL,
+    objects=NULL,
 
     initialize=function(name, packages=NULL, sources=NULL, con=NULL) {
       self$con <- redis_connection(con)
       self$name <- name
       self$keys <- rrqueue_keys(name)
+      self$objects <- object_cache(con, self$keys$objects)
       self$con$SET(self$keys$packages, object_to_string(packages))
       self$con$SET(self$keys$sources,  object_to_string(sources))
 
@@ -42,15 +44,26 @@ TASK_COMPLETE <- 2L
     ## TODO: pending, completed, etc.
     ## TODO: allow setting a "group" or "name" for more easily
     ## recalling jobs?
-    enqueue=function(expr) {
+    ## TODO: should be parent.frame?
+    enqueue=function(expr, envir=.GlobalEnv) {
       con <- self$con
       keys <- self$keys
-      expr <- substitute(expr)
-      expr_str <- save_expression(expr)
+
       task_id <- con$INCR(keys$tasks_counter)
-      con$HSET(keys$tasks, task_id, expr_str)
+      prefix <- paste0(".", task_id, ":")
+
+      expr <- substitute(expr)
+      expr <- save_expression(expr, prefix, envir, self$objects)
+
+      con$HSET(keys$tasks, task_id, expr$str)
       con$HSET(keys$tasks_status, task_id, TASK_PENDING)
       con$RPUSH(keys$tasks_id, task_id)
+
+      if (length(expr$objects) > 0L) {
+        con$LPUSH(rrqueue_key_task_objects(self$name, task_id),
+                  expr$objects)
+      }
+
       ## NOTE: coercing this to a string because that's mostly how
       ## tasks will be done.
       as.character(task_id)

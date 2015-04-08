@@ -53,11 +53,13 @@
       }
       names(sym) <- c(WORKER_IDLE, WORKER_BUSY)
       repeat {
-        Sys.sleep(t)
+        ## TODO: when a worker dies, this will say NA in the status --
+        ## that's actually pretty good really.
         status <- as.character(self$con$HMGET(self$keys$workers_status,
                                               self$workers))
         message(sprintf("[ %s ] %s", Sys.time(),
                         paste(sym[status], collapse=" ")))
+        Sys.sleep(t)
       }
     },
 

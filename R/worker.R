@@ -63,6 +63,11 @@ WORKER_BUSY <- 1L
         self$shutdown()
       }
 
+      ## TODO: This is going to be different when I refactor the
+      ## environment code.  The job specifies the environment.  Check
+      ## if it's there already and fetch if not.  That will all be
+      ## done in the main loop.  But an ENV command would trigger
+      ## pulling all objects.
       tryCatch(self$initialize_environment(),
                error=catch_error)
       tryCatch(self$main(),
@@ -89,7 +94,7 @@ WORKER_BUSY <- 1L
 
     ## TODO: Store time since last job.
     main=function() {
-      message("waiting for jobs")
+      message("waiting for tasks")
       ## TODO: should not use BLPOP here but instead use BRPOPLPUSH
       ## see http://redis.io/commands/{blpop,rpoplpush,brpoplpush}
       con <- self$con
@@ -127,6 +132,17 @@ WORKER_BUSY <- 1L
     },
 
     ## TODO: Store job begin/end times?
+    ## TODO: Push events to a log on redis: worker:log - it can be a
+    ## list.  Events would be:
+    ##   <COMMAND> <TIME(int)> [info]
+    ##   ALIVE ......
+    ##   ENV ....... (eventually environment id)
+    ##   MESSAGE ....... content
+    ##   JOB_START ...... id
+    ##   JOB_ERROR ...... id
+    ##   JOB_COMPLETE ...... id
+    ##   STOP  ......
+
     run_job=function(id) {
       keys <- self$keys
       con <- self$con
@@ -146,7 +162,10 @@ WORKER_BUSY <- 1L
         ## TODO: Fail nicely here by marking the job lost and returning?
         stop("job not found")
       }
-      expr <- restore_expression(expr_stored)
+
+      envir <- new.env(parent=self$env)
+      expr <- restore_expression(expr_stored, envir, self$objects)
+
       message("Running job ", id)
       message("\t", deparse(expr))
 
@@ -156,10 +175,7 @@ WORKER_BUSY <- 1L
         con$HSET(keys$tasks_status, id, TASK_RUNNING)
       })
 
-      env <- worker_prepare_environment(expr, self$objects,
-                                        new.env(parent=self$env))
-      res <- try(eval(expr, env))
-
+      res <- try(eval(expr, envir))
       if (is_error(res)) {
         message(sprintf("\tjob %s failed", id))
       }
@@ -205,17 +221,6 @@ WORKER_BUSY <- 1L
 ##' @export
 worker <- function(queue_name, con=NULL, timeout=5) {
   .R6_worker$new(queue_name, con, timeout)
-}
-
-worker_prepare_environment <- function(expr, object_cache, env) {
-  args <- as.list(expr[-1])
-  is_symbol <- vapply(args, is.symbol, logical(1))
-  if (any(is_symbol)) {
-    for (name in args[is_symbol]) {
-      assign(name, object_cache$get(as.character(name)), env)
-    }
-  }
-  env
 }
 
 ##' @importFrom remoji emoji

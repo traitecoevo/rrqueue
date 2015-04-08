@@ -20,14 +20,60 @@ rrqueue_keys <- function(queue) {
 rrqueue_key_worker <- function(queue, worker) {
   sprintf("%s:worker:%s:message", queue, worker)
 }
-
-## These might change to serialisation/deserialisation, especially if
-## the argument parsing bits get done at the same time.
-save_expression <- function(expr) {
-  deparse(expr)
+rrqueue_key_task_objects <- function(queue, task_id) {
+  sprintf("%s:tasks:objects:%s", queue, task_id)
 }
-restore_expression <- function(expr) {
-  parse(text=expr)[[1]]
+
+## TODO: come up with a way of scheduling object deletion.  Things
+## that are created here should be deleted immediately after the
+## function ends (perhaps on exit).  *Objects* should only be deleted
+## if they have no more dangling pointers.
+##
+## So we'll register "groups" and schedule prefix deletion once the
+## group is done.  But for now, don't do any of that.
+save_expression <- function(expr, prefix, envir, object_cache) {
+  fun <- expr[[1]]
+  args <- expr[-1]
+
+  ## TODO: disallow *language* as arguments; instead I guess we'll
+  ## serialise those as anonymous symbols, e.g. `.1:<anon1>`, and
+  ## substitute back in on the other side.
+  ##
+  ## is_language <- vlapply(args, is.language)
+  ## if (any(is_language)) {
+  ##   stop("not yet supported")
+  ## }
+  is_symbol <- vlapply(args, is.symbol)
+  if (any(is_symbol)) {
+    name_from <- vcapply(args[is_symbol], as.character)
+    name_to   <- paste0(prefix, name_from)
+    args[is_symbol] <- lapply(name_to, as.symbol)
+    ## Store the required objects
+    for (i in seq_along(name_from)) {
+      object_cache$set(name_to[[i]],
+                       get(name_from[[i]], envir),
+                       store_in_envir=FALSE)
+    }
+    names(name_from) <- name_to
+  } else {
+    name_from <- NULL
+  }
+
+  ret <- list(expr=expr, objects=name_from)
+  ret$str <- object_to_string(ret)
+  ret
+}
+
+restore_expression <- function(dat, envir, object_cache) {
+  dat <- string_to_object(dat)
+  objects <- dat$objects
+  if (length(objects) > 0L) {
+    objects_to <- names(objects)
+    for (i in seq_along(dat$objects)) {
+      assign(objects[[i]], object_cache$get(objects_to[[i]]), envir=envir)
+    }
+  }
+  dat$expr
 }
 
 parse_worker_name <- function(str) {

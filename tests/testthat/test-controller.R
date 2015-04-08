@@ -38,8 +38,11 @@ test_that("controller", {
   expect_that(ids, equals(list("1", "2")))
   ids <- as.character(ids)
 
-  expect_that(unname(from_redis_hash(con, keys$tasks)[as.character(ids)]),
-              equals(c("sin(1)", "sin(2)")))
+  tasks <- unname(from_redis_hash(con, keys$tasks)[as.character(ids)])
+  e <- new.env(parent=.GlobalEnv)
+  tasks <- lapply(tasks, restore_expression, e, obj$objects)
+  expect_that(ls(e), equals(character(0)))
+  expect_that(tasks, equals(list(quote(sin(1)), quote(sin(2)))))
 
   expect_that(con$GET(keys$tasks_counter), equals("2"))
 
@@ -80,9 +83,31 @@ test_that("controller", {
   id <- obj$enqueue(sin(1))
   Sys.sleep(0.5)
 
-  expect_that(obj$tasks(), equals(c("3"="sin(1)")))
+  ## TODO: Fix $tasks() here
+  expect_that(restore_expression(obj$tasks()[["3"]], e, obj$objects),
+              equals(quote(sin(1))))
+  expect_that(ls(e), equals(character(0)))
+
   expect_that(obj$tasks_status(), equals(c("3"=TASK_COMPLETE)))
   expect_that(obj$tasks_collect("3"), equals(sin(1)))
+
+  ## Another, using arguments:
+  x <- 1
+  e <- environment()
+  id <- obj$enqueue(sin(x), e)
+
+  ## TODO: factor out the mangling here.
+  expect_that(obj$objects$list(),
+              equals(sprintf(".%s:x", id)))
+  expect_that(restore_expression(obj$tasks()[[id]], e, obj$objects),
+              equals(quote(sin(x))))
+
+  expect_that(obj$tasks_status()[[id]], equals(TASK_COMPLETE))
+  expect_that(obj$tasks_collect("4"), equals(sin(x)))
+
+  ## TODO:
+  ## on job removal, clean up objects that were created.  That's easy
+  ## enough to set up with enqueue, and then trigger later.
 
   ## TODO: get statistics off the workers about completed jobs
   ## perhaps?  That can be stored within the worker rather than the
