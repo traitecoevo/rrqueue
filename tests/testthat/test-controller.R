@@ -4,9 +4,13 @@ test_that("controller", {
   test_cleanup()
   on.exit(test_cleanup())
 
+  existing <- queues()
+
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_that(obj$con, is_a("hiredis"))
   expect_that(obj$name, equals("tmpjobs"))
+
+  expect_that(setdiff(queues(), existing), equals("tmpjobs"))
 
   keys <- rrqueue_keys(obj$name)
 

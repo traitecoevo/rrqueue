@@ -17,22 +17,34 @@ TASK_MISSING  <- "MISSING"
     keys=NULL,
     objects=NULL,
 
-    initialize=function(name, packages=NULL, sources=NULL, con=NULL) {
+    initialize=function(name, packages=NULL, sources=NULL, con=NULL,
+                        clean=FALSE) {
       self$con <- redis_connection(con)
       self$name <- name
       self$keys <- rrqueue_keys(name)
 
-      ## TODO: This is dangerous because it will delete things in a
-      ## running queue if a second queue object is created! -- once
-      ## testing has settled down, this will be triggered
-      self$clean()
+      existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$name)
+      if (existing) {
+        if (clean) {
+          message("cleaning old queue")
+          self$clean()
+        } else {
+          message("reattaching to existing queue")
+        }
+      } else {
+        message("creating new queue")
+        self$clean()
+      }
 
+      self$con$SADD(self$keys$rrqueue_queues, self$name)
       self$add_environment(packages, sources, TRUE)
       self$objects <- object_cache(con, self$keys$objects)
     },
 
     clean=function() {
       ## NOTE: Not sure if this is always a good idea!
+      self$con$SREM(self$keys$rrqueue_queues, self$name)
+
       self$con$DEL(self$keys$workers_name)
       self$con$DEL(self$keys$workers_status)
       self$con$DEL(self$keys$workers_task)
@@ -204,9 +216,15 @@ TASK_MISSING  <- "MISSING"
 ##' @param packages Character vector of packages to load
 ##' @param sources Character vector of files to source
 ##' @param con Connection to a redis database
+##' @param clean Delete any rements of existing queues on startup
+##' (this can cause things to go haywire if processes are still live
+##' working on jobs as they'll clobber your queue).
 ##' @export
-queue <- function(name, packages=NULL, sources=NULL, con=NULL) {
+queue <- function(name, packages=NULL, sources=NULL, con=NULL, clean=FALSE) {
   .R6_queue$new(name, packages, sources, con)
 }
 
-## TODO: Refuse to run if redis version is not OK
+queues <- function(con=NULL) {
+  con <- redis_connection(con)
+  as.character(con$SMEMBERS("rrqueue:queues"))
+}

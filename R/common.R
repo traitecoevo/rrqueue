@@ -1,5 +1,7 @@
 rrqueue_keys <- function(queue) {
-  list(workers_name    = sprintf("%s:workers:name",    queue),
+  list(rrqueue_queues  = "rrqueue:queues",
+
+       workers_name    = sprintf("%s:workers:name",    queue),
        workers_status  = sprintf("%s:workers:status",  queue),
        workers_task    = sprintf("%s:workers:task",    queue),
 
