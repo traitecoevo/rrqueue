@@ -1,19 +1,22 @@
 rrqueue_keys <- function(queue) {
-  list(workers        = sprintf("%s:workers",        queue),
-       workers_status = sprintf("%s:workers:status", queue),
-       workers_task   = sprintf("%s:workers:task",   queue),
+  list(workers_name    = sprintf("%s:workers:name",    queue),
+       workers_status  = sprintf("%s:workers:status",  queue),
+       workers_task    = sprintf("%s:workers:task",    queue),
 
-       ## The tasks database:
-       tasks          = sprintf("%s:tasks",         queue),
-       tasks_counter  = sprintf("%s:tasks:counter", queue),
-       tasks_id       = sprintf("%s:tasks:id",      queue),
-       tasks_status   = sprintf("%s:tasks:status",  queue),
-       tasks_result   = sprintf("%s:tasks:result",  queue),
+       tasks_counter   = sprintf("%s:tasks:counter",   queue),
+       tasks_id        = sprintf("%s:tasks:id",        queue),
+       tasks_expr      = sprintf("%s:tasks:expr",      queue),
+       tasks_status    = sprintf("%s:tasks:status",    queue),
+       tasks_result    = sprintf("%s:tasks:result",    queue),
+       tasks_envir     = sprintf("%s:tasks:envir",     queue),
 
-       ## Environment setup:
-       packages       = sprintf("%s:environment:packages", queue),
-       sources        = sprintf("%s:environment:sources",  queue),
-       objects        = sprintf("%s:environment:objects",  queue))
+       envirs_counter  = sprintf("%s:envirs:counter",  queue),
+       envirs_packages = sprintf("%s:envirs:packages", queue),
+       envirs_sources  = sprintf("%s:envirs:sources",  queue),
+       envirs_default  = sprintf("%s:envirs:default",  queue),
+
+       ## Objects:
+       objects         = sprintf("%s:objects",         queue))
 }
 
 ## Special key for worker-specific commands to be published to.
@@ -24,9 +27,6 @@ rrqueue_key_worker <- function(queue, worker) {
 rrqueue_key_worker_log <- function(queue, worker) {
   sprintf("%s:worker:%s:log", queue, worker)
 }
-rrqueue_key_task_objects <- function(queue, task_id) {
-  sprintf("%s:tasks:objects:%s", queue, task_id)
-}
 
 ## TODO: come up with a way of scheduling object deletion.  Things
 ## that are created here should be deleted immediately after the
@@ -35,7 +35,7 @@ rrqueue_key_task_objects <- function(queue, task_id) {
 ##
 ## So we'll register "groups" and schedule prefix deletion once the
 ## group is done.  But for now, don't do any of that.
-save_expression <- function(expr, prefix, envir, object_cache) {
+prepare_expression <- function(expr) {
   fun <- expr[[1]]
   args <- expr[-1]
 
@@ -49,32 +49,42 @@ save_expression <- function(expr, prefix, envir, object_cache) {
   ## }
   is_symbol <- vlapply(args, is.symbol)
   if (any(is_symbol)) {
-    name_from <- vcapply(args[is_symbol], as.character)
-    name_to   <- paste0(prefix, name_from)
-    args[is_symbol] <- lapply(name_to, as.symbol)
-    ## Store the required objects
-    for (i in seq_along(name_from)) {
-      object_cache$set(name_to[[i]],
-                       get(name_from[[i]], envir),
-                       store_in_envir=FALSE)
-    }
-    names(name_from) <- name_to
+    object_names <- vcapply(args[is_symbol], as.character)
   } else {
-    name_from <- NULL
+    object_names <- NULL
   }
 
-  ret <- list(expr=expr, objects=name_from)
-  ret$str <- object_to_string(ret)
-  ret
+  list(expr=expr, object_names=object_names)
+}
+
+save_expression <- function(dat, task_id, envir, object_cache) {
+  object_names <- dat$object_names
+  if (!is.null(object_names)) {
+    if (!all(ok <- exists(object_names, envir, inherits=FALSE))) {
+      stop("not all objects found: ",
+           paste(object_names[!ok], collapse=", "))
+    }
+    object_names_to <- paste0(task_object_prefix(task_id), object_names)
+    for (i in seq_along(object_names)) {
+      object_cache$set(object_names_to[[i]],
+                       get(object_names[[i]], envir, inherits=FALSE),
+                       store_in_envir=FALSE)
+    }
+    names(dat$object_names) <- object_names_to
+  }
+
+  object_to_string(dat)
 }
 
 restore_expression <- function(dat, envir, object_cache) {
   dat <- string_to_object(dat)
-  objects <- dat$objects
-  if (length(objects) > 0L) {
-    objects_to <- names(objects)
-    for (i in seq_along(dat$objects)) {
-      assign(objects[[i]], object_cache$get(objects_to[[i]]), envir=envir)
+  object_names <- dat$object_names
+  if (length(object_names) > 0L) {
+    object_names_to <- names(object_names)
+    for (i in seq_along(dat$object_names)) {
+      assign(object_names[[i]],
+             object_cache$get(object_names_to[[i]]),
+             envir=envir)
     }
   }
   dat$expr
@@ -99,4 +109,8 @@ parse_worker_log <- function(log) {
   command <- sub(re, "\\2", log)
   message <- lstrip(sub(re, "\\3", log))
   data.frame(time, command, message, stringsAsFactors=FALSE)
+}
+
+task_object_prefix <- function(task_id) {
+  sprintf(".%s:", task_id)
 }

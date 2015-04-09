@@ -21,21 +21,47 @@ TASK_MISSING  <- "MISSING"
       self$con <- redis_connection(con)
       self$name <- name
       self$keys <- rrqueue_keys(name)
-      self$objects <- object_cache(con, self$keys$objects)
-      self$con$SET(self$keys$packages, object_to_string(packages))
-      self$con$SET(self$keys$sources,  object_to_string(sources))
 
-      ## This is dangerous because it will delete things in a running
-      ## queue if a second queue object is created!
-      self$con$DEL(self$keys$tasks)
+      ## TODO: This is dangerous because it will delete things in a
+      ## running queue if a second queue object is created! -- once
+      ## testing has settled down, this will be triggered
+      self$clean()
+
+      self$add_environment(packages, sources, TRUE)
+      self$objects <- object_cache(con, self$keys$objects)
+    },
+
+    clean=function() {
+      ## NOTE: Not sure if this is always a good idea!
+      self$con$DEL(self$keys$workers_name)
+      self$con$DEL(self$keys$workers_status)
+      self$con$DEL(self$keys$workers_task)
+
       self$con$DEL(self$keys$tasks_counter)
       self$con$DEL(self$keys$tasks_id)
+      self$con$DEL(self$keys$tasks_expr)
       self$con$DEL(self$keys$tasks_status)
       self$con$DEL(self$keys$tasks_result)
+      self$con$DEL(self$keys$tasks_envir)
 
-      ## delete workers and workers_status
-      self$con$DEL(self$keys$workers)
-      self$con$DEL(self$keys$workers_status)
+      self$con$DEL(self$keys$envirs_counter)
+      self$con$DEL(self$keys$envirs_packages)
+      self$con$DEL(self$keys$envirs_sources)
+      self$con$DEL(self$keys$envirs_default)
+    },
+
+    ## TODO: facility for named environnents?
+    ## TODO: facility for deleting environments?
+    add_environment=function(packages, sources, set_default=FALSE) {
+      packages <- object_to_string(packages)
+      sources  <- object_to_string(sources)
+
+      id <- self$con$INCR(self$keys$envirs_counter)
+      self$con$HSET(self$keys$envirs_packages, id, packages)
+      self$con$HSET(self$keys$envirs_sources,  id, sources)
+      if (set_default) {
+        self$con$SET(self$keys$envirs_default, id)
+      }
     },
 
     ## TODO: clean up queues on startup, or attach to existing queue?
@@ -43,25 +69,29 @@ TASK_MISSING  <- "MISSING"
     ## TODO: pending, completed, etc.
     ## TODO: allow setting a "group" or "name" for more easily
     ## recalling jobs?
-    ## TODO: should be parent.frame?
-    enqueue=function(expr, envir=.GlobalEnv) {
+    ## TODO: envir should be parent.frame?
+    enqueue=function(expr, envir=.GlobalEnv, envir_id=NULL) {
       con <- self$con
       keys <- self$keys
 
-      task_id <- con$INCR(keys$tasks_counter)
-      prefix <- paste0(".", task_id, ":")
+      dat <- prepare_expression(substitute(expr))
 
-      expr <- substitute(expr)
-      expr <- save_expression(expr, prefix, envir, self$objects)
-
-      con$HSET(keys$tasks, task_id, expr$str)
-      con$HSET(keys$tasks_status, task_id, TASK_PENDING)
-      con$RPUSH(keys$tasks_id, task_id)
-
-      if (length(expr$objects) > 0L) {
-        con$LPUSH(rrqueue_key_task_objects(self$name, task_id),
-                  expr$objects)
+      ## TODO: Not checked to make sure that it is a valid id.
+      if (is.null(envir_id)) {
+        envir_id <- con$GET(keys$envirs_default)
       }
+
+      task_id <- as.character(con$INCR(keys$tasks_counter))
+      expr_str <- save_expression(dat, task_id, envir, self$objects)
+
+      ## TODO: Do this in a MULTI block?
+      con$HSET(keys$tasks_expr,   task_id, expr_str)
+      con$HSET(keys$tasks_status, task_id, TASK_PENDING)
+      con$HSET(keys$tasks_envir,  task_id, envir_id)
+
+      ## This must be done *last*, as it flags the job ready to be
+      ## run.
+      con$RPUSH(keys$tasks_id, task_id)
 
       ## NOTE: coercing this to a string because that's mostly how
       ## tasks will be done.
@@ -75,7 +105,7 @@ TASK_MISSING  <- "MISSING"
     ## up ourselves.
 
     workers=function() {
-      as.character(self$con$SMEMBERS(self$keys$workers))
+      as.character(self$con$SMEMBERS(self$keys$workers_name))
     },
 
     ## These messages are *broadcast* commands.  No data will be
@@ -105,7 +135,7 @@ TASK_MISSING  <- "MISSING"
     n_workers=function() {
       ## NOTE: this is going to be an *estimate* because there might
       ## be old workers floating around.
-      self$con$SCARD(self$keys$workers)
+      self$con$SCARD(self$keys$workers_name)
     },
 
     workers_status=function() {
@@ -113,7 +143,8 @@ TASK_MISSING  <- "MISSING"
     },
 
     tasks=function() {
-      from_redis_hash(self$con, self$keys$tasks)
+      ## TODO: this is no longer useful, really.
+      from_redis_hash(self$con, self$keys$tasks_expr)
     },
 
     tasks_status=function(id=NULL) {
@@ -158,7 +189,7 @@ TASK_MISSING  <- "MISSING"
         for (i in id[status == TASK_PENDING]) {
           ret[[i]] <- self$con$LREM(keys$tasks_id, 0, i) > 0L
         }
-        con$HDEL(keys$tasks, id)
+        con$HDEL(keys$tasks_expr,   id)
         con$HDEL(keys$tasks_status, id)
         con$HDEL(keys$tasks_result, id)
       })

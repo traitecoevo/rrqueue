@@ -9,7 +9,7 @@ WORKER_BUSY <- "BUSY"
     con=NULL,
     queue_name=NULL,
     keys=NULL,
-    env=NULL,
+    envir=NULL,
     timeout=NULL,
     name=NULL,
     objects=NULL,
@@ -20,6 +20,7 @@ WORKER_BUSY <- "BUSY"
       banner(sprintf("_- %s! -_", .packageName))
       self$con <- redis_connection(con)
       self$timeout <- timeout
+      self$envir <- list()
 
       hostname <- Sys.info()[["nodename"]]
       pid      <- Sys.getpid()
@@ -28,22 +29,23 @@ WORKER_BUSY <- "BUSY"
       self$queue_name <- queue_name
 
       self$keys <- rrqueue_keys(self$queue_name)
-      self$keys$worker_message <- rrqueue_key_worker(self$queue_name, self$name)
-      self$keys$worker_log <- rrqueue_key_worker_log(self$queue_name, self$name)
+      self$keys$message <- rrqueue_key_worker(self$queue_name, self$name)
+      self$keys$log <- rrqueue_key_worker_log(self$queue_name, self$name)
 
       self$objects <- object_cache(con, self$keys$objects)
 
       ## Register the worker:
-      if (self$con$SISMEMBER(self$keys$workers, self$name) == 1L) {
+      if (self$con$SISMEMBER(self$keys$workers_name, self$name) == 1L) {
         stop("Looks like this worker exists already...")
       }
       message("worker:   ", self$name)
       message("hostname: ", hostname)
       message("pid:      ", pid)
       redis_multi(self$con, {
-        self$con$SADD(self$keys$workers, self$name)
+        self$con$SADD(self$keys$workers_name,   self$name)
         self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
-        self$con$HDEL(self$keys$workers_task, self$name)
+        self$con$HDEL(self$keys$workers_task,   self$name)
+        self$con$DEL(self$keys$log)
         self$log("ALIVE")
       })
 
@@ -65,33 +67,28 @@ WORKER_BUSY <- "BUSY"
         self$shutdown()
       }
 
-      ## TODO: This is going to be different when I refactor the
-      ## environment code.  The job specifies the environment.  Check
-      ## if it's there already and fetch if not.  That will all be
-      ## done in the main loop.  But an ENV command would trigger
-      ## pulling all objects.
-      tryCatch(self$initialize_environment(),
-               error=catch_error)
       tryCatch(self$main(),
                StopWorker=catch_stop_worker,
                error=catch_error,
                interrupt=catch_interrupt)
     },
 
-    ## TODO: Do this within a that waits?
-    initialize_environment=function() {
-      if (is.null(self$env)) {
+    initialize_environment=function(id) {
+      ## TODO: consider locking the environment
+      e <- self$envir[[id]]
+      if (is.null(e)) {
+        message("initializing environment ", id)
+        self$log("ENV", id)
         keys <- self$keys
-        if (self$con$EXISTS(keys$packages)) {
-          message("initializing environment")
-          packages <- string_to_object(self$con$GET(keys$packages))
-          sources <- string_to_object(self$con$GET(keys$sources))
-          self$env <- create_environment(packages, sources)
-          message(sprintf("\tdone (%d packages, %d sources)",
-                          length(packages), length(sources)))
-        }
+        packages <- self$con$HGET(self$keys$envirs_packages, id)
+        sources  <- self$con$HGET(self$keys$envirs_sources,  id)
+        e <- create_environment(string_to_object(packages),
+                                string_to_object(sources))
+        self$envir[[id]] <- e
+        message(sprintf("\tdone (%d packages, %d sources)",
+                        length(packages), length(sources)))
       }
-      !is.null(self$env)
+      e
     },
 
     log=function(label, message=NULL) {
@@ -101,7 +98,7 @@ WORKER_BUSY <- "BUSY"
       } else {
         msg <- sprintf("%d %s %s", t, label, message)
       }
-      self$con$RPUSH(self$keys$worker_log, msg)
+      self$con$RPUSH(self$keys$log, msg)
     },
 
     ## TODO: Store time since last job.
@@ -112,7 +109,7 @@ WORKER_BUSY <- "BUSY"
       con <- self$con
       timeout <- self$timeout
       key_queue_jobs <- self$keys$tasks_id
-      key_queue_msg  <- self$keys$worker_message
+      key_queue_msg  <- self$keys$message
       key_queue <- c(key_queue_jobs, key_queue_msg)
 
       wait <- worker_wait_symbols()
@@ -146,14 +143,14 @@ WORKER_BUSY <- "BUSY"
     ## TODO: Store job begin/end times?
     ## TODO: Push events to a log on redis: worker:log - it can be a
     ## list.  Events would be:
-    ##   <COMMAND> <TIME(int)> [info]
-    ##   ALIVE ......
-    ##   ENV ....... (eventually environment id)
-    ##   MESSAGE ....... content
-    ##   JOB_START ...... id
-    ##   JOB_ERROR ...... id
-    ##   JOB_COMPLETE ...... id
-    ##   STOP  ......
+    ##   <TIME(int)> <COMMAND> [info]
+    ##   <time> ALIVE
+    ##   <time> ENV id
+    ##   <time> MESSAGE content
+    ##   <time> JOB_START id
+    ##   <time> JOB_ERROR id
+    ##   <time> JOB_COMPLETE id
+    ##   <time> STOP
 
     run_job=function(id) {
       keys <- self$keys
@@ -162,23 +159,15 @@ WORKER_BUSY <- "BUSY"
       message("Running job ", id)
       self$log("JOB_START", id)
 
-      if (!self$initialize_environment()) {
-        ## This should be handled carefully; probably the best bet is
-        ## to flag upstream (send a message to the controller) and
-        ## push the job back to the front of the queue.
-        ##
-        ## However, there is not really a good case where the job
-        ## queue is established but the environment bits are not.
-        stop("asdfa")
-      }
-
-      expr_stored <- con$HGET(keys$tasks, id)
+      expr_stored <- con$HGET(keys$tasks_expr, id)
       if (is.null(expr_stored)) {
         ## TODO: Fail nicely here by marking the job lost and returning?
         stop("job not found")
       }
 
-      envir <- new.env(parent=self$env)
+      envir_id <- con$HGET(keys$tasks_envir, id)
+      envir_parent <- self$initialize_environment(envir_id)
+      envir <- new.env(parent=envir_parent)
       expr <- restore_expression(expr_stored, envir, self$objects)
       message("\t", deparse(expr))
 
@@ -188,6 +177,8 @@ WORKER_BUSY <- "BUSY"
         con$HSET(keys$tasks_status, id, TASK_RUNNING)
       })
 
+      ## NOTE: if the underlying process *wants* to return an error
+      ## this is going to be a false alarm.
       res <- try(eval(expr, envir))
       if (is_error(res)) {
         self$log("JOB_ERROR", id)
@@ -209,15 +200,16 @@ WORKER_BUSY <- "BUSY"
     },
 
     run_message=function(msg) {
+      self$log("MESSAGE", msg)
       re <- "^([^\\s]+)\\s*(.*)$"
       cmd <- sub(re, "\\1", msg, perl=TRUE)
       args <- sub(re, "\\2", msg, perl=TRUE)
+      ## TODO: purge object cache (save on memory)
       switch(cmd,
              PING=run_message_PING(args),
              ECHO=run_message_ECHO(args),
              EVAL=run_message_EVAL(args),
              STOP=run_message_STOP(args),
-             ENV=run_message_ENV(self),
              INSTALL=run_message_INSTALL(args),
              message(sprintf("Recieved unknown message: [%s] [%s]", cmd, args)))
     },
@@ -227,7 +219,7 @@ WORKER_BUSY <- "BUSY"
       ## TODO: declare running jobs abandoned so that they get
       ## rescheduled.
       message("shutting down")
-      self$con$SREM(self$keys$workers, self$name)
+      self$con$SREM(self$keys$workers_name,   self$name)
       self$con$HDEL(self$keys$workers_status, self$name)
       self$log("STOP")
     }))
@@ -284,11 +276,6 @@ run_message_STOP <- function(args) {
     args <- "STOP requested by controller"
   }
   stop(StopWorker(args))
-}
-run_message_ENV <- function(self) {
-  message("> ENV")
-  self$env <- NULL
-  self$initialize_environment()
 }
 
 ## TODO: I have nice code code for doing this in remake I could reuse
@@ -348,7 +335,7 @@ rrqueue_worker_spawn <- function(queue_name, logfile, con=NULL,
   ## object here).
   con <- redis_connection(con)
   keys <- rrqueue_keys(queue_name)
-  key <- keys$workers
+  key <- keys$workers_name
   workers <- function() {
     as.character(con$SMEMBERS(key))
   }
@@ -380,6 +367,6 @@ install_rrqueue_worker <- function(destination_directory, overwrite=FALSE) {
   code <- c("#!/usr/bin/env Rscript",
             "library(methods)",
             "w <- rrqueue:::rrqueue_worker_main()")
-  dest <- file.path(destimation_directory, "rrqueue_worker")
+  dest <- file.path(destination_directory, "rrqueue_worker")
   install_script(code, dest, overwrite)
 }

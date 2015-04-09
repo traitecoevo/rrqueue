@@ -11,11 +11,21 @@ test_that("controller", {
   keys <- rrqueue_keys(obj$name)
 
   con <- obj$con
-  expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
-              equals(sort(c(keys$packages, keys$sources))))
 
-  expect_that(string_to_object(con$GET(keys$packages)), equals(NULL))
-  expect_that(string_to_object(con$GET(keys$sources)), equals("myfuns.R"))
+  ## TODO: add controller version here too so we know we're speaking
+  ## the right dialect.
+  keys_startup <- c(keys$envirs_counter,
+                    keys$envirs_default,
+                    keys$envirs_packages,
+                    keys$envirs_sources)
+  expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
+              equals(sort(keys_startup)))
+
+  envir_id <- con$GET(keys$envirs_default)
+  expect_that(string_to_object(con$HGET(keys$envirs_packages, envir_id)),
+              equals(NULL))
+  expect_that(string_to_object(con$HGET(keys$envirs_sources, envir_id)),
+              equals("myfuns.R"))
 
   ## Queue two jobs:
   id1 <- obj$enqueue(sin(1))
@@ -27,13 +37,13 @@ test_that("controller", {
   expect_that(obj$tasks_status(),
               equals(c("1"=TASK_PENDING, "2"=TASK_PENDING)))
 
+  keys_tasks <- c(keys$tasks_expr, keys$tasks_counter, keys$tasks_id,
+                  keys$tasks_status, keys$tasks_envir)
   expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
-              equals(sort(c(keys$packages, keys$sources,
-                            keys$tasks, keys$tasks_counter,
-                            keys$tasks_id, keys$tasks_status))))
+              equals(sort(c(keys_startup, keys_tasks))))
 
   expect_that(con$TYPE(keys$tasks_id),      equals("list"))
-  expect_that(con$TYPE(keys$tasks),         equals("hash"))
+  expect_that(con$TYPE(keys$tasks_expr),    equals("hash"))
   expect_that(con$TYPE(keys$tasks_counter), equals("string"))
   expect_that(con$TYPE(keys$tasks_status),  equals("hash"))
 
@@ -41,7 +51,7 @@ test_that("controller", {
   expect_that(ids, equals(list("1", "2")))
   ids <- as.character(ids)
 
-  tasks <- unname(from_redis_hash(con, keys$tasks)[as.character(ids)])
+  tasks <- unname(from_redis_hash(con, keys$tasks_expr)[as.character(ids)])
   e <- new.env(parent=.GlobalEnv)
   tasks <- lapply(tasks, restore_expression, e, obj$objects)
   expect_that(ls(e), equals(character(0)))
@@ -53,7 +63,7 @@ test_that("controller", {
   expect_that(status[ids],
               equals(setNames(rep(TASK_PENDING, length(ids)), ids)))
 
-  expect_that(obj$tasks(), equals(from_redis_hash(con, keys$tasks)))
+  expect_that(obj$tasks(), equals(from_redis_hash(con, keys$tasks_expr)))
 
   expect_that(obj$tasks_drop(ids), equals(setNames(c(TRUE, TRUE), ids)))
   expect_that(obj$tasks_drop(ids), equals(setNames(c(FALSE, FALSE), ids)))
@@ -69,7 +79,7 @@ test_that("controller", {
   expect_that(obj$n_workers(), equals(1))
 
   expect_that(con$TYPE(keys$workers_status), equals("hash"))
-  expect_that(con$TYPE(keys$workers), equals("set"))
+  expect_that(con$TYPE(keys$workers_name),   equals("set"))
 
   w <- obj$workers()
   expect_that(length(w), equals(1L))
@@ -101,7 +111,7 @@ test_that("controller", {
 
   ## TODO: factor out the mangling here.
   expect_that(obj$objects$list(),
-              equals(sprintf(".%s:x", id)))
+              equals(paste0(task_object_prefix(id), "x")))
   expect_that(restore_expression(obj$tasks()[[id]], e, obj$objects),
               equals(quote(sin(x))))
 
@@ -126,10 +136,10 @@ test_that("controller", {
   expect_that(dlog, is_a("data.frame"))
 
   expect_that(dlog$command, equals(c("ALIVE",
+                                     "JOB_START", "ENV", "JOB_COMPLETE",
                                      "JOB_START", "JOB_COMPLETE",
-                                     "JOB_START", "JOB_COMPLETE",
-                                     "STOP")))
-  expect_that(dlog$message, equals(c("", "3", "3", "4", "4", "")))
+                                     "MESSAGE", "STOP")))
+  expect_that(dlog$message, equals(c("", "3", "1", "3", "4", "4", "STOP", "")))
 
   ## TODO: cleanup properly.
 })
