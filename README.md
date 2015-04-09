@@ -4,7 +4,14 @@ Beyond `mclapply` -- queue-based parallel processing in R, using [Redis](http://
 
 # Installation
 
-Redis must be installed, `redis-server` must be running.  The [redis](https://registry.hub.docker.com/_/redis/) docker image might be a good idea here.
+Redis must be installed, `redis-server` must be running.  If you are familiar with docker, the [redis](https://registry.hub.docker.com/_/redis/) docker image might be a good idea here. Alterantively, [download redis](http://redis.io/download), unpack and then install by running `make install` in a terminal window within the downlaoded folder.
+
+Once installed start `redis-server` by typing in a terminal window
+
+```
+redis-server
+```
+
 
 R packages:
 
