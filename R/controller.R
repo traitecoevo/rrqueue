@@ -1,9 +1,8 @@
-object_to_string <- rrlite::object_to_string
-string_to_object <- rrlite::string_to_object
-
-TASK_PENDING <- 0L
-TASK_RUNNING <- 1L
-TASK_COMPLETE <- 2L
+TASK_PENDING  <- "PENDING"
+TASK_RUNNING  <- "RUNNING"
+TASK_COMPLETE <- "COMPLETE"
+TASK_ERRORED  <- "ERRORED"
+TASK_MISSING  <- "MISSING"
 
 ## TODO: queue objects should be able to be destroyed at will: all the
 ## data should be stored on the server; requires reconfiguring the
@@ -117,13 +116,26 @@ TASK_COMPLETE <- 2L
       from_redis_hash(self$con, self$keys$tasks)
     },
 
-    tasks_status=function() {
-      from_redis_hash(self$con, self$keys$tasks_status, as.integer)
+    tasks_status=function(id=NULL) {
+      if (is.null(id)) {
+        from_redis_hash(self$con, self$keys$tasks_status,
+                        as.character)
+      } else {
+        status <- self$con$HMGET(self$keys$tasks_status, id)
+        status[vapply(status, is.null, logical(1))] <- TASK_MISSING
+        status <- as.character(status)
+        names(status) <- id
+        status
+      }
     },
 
+    ## TODO: Only works for one task - but name suggests >= 1
+    ## TODO: write vectorised version that always returns a list
     tasks_collect=function(id) {
-      status <- as.integer(self$con$HGET(self$keys$tasks_status, id))
-      if (status != TASK_COMPLETE) {
+      status <- self$tasks_status(id)
+      if (is.na(status)) {
+        stop("task does not exist")
+      } else if (status != TASK_COMPLETE) {
         stop("task is incomplete")
       }
       string_to_object(self$con$HGET(self$keys$tasks_result, id))
@@ -133,22 +145,25 @@ TASK_COMPLETE <- 2L
       con <- self$con
       keys <- self$keys
 
-      status <- con$HMGET(keys$tasks_status, id)
-      status[vapply(status, is.null, logical(1))] <- FALSE
-      status <- as.integer(status)
+      status <- self$tasks_status(id)
+
       if (any(status == TASK_RUNNING)) {
         stop("One of the tasks is running -- not clear how to deal")
       }
 
-      ret <- redis_multi(con, {
+      ret <- logical(length(id))
+      names(ret) <- id
+
+      redis_multi(con, {
         for (i in id[status == TASK_PENDING]) {
-          self$con$LREM(keys$tasks_id, 0, i)
+          ret[[i]] <- self$con$LREM(keys$tasks_id, 0, i) > 0L
         }
         con$HDEL(keys$tasks, id)
         con$HDEL(keys$tasks_status, id)
         con$HDEL(keys$tasks_result, id)
       })
-      as.logical(ret[seq_along(id)])
+
+      ret
     }
   ))
 

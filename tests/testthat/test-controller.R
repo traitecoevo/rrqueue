@@ -24,6 +24,9 @@ test_that("controller", {
   expect_that(id1, equals("1"))
   expect_that(id2, equals("2"))
 
+  expect_that(obj$tasks_status(),
+              equals(c("1"=TASK_PENDING, "2"=TASK_PENDING)))
+
   expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
               equals(sort(c(keys$packages, keys$sources,
                             keys$tasks, keys$tasks_counter,
@@ -47,13 +50,13 @@ test_that("controller", {
   expect_that(con$GET(keys$tasks_counter), equals("2"))
 
   status <- from_redis_hash(con, keys$tasks_status)
-  expect_that(unname(status[as.character(ids)]),
-              equals(rep(as.character(TASK_PENDING), length(ids))))
+  expect_that(status[ids],
+              equals(setNames(rep(TASK_PENDING, length(ids)), ids)))
 
   expect_that(obj$tasks(), equals(from_redis_hash(con, keys$tasks)))
 
-  expect_that(obj$tasks_drop(c(id1, id2)), equals(c(TRUE, TRUE)))
-  expect_that(obj$tasks_drop(c(id1, id2)), equals(c(FALSE, FALSE)))
+  expect_that(obj$tasks_drop(ids), equals(setNames(c(TRUE, TRUE), ids)))
+  expect_that(obj$tasks_drop(ids), equals(setNames(c(FALSE, FALSE), ids)))
   expect_that(obj$tasks(), equals(empty_named_character()))
   expect_that(con$LRANGE(keys$tasks_id, 0, -1), equals(list()))
 

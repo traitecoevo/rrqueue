@@ -1,3 +1,8 @@
+## import is not quite enough here as we want to be able to use these
+## in tests, etc.
+object_to_string <- rrlite::object_to_string
+string_to_object <- rrlite::string_to_object
+
 ##' @importFrom rrlite hiredis
 redis_connection <- function(con) {
   if (is.null(con)) rrlite::hiredis() else con

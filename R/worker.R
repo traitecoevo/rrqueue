@@ -1,5 +1,5 @@
-WORKER_IDLE <- 0L
-WORKER_BUSY <- 1L
+WORKER_IDLE <- "IDLE"
+WORKER_BUSY <- "BUSY"
 
 ##' @importFrom R6 R6Class
 .R6_worker <- R6::R6Class(
@@ -192,12 +192,15 @@ WORKER_BUSY <- 1L
       if (is_error(res)) {
         self$log("JOB_ERROR", id)
         message(sprintf("\tjob %s failed", id))
+        task_status <- TASK_ERRORED
+      } else {
+        task_status <- TASK_COMPLETE
       }
 
       redis_multi(con, {
         con$HSET(keys$tasks_result, id, object_to_string(res))
         con$HDEL(keys$workers_task, self$name)
-        con$HSET(keys$tasks_status, id, TASK_COMPLETE)
+        con$HSET(keys$tasks_status, id, task_status)
         con$HSET(keys$workers_status, self$name, WORKER_IDLE)
         self$log("JOB_COMPLETE", id)
       })
