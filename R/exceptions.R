@@ -1,27 +1,29 @@
-StopWorker <- function(message="Shut down worker", call=NULL) {
-  class <- c("StopWorker", "error", "condition")
-  structure(list(message = as.character(message), call = call),
-            class = class)
-}
-
 WorkerError <- function(worker, message, ...,
-                        task_id=NULL, class=character(0)) {
+                        task_id=NULL,
+                        class=character(0),
+                        call=NULL) {
   structure(list(worker=worker, task_id=task_id, ...,
-                 message=message, call=NULL),
+                 message=message, call=call),
             class=c(class, "WorkerError", "error", "condition"))
 }
 
-WorkerTaskMissing <- function(worker, task_id, call=NULL) {
-  WorkerError(sprintf("Task %s/%s not found", worker$name, task_id),
-              task_id=task_id, class="WorkerTaskMissing")
+WorkerStop <- function(worker, message) {
+  WorkerError(worker, message, class="WorkerStop")
 }
 
-WorkerEnvironmentFailed <- function(worker, task_id, message, call=NULL) {
-  WorkerError(sprintf("Task %s/%s failed", worker$name, task_id),
-              task_id=task_id, class="WorkerEnvironmentFailed")
+WorkerTaskMissing <- function(worker, task_id) {
+  msg <- sprintf("Task %s/%s not found", worker$name, task_id)
+  WorkerError(worker, msg, task_id=task_id, class="WorkerTaskMissing")
 }
 
-WorkerTaskFailed <- function(worker, task_id, message, call=NULL) {
-  WorkerError(sprintf("Task %s/%s failed", worker$name, task_id),
-              task_id=task_id, class="WorkerEnvironmentFailed")
+WorkerEnvironmentFailed <- function(worker, task_id, e) {
+  msg <- sprintf("Environment load for %s failed\n:\t%s",
+                 task_id, e$message)
+  WorkerError(worker, msg, task_id=task_id, call=e$call,
+              class="WorkerEnvironmentFailed")
+}
+
+WorkerTaskFailed <- function(worker, task_id, message) {
+  msg <- sprintf("Task %s/%s failed", worker$name, task_id)
+  WorkerError(worker, msg, task_id=task_id, class="WorkerTaskFailed")
 }

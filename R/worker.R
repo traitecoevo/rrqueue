@@ -32,6 +32,7 @@ WORKER_BUSY <- "BUSY"
       self$objects <- object_cache(con, self$keys$objects)
 
       ## Register the worker:
+      ## TODO: work out how to force the worker in
       if (self$con$SISMEMBER(self$keys$workers_name, self$name) == 1L) {
         stop("Looks like this worker exists already...")
       }
@@ -62,13 +63,12 @@ WORKER_BUSY <- "BUSY"
         self$shutdown("ERROR")
         stop(e)
       }
-      catch_stop_worker <- function(e) {
+      catch_worker_stop <- function(e) {
         message(e$message)
         self$shutdown("OK")
       }
-
       tryCatch(self$main(),
-               StopWorker=catch_stop_worker,
+               WorkerStop=catch_worker_stop,
                error=catch_error,
                interrupt=catch_interrupt)
     },
@@ -133,16 +133,13 @@ WORKER_BUSY <- "BUSY"
         task <- con$context$run(c("BLPOP", key_queue, timeout))
         if (is.null(task)) {
           message(wait())
-          ## Detect the "main" key perhaps?
-          ## Perhaps here just rip this out of the set?
-          if (FALSE) {# (con$EXISTS(queue_counter) != 1L) {
-            self$shutdown()
-            break
-          }
         } else {
           channel <- task[[1]]
           if (channel == key_queue_tasks) {
-            self$run_task(task[[2]])
+            tryCatch(
+              self$run_task(task[[2]]),
+              WorkerError=function(e)
+                self$task_cleanup(e, e$task_id, e$task_status))
           } else { # (channel == key_queue_msg)
             self$run_message(task[[2]])
           } # no else clause...
@@ -171,19 +168,10 @@ WORKER_BUSY <- "BUSY"
       message("Running task ", id)
       self$log("TASK_START", id)
 
-      expr_stored <- con$HGET(keys$tasks_expr, id)
-      if (is.null(expr_stored)) {
-        ## TODO: Fail nicely here by marking the task lost and returning?
-        stop("task not found")
-      }
-
-      envir_id <- con$HGET(keys$tasks_envir, id)
-      ## TODO: This might throw so needs to be done in tryCatch - if
-      ## the task fails be informative about it in the log.
-      envir_parent <- self$initialize_environment(envir_id)
-      envir <- new.env(parent=envir_parent)
-      expr <- restore_expression(expr_stored, envir, self$objects)
-      message("\t", deparse(expr))
+      context <- tryCatch(
+        self$task_prepare(id),
+        WorkerError=function(e) stop(e), # I think...
+        error=function(e) stop(WorkerEnvironmentFailed(self, id, e)))
 
       redis_multi(con, {
         con$HSET(keys$workers_status, self$name, WORKER_BUSY)
@@ -191,31 +179,12 @@ WORKER_BUSY <- "BUSY"
         con$HSET(keys$tasks_status, id, TASK_RUNNING)
       })
 
-      ## Name of the queue that we push completeness to.
-      key_complete <- con$HGET(keys$tasks_complete, id)
-
       ## NOTE: if the underlying process *wants* to return an error
-      ## this is going to be a false alarm.
-      res <- try(eval(expr, envir))
-      if (is_error(res)) {
-        self$log("TASK_ERROR", id)
-        message(sprintf("\ttask %s failed", id))
-        task_status <- TASK_ERRORED
-      } else {
-        task_status <- TASK_COMPLETE
-      }
-
-      redis_multi(con, {
-        con$HSET(keys$tasks_result, id, object_to_string(res))
-        con$HDEL(keys$workers_task, self$name)
-        con$HSET(keys$tasks_status, id, task_status)
-        con$HSET(keys$workers_status, self$name, WORKER_IDLE)
-        ## This advertises to the controller that we're done
-        con$RPUSH(key_complete, id)
-        self$log("TASK_COMPLETE", id)
-      })
-
-      message(sprintf("task %s complete", id))
+      ## this is going to be a false alarm, but there's not really a
+      ## good way of detecting that.
+      res <- try(eval(context$expr, context$envir))
+      status <- if (is_error(res)) TASK_ERROR else TASK_COMPLETE
+      self$task_cleanup(res, id, status)
     },
 
     run_message=function(msg) {
@@ -228,9 +197,43 @@ WORKER_BUSY <- "BUSY"
              PING=run_message_PING(args),
              ECHO=run_message_ECHO(args),
              EVAL=run_message_EVAL(args),
-             STOP=run_message_STOP(args),
+             STOP=run_message_STOP(self, args),
              INSTALL=run_message_INSTALL(args),
              message(sprintf("Recieved unknown message: [%s] [%s]", cmd, args)))
+    },
+
+    task_prepare=function(id, expr_stored) {
+      con <- self$con
+      keys <- self$keys
+
+      expr_stored <- con$HGET(keys$tasks_expr, id)
+      if (is.null(expr_stored)) {
+        stop(WorkerTaskMissing(self, id))
+      }
+
+      envir_id <- con$HGET(keys$tasks_envir, id)
+      envir_parent <- self$initialize_environment(envir_id)
+
+      envir <- new.env(parent=envir_parent)
+      expr <- restore_expression(expr_stored, envir, self$objects)
+      list(expr=expr, envir=envir)
+    },
+
+    task_cleanup=function(data, id, task_status) {
+      con <- self$con
+      keys <- self$keys
+      key_complete <- con$HGET(keys$tasks_complete, id)
+      message(sprintf("\ttask %s finished with status %s", id, task_status))
+      redis_multi(con, {
+        con$HSET(keys$tasks_result, id, object_to_string(data))
+        con$HDEL(keys$workers_task, self$name)
+        con$HSET(keys$tasks_status, id, task_status)
+        con$HSET(keys$workers_status, self$name, WORKER_IDLE)
+        ## This advertises to the controller that we're done
+        con$RPUSH(key_complete, id)
+        self$log(paste0("TASK_", task_status), id)
+      })
+      message(sprintf("\ttask %s cleanup complete", id))
     },
 
     ## TODO: organise doing this on finalisation:
@@ -290,11 +293,11 @@ run_message_EVAL <- function(args) {
   message("> EVAL ", args)
   try(eval(parse(text=args), .GlobalEnv))
 }
-run_message_STOP <- function(args) {
+run_message_STOP <- function(worker, args) {
   if (args == "") {
     args <- "STOP requested by controller"
   }
-  stop(StopWorker(args))
+  stop(WorkerStop(worker, args))
 }
 
 ## TODO: I have nice code code for doing this in remake I could reuse

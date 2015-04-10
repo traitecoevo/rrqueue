@@ -3,6 +3,7 @@ TASK_RUNNING  <- "RUNNING"
 TASK_COMPLETE <- "COMPLETE"
 TASK_ERRORED  <- "ERRORED"
 TASK_MISSING  <- "MISSING"
+TASK_ENVIR_ERROR <- "ENVIR_ERROR"
 
 ## TODO: queue objects should be able to be destroyed at will: all the
 ## data should be stored on the server; requires reconfiguring the
