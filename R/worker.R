@@ -38,6 +38,7 @@ WORKER_BUSY <- "BUSY"
       message("worker:   ", self$name)
       message("hostname: ", hostname)
       message("pid:      ", pid)
+      message("message:  ", self$keys$message)
       redis_multi(self$con, {
         self$con$SADD(self$keys$workers_name,   self$name)
         self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
