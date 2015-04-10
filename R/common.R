@@ -1,7 +1,22 @@
-rrqueue_keys <- function(queue) {
-  list(rrqueue_queues  = "rrqueue:queues",
+rrqueue_keys <- function(queue_name=NULL, worker_name=NULL) {
+  if (is.null(queue_name)) {
+    rrqueue_keys_global()
+  } else if (is.null(worker_name)) {
+    c(rrqueue_keys_global(),
+      rrqueue_keys_queue(queue_name))
+  } else {
+    c(rrqueue_keys_global(),
+      rrqueue_keys_queue(queue_name),
+      rrqueue_keys_worker(queue_name, worker_name))
+  }
+}
 
-       workers_name    = sprintf("%s:workers:name",    queue),
+rrqueue_keys_global <- function() {
+  list(rrqueue_queues  = "rrqueue:queues")
+}
+
+rrqueue_keys_queue <- function(queue) {
+  list(workers_name    = sprintf("%s:workers:name",    queue),
        workers_status  = sprintf("%s:workers:status",  queue),
        workers_task    = sprintf("%s:workers:task",    queue),
 
@@ -11,6 +26,7 @@ rrqueue_keys <- function(queue) {
        tasks_status    = sprintf("%s:tasks:status",    queue),
        tasks_result    = sprintf("%s:tasks:result",    queue),
        tasks_envir     = sprintf("%s:tasks:envir",     queue),
+       tasks_complete  = sprintf("%s:tasks:complete",  queue),
 
        envirs_counter  = sprintf("%s:envirs:counter",  queue),
        envirs_packages = sprintf("%s:envirs:packages", queue),
@@ -21,13 +37,20 @@ rrqueue_keys <- function(queue) {
        objects         = sprintf("%s:objects",         queue))
 }
 
+rrqueue_keys_worker <- function(queue, worker) {
+  list(message = rrqueue_key_worker_message(queue, worker),
+       log     = rrqueue_key_worker_log(queue, worker))
+}
+
 ## Special key for worker-specific commands to be published to.
-rrqueue_key_worker <- function(queue, worker) {
-  ## TODO: rename -> rrqueue_key_worker_message
+rrqueue_key_worker_message <- function(queue, worker) {
   sprintf("%s:worker:%s:message", queue, worker)
 }
 rrqueue_key_worker_log <- function(queue, worker) {
   sprintf("%s:worker:%s:log", queue, worker)
+}
+rrqueue_key_task_complete <- function(queue, id) {
+  sprintf("%s:tasks:complete:%s", queue, id)
 }
 
 ## TODO: come up with a way of scheduling object deletion.  Things

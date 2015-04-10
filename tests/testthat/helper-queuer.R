@@ -1,3 +1,4 @@
+## TODO: run in db 15 or something?
 empty_named_list <- rrlite:::empty_named_list
 empty_named_character <- function() {
   structure(character(0), names = character(0))
@@ -10,6 +11,7 @@ rrqueue_cleanup <- function(con, name) {
   if (length(del) > 0L) {
     con$DEL(del)
   }
+  con$SREM("rrqueue:queues", name)
 }
 
 test_cleanup <- function() {

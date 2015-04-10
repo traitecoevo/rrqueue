@@ -21,7 +21,7 @@ TASK_MISSING  <- "MISSING"
                         clean=FALSE) {
       self$con <- redis_connection(con)
       self$name <- name
-      self$keys <- rrqueue_keys(name)
+      self$keys <- rrqueue_keys(self$name)
 
       existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$name)
       if (existing) {
@@ -82,11 +82,19 @@ TASK_MISSING  <- "MISSING"
     ## TODO: allow setting a "group" or "name" for more easily
     ## recalling jobs?
     ## TODO: envir should be parent.frame?
-    enqueue=function(expr, envir=.GlobalEnv, envir_id=NULL) {
+    enqueue=function(expr, envir=.GlobalEnv, envir_id=NULL,
+      key_complete=NULL) {
+      #
+      self$enqueue_(substitute(expr), envir, envir_id, key_complete)
+    },
+
+    enqueue_=function(expr, envir=.GlobalEnv, envir_id=NULL,
+      key_complete=NULL) {
+      #
       con <- self$con
       keys <- self$keys
 
-      dat <- prepare_expression(substitute(expr))
+      dat <- prepare_expression(expr)
 
       ## TODO: Not checked to make sure that it is a valid id.
       if (is.null(envir_id)) {
@@ -96,18 +104,21 @@ TASK_MISSING  <- "MISSING"
       task_id <- as.character(con$INCR(keys$tasks_counter))
       expr_str <- save_expression(dat, task_id, envir, self$objects)
 
+      if (is.null(key_complete)) {
+        key_complete <- rrqueue_key_task_complete(self$name, task_id)
+      }
+
       ## TODO: Do this in a MULTI block?
-      con$HSET(keys$tasks_expr,   task_id, expr_str)
-      con$HSET(keys$tasks_status, task_id, TASK_PENDING)
-      con$HSET(keys$tasks_envir,  task_id, envir_id)
+      con$HSET(keys$tasks_expr,     task_id, expr_str)
+      con$HSET(keys$tasks_status,   task_id, TASK_PENDING)
+      con$HSET(keys$tasks_envir,    task_id, envir_id)
+      con$HSET(keys$tasks_complete, task_id, key_complete)
 
       ## This must be done *last*, as it flags the job ready to be
       ## run.
       con$RPUSH(keys$tasks_id, task_id)
 
-      ## NOTE: coercing this to a string because that's mostly how
-      ## tasks will be done.
-      as.character(task_id)
+      task(con, self$name, task_id, key_complete)
     },
 
     ## TODO: Send messages to workers.  This can be a second list and
@@ -128,7 +139,7 @@ TASK_MISSING  <- "MISSING"
       }
       ## TODO: check if the worker exists before pushing anything onto
       ## its message queue.
-      key <- rrqueue_key_worker(self$name, worker)
+      key <- rrqueue_key_worker_message(self$name, worker)
       for (k in key) {
         self$con$RPUSH(k, content)
       }
@@ -201,9 +212,11 @@ TASK_MISSING  <- "MISSING"
         for (i in id[status == TASK_PENDING]) {
           ret[[i]] <- self$con$LREM(keys$tasks_id, 0, i) > 0L
         }
-        con$HDEL(keys$tasks_expr,   id)
-        con$HDEL(keys$tasks_status, id)
-        con$HDEL(keys$tasks_result, id)
+        con$HDEL(keys$tasks_expr,     id)
+        con$HDEL(keys$tasks_status,   id)
+        con$HDEL(keys$tasks_envir,    id)
+        con$HDEL(keys$tasks_complete, id)
+        con$HDEL(keys$tasks_result,   id)
       })
 
       ret

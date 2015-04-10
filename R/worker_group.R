@@ -32,7 +32,8 @@
       }
 
       self$workers <- id
-      self$keys$workers <- rrqueue_key_worker(self$queue_name, self$workers)
+      self$keys$workers <- rrqueue_key_worker_message(self$queue_name,
+                                                      self$workers)
 
       message("Workers:\n", paste0("\t", self$workers, collapse="\n"))
 

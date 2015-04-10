@@ -27,10 +27,7 @@ WORKER_BUSY <- "BUSY"
 
       self$name <- sprintf("%s::%d", hostname, pid)
       self$queue_name <- queue_name
-
-      self$keys <- rrqueue_keys(self$queue_name)
-      self$keys$message <- rrqueue_key_worker(self$queue_name, self$name)
-      self$keys$log <- rrqueue_key_worker_log(self$queue_name, self$name)
+      self$keys <- rrqueue_keys(self$queue_name, worker_name=self$name)
 
       self$objects <- object_cache(con, self$keys$objects)
 
@@ -55,16 +52,16 @@ WORKER_BUSY <- "BUSY"
         ## TODO: this should only matter when running interactively,
         ## but it does apply here.  Make this ignorable.
         message("Catching interrupt - halting worker")
-        self$shutdown()
+        self$shutdown("INTERRUPT")
       }
       catch_error <- function(e) {
         message("Caught fatal error - halting")
-        self$shutdown()
+        self$shutdown("ERROR")
         stop(e)
       }
       catch_stop_worker <- function(e) {
         message(e$message)
-        self$shutdown()
+        self$shutdown("OK")
       }
 
       tryCatch(self$main(),
@@ -80,10 +77,10 @@ WORKER_BUSY <- "BUSY"
         message("initializing environment ", id)
         self$log("ENV", id)
         keys <- self$keys
-        packages <- self$con$HGET(self$keys$envirs_packages, id)
-        sources  <- self$con$HGET(self$keys$envirs_sources,  id)
-        e <- create_environment(string_to_object(packages),
-                                string_to_object(sources))
+        s2o <- string_to_object
+        packages <- s2o(self$con$HGET(self$keys$envirs_packages, id))
+        sources  <- s2o(self$con$HGET(self$keys$envirs_sources,  id))
+        e <- create_environment(packages, sources)
         self$envir[[id]] <- e
         message(sprintf("\tdone (%d packages, %d sources)",
                         length(packages), length(sources)))
@@ -101,21 +98,21 @@ WORKER_BUSY <- "BUSY"
       self$con$RPUSH(self$keys$log, msg)
     },
 
-    ## TODO: Store time since last job.
+    ## TODO: Store time since last task.
     main=function() {
       message("waiting for tasks")
       ## TODO: should not use BLPOP here but instead use BRPOPLPUSH
       ## see http://redis.io/commands/{blpop,rpoplpush,brpoplpush}
       con <- self$con
       timeout <- self$timeout
-      key_queue_jobs <- self$keys$tasks_id
+      key_queue_tasks <- self$keys$tasks_id
       key_queue_msg  <- self$keys$message
-      key_queue <- c(key_queue_jobs, key_queue_msg)
+      key_queue <- c(key_queue_tasks, key_queue_msg)
 
       wait <- worker_wait_symbols()
 
       ## TODO: should be possible to send SIGHUP or something to
-      ## trigger stopping current job but keep listening.
+      ## trigger stopping current task but keep listening.
       ##
       ## TODO: another option is to look at a redis key after
       ## interrupt?
@@ -131,8 +128,8 @@ WORKER_BUSY <- "BUSY"
           }
         } else {
           channel <- task[[1]]
-          if (channel == key_queue_jobs) {
-            self$run_job(task[[2]])
+          if (channel == key_queue_tasks) {
+            self$run_task(task[[2]])
           } else { # (channel == key_queue_msg)
             self$run_message(task[[2]])
           } # no else clause...
@@ -140,29 +137,31 @@ WORKER_BUSY <- "BUSY"
       }
     },
 
-    ## TODO: Store job begin/end times?
+    ## TODO: Store task begin/end times?
     ## TODO: Push events to a log on redis: worker:log - it can be a
     ## list.  Events would be:
     ##   <TIME(int)> <COMMAND> [info]
     ##   <time> ALIVE
     ##   <time> ENV id
     ##   <time> MESSAGE content
-    ##   <time> JOB_START id
-    ##   <time> JOB_ERROR id
-    ##   <time> JOB_COMPLETE id
+    ##   <time> TASK_START id
+    ##   <time> TASK_ERROR id
+    ##   <time> TASK_COMPLETE id
     ##   <time> STOP
 
-    run_job=function(id) {
+    ## TODO: push this out into its own function so the class is
+    ## easier to follow.
+    run_task=function(id) {
       keys <- self$keys
       con <- self$con
 
-      message("Running job ", id)
-      self$log("JOB_START", id)
+      message("Running task ", id)
+      self$log("TASK_START", id)
 
       expr_stored <- con$HGET(keys$tasks_expr, id)
       if (is.null(expr_stored)) {
-        ## TODO: Fail nicely here by marking the job lost and returning?
-        stop("job not found")
+        ## TODO: Fail nicely here by marking the task lost and returning?
+        stop("task not found")
       }
 
       envir_id <- con$HGET(keys$tasks_envir, id)
@@ -177,12 +176,15 @@ WORKER_BUSY <- "BUSY"
         con$HSET(keys$tasks_status, id, TASK_RUNNING)
       })
 
+      ## Name of the queue that we push completeness to.
+      key_complete <- con$HGET(keys$tasks_complete, id)
+
       ## NOTE: if the underlying process *wants* to return an error
       ## this is going to be a false alarm.
       res <- try(eval(expr, envir))
       if (is_error(res)) {
-        self$log("JOB_ERROR", id)
-        message(sprintf("\tjob %s failed", id))
+        self$log("TASK_ERROR", id)
+        message(sprintf("\ttask %s failed", id))
         task_status <- TASK_ERRORED
       } else {
         task_status <- TASK_COMPLETE
@@ -193,10 +195,12 @@ WORKER_BUSY <- "BUSY"
         con$HDEL(keys$workers_task, self$name)
         con$HSET(keys$tasks_status, id, task_status)
         con$HSET(keys$workers_status, self$name, WORKER_IDLE)
-        self$log("JOB_COMPLETE", id)
+        ## This advertises to the controller that we're done
+        con$RPUSH(key_complete, id)
+        self$log("TASK_COMPLETE", id)
       })
 
-      message(sprintf("job %s complete", id))
+      message(sprintf("task %s complete", id))
     },
 
     run_message=function(msg) {
@@ -215,13 +219,13 @@ WORKER_BUSY <- "BUSY"
     },
 
     ## TODO: organise doing this on finalisation:
-    shutdown=function() {
-      ## TODO: declare running jobs abandoned so that they get
+    shutdown=function(status="OK") {
+      ## TODO: declare running tasks abandoned so that they get
       ## rescheduled.
       message("shutting down")
       self$con$SREM(self$keys$workers_name,   self$name)
       self$con$HDEL(self$keys$workers_status, self$name)
-      self$log("STOP")
+      self$log("STOP", status)
     }))
 
 ##' Create an rrqueue worker.  This blocks the main loop.
@@ -230,7 +234,7 @@ WORKER_BUSY <- "BUSY"
 ##' @param con Connection to a redis database
 ##' @param timeout Timeout for the blocking connection
 ##' @export
-worker <- function(queue_name, con=NULL, timeout=5) {
+worker <- function(queue_name, con=NULL, timeout=60) {
   .R6_worker$new(queue_name, con, timeout)
 }
 
@@ -344,6 +348,13 @@ rrqueue_worker_spawn <- function(queue_name, logfile, con=NULL,
   system2(rrqueue_worker, queue_name,
           env=env, wait=FALSE,
           stdout=logfile, stderr=logfile)
+
+  ## TODO: OK, what we *really* want is to drop a key that we can
+  ## watch.  If we specify that on the command line as an argument
+  ## then we'll be able to watch for it; that removes the awful
+  ## polling thing and replaces it with an BLPOP again.  That also
+  ## means we can do things like spawn 10 off at once and watch 10
+  ## lists.
 
   ## This is going to be much nicer to do with proper subscriptions
   ## or something.  It should also be possible to run until some
