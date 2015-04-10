@@ -1,11 +1,8 @@
-create_environment <- function(packages, sources) {
-  for (p in packages) {
-    library(p, character.only=TRUE, quietly=TRUE)
-  }
-  env <- new.env(parent=.GlobalEnv)
-  for (f in sources) {
-    tryCatch(sys.source(f, env, chdir=TRUE, keep.source=FALSE),
-             error=catch_source)
+create_environment <- function(packages, sources,
+                               env=new.env(parent=baseenv())) {
+  load_packages(packages)
+  for (file in sources) {
+    do_source(file, env, chdir=TRUE, keep.source=FALSE)
   }
   env
 }
@@ -17,22 +14,27 @@ create_environment <- function(packages, sources) {
 ## we can do about that though.  For cases where we're running locally
 ## it'll be fine.
 create_environment2 <- function(packages, sources, env) {
-  for (p in packages) {
-    library(p, character.only=TRUE, quietly=TRUE)
-  }
-
+  load_packages(packages)
   source_files <- character(0)
   for (file in sources) {
     source_files <- c(
       source_files,
-      tryCatch(sys_source(file, env, chdir=TRUE, keep.source=FALSE),
-               error=catch_source))
+      do_source(file, env, chdir=TRUE, keep.source=FALSE,
+                source_fun=sys_source))
   }
-
   source_files
 }
 
-catch_source <- function(e) {
-  stop(sprintf("while sourcing %s:\n%s", f, e$message),
-       call.=FALSE)
+load_packages <- function(packages) {
+  for (p in packages) {
+    library(p, character.only=TRUE, quietly=TRUE)
+  }
+}
+
+do_source <- function(file, ..., source_fun=sys.source) {
+  catch_source <- function(e) {
+    stop(sprintf("while sourcing %s:\n%s", file, e$message),
+         call.=FALSE)
+  }
+  tryCatch(source_fun(file, ...), error=catch_source)
 }
