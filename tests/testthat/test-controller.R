@@ -19,18 +19,14 @@ test_that("controller", {
 
   ## TODO: add controller version here too so we know we're speaking
   ## the right dialect.
-  keys_startup <- c(keys$envirs_counter,
-                    keys$envirs_default,
-                    keys$envirs_packages,
-                    keys$envirs_sources)
+  keys_startup <- c(keys$envirs_contents)
   expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
               equals(sort(keys_startup)))
 
-  envir_id <- con$GET(keys$envirs_default)
-  expect_that(string_to_object(con$HGET(keys$envirs_packages, envir_id)),
-              equals(NULL))
-  expect_that(string_to_object(con$HGET(keys$envirs_sources, envir_id)),
-              equals("myfuns.R"))
+  dat <- string_to_object(con$HGET(keys$envirs_contents, obj$envir_id))
+  expect_that(dat$packages, equals(NULL))
+  expect_that(dat$sources, equals("myfuns.R"))
+  expect_that(dat$source_files, equals(hash_file("myfuns.R")))
 
   ## Queue two tasks:
   task1 <- obj$enqueue(sin(1))
@@ -71,8 +67,10 @@ test_that("controller", {
   ## TODO: check that envir is 1 and that the complete queue is empty,
   ## but that it is registered
 
-  expect_that(obj$con$HGET(keys$tasks_envir, ids[[1]]), equals("1"))
-  expect_that(obj$con$HGET(keys$tasks_envir, ids[[2]]), equals("1"))
+  expect_that(obj$con$HGET(keys$tasks_envir, ids[[1]]),
+              equals(obj$envir_id))
+  expect_that(obj$con$HGET(keys$tasks_envir, ids[[2]]),
+              equals(obj$envir_id))
   expect_that(obj$con$HGET(keys$tasks_complete, ids[[1]]),
               equals(rrqueue_key_task_complete(obj$name, ids[[1]])))
   expect_that(obj$con$HGET(keys$tasks_complete, ids[[2]]),
@@ -189,7 +187,7 @@ test_that("controller", {
                                      "TASK_START", "ENV", "TASK_COMPLETE",
                                      "TASK_START", "TASK_COMPLETE",
                                      "MESSAGE", "STOP")))
-  expect_that(dlog$message, equals(c("", "3", "1", "3", "4", "4",
+  expect_that(dlog$message, equals(c("", "3", obj$envir_id, "3", "4", "4",
                                      "STOP", "OK")))
 
   ## TODO: cleanup properly.

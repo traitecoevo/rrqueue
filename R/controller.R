@@ -8,6 +8,9 @@ TASK_MISSING  <- "MISSING"
 ## data should be stored on the server; requires reconfiguring the
 ## initialize method though...
 
+## TODO: Refuse to run any more jobs unless the environment agrees;
+## that requires rehashing and is potentially expensive.
+
 .R6_queue <- R6::R6Class(
   "queue",
 
@@ -16,6 +19,8 @@ TASK_MISSING  <- "MISSING"
     name=NULL,
     keys=NULL,
     objects=NULL,
+    envir=NULL,
+    envir_id=NULL,
 
     initialize=function(name, packages=NULL, sources=NULL, con=NULL,
                         clean=FALSE) {
@@ -37,7 +42,7 @@ TASK_MISSING  <- "MISSING"
       }
 
       self$con$SADD(self$keys$rrqueue_queues, self$name)
-      self$add_environment(packages, sources, TRUE)
+      self$initialize_environment(packages, sources, TRUE)
       self$objects <- object_cache(con, self$keys$objects)
     },
 
@@ -56,24 +61,27 @@ TASK_MISSING  <- "MISSING"
       self$con$DEL(self$keys$tasks_result)
       self$con$DEL(self$keys$tasks_envir)
 
-      self$con$DEL(self$keys$envirs_counter)
-      self$con$DEL(self$keys$envirs_packages)
-      self$con$DEL(self$keys$envirs_sources)
-      self$con$DEL(self$keys$envirs_default)
+      self$con$DEL(self$keys$envirs_contents)
     },
 
     ## TODO: facility for named environnents?
     ## TODO: facility for deleting environments?
-    add_environment=function(packages, sources, set_default=FALSE) {
-      packages <- object_to_string(packages)
-      sources  <- object_to_string(sources)
-
-      id <- self$con$INCR(self$keys$envirs_counter)
-      self$con$HSET(self$keys$envirs_packages, id, packages)
-      self$con$HSET(self$keys$envirs_sources,  id, sources)
-      if (set_default) {
-        self$con$SET(self$keys$envirs_default, id)
+    initialize_environment=function(packages, sources, set_default=FALSE) {
+      if (!is.null(self$envir)) {
+        stop("objects environments are immutable(-ish)")
       }
+      ## First, we need to load this environment ourselves.
+      envir <- new.env(parent=baseenv())
+      source_files <- create_environment2(packages, sources, envir)
+
+      dat <- list(packages=packages,
+                  sources=sources,
+                  source_files=source_files)
+
+      dat_str <- object_to_string(dat)
+      self$envir <- envir
+      self$envir_id <- hash_string(dat_str)
+      self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str)
     },
 
     ## TODO: clean up queues on startup, or attach to existing queue?
@@ -82,24 +90,16 @@ TASK_MISSING  <- "MISSING"
     ## TODO: allow setting a "group" or "name" for more easily
     ## recalling jobs?
     ## TODO: envir should be parent.frame?
-    enqueue=function(expr, envir=.GlobalEnv, envir_id=NULL,
-      key_complete=NULL) {
-      #
-      self$enqueue_(substitute(expr), envir, envir_id, key_complete)
+    enqueue=function(expr, envir=.GlobalEnv, key_complete=NULL) {
+      self$enqueue_(substitute(expr), envir, key_complete)
     },
 
-    enqueue_=function(expr, envir=.GlobalEnv, envir_id=NULL,
-      key_complete=NULL) {
+    enqueue_=function(expr, envir=.GlobalEnv, key_complete=NULL) {
       #
       con <- self$con
       keys <- self$keys
 
       dat <- prepare_expression(expr)
-
-      ## TODO: Not checked to make sure that it is a valid id.
-      if (is.null(envir_id)) {
-        envir_id <- con$GET(keys$envirs_default)
-      }
 
       task_id <- as.character(con$INCR(keys$tasks_counter))
       expr_str <- save_expression(dat, task_id, envir, self$objects)
@@ -111,7 +111,7 @@ TASK_MISSING  <- "MISSING"
       ## TODO: Do this in a MULTI block?
       con$HSET(keys$tasks_expr,     task_id, expr_str)
       con$HSET(keys$tasks_status,   task_id, TASK_PENDING)
-      con$HSET(keys$tasks_envir,    task_id, envir_id)
+      con$HSET(keys$tasks_envir,    task_id, self$envir_id)
       con$HSET(keys$tasks_complete, task_id, key_complete)
 
       ## This must be done *last*, as it flags the job ready to be

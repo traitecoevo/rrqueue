@@ -17,6 +17,10 @@ hash_string <- function(x) {
   digest::digest(x, serialize=FALSE)
 }
 
+hash_file <- function(x) {
+  setNames(digest::digest(file=x), x)
+}
+
 is_error <- function(x) {
   inherits(x, "try-error")
 }
@@ -72,4 +76,45 @@ docopt_parse <- function(...) {
 
 lstrip <- function(x) {
   sub("^\\s+", "", x, perl=TRUE)
+}
+
+## Source a file (using sys.source) and record all files that file
+## sources (only via source and sys.source, ignoring file connections,
+## assuming files don't change, etc, etc).
+sys_source <- function(...) {
+  collector <- function(...) {
+    e <- parent.frame(2)
+    if (exists("file", e, inherits=FALSE)) {
+      file <- get("file", e, inherits=FALSE)
+      if (is.character(file)) {
+        ## TODO: need to deal with the case where source(...,
+        ## chdir=TRUE) was used and the path has changed; in that case
+        ## we're going to need to work out where the file is relative
+        ## to the current directory, which requires pathr to work.
+        ##
+        ## If we *do* do this, then the create_environment function
+        ## needs to take care of that bookkeeping.
+        dat <<- c(dat, hash_file(file))
+      } else {
+        warning("non-file source detected")
+      }
+    } else {
+      warning("source detection failed")
+    }
+    dat
+  }
+  dat <- character(0)
+
+  suppressMessages({
+    trace(base::source,     function(...) collector(), print=FALSE)
+    trace(base::sys.source, function(...) collector(), print=FALSE)
+  })
+  on.exit({
+    suppressMessages({
+      untrace(base::source)
+      untrace(base::sys.source)
+    })
+  })
+  sys.source(...)
+  dat
 }

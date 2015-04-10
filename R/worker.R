@@ -80,13 +80,23 @@ WORKER_BUSY <- "BUSY"
         message("initializing environment ", id)
         self$log("ENV", id)
         keys <- self$keys
-        s2o <- string_to_object
-        packages <- s2o(self$con$HGET(self$keys$envirs_packages, id))
-        sources  <- s2o(self$con$HGET(self$keys$envirs_sources,  id))
-        e <- create_environment(packages, sources)
+        dat_str <- self$con$HGET(self$keys$envirs_contents, id)
+        dat <- string_to_object(dat_str)
+
+        ## Check the hashes of the files
+        ## TODO: this all needs to be run in tryCatch
+        hash_expected <- dat$source_files
+        if (length(hash_expected) > 0L) {
+          hash_recieved <- hash_file(names(hash_expected))
+          if (!identical(hash_expected, hash_recieved)) {
+            stop("Files are not the same")
+          }
+        }
+
+        e <- create_environment(dat$packages, dat$sources)
         self$envir[[id]] <- e
         message(sprintf("\tdone (%d packages, %d sources)",
-                        length(packages), length(sources)))
+                        length(dat$packages), length(dat$sources)))
       }
       e
     },
@@ -168,6 +178,8 @@ WORKER_BUSY <- "BUSY"
       }
 
       envir_id <- con$HGET(keys$tasks_envir, id)
+      ## TODO: This might throw so needs to be done in tryCatch - if
+      ## the task fails be informative about it in the log.
       envir_parent <- self$initialize_environment(envir_id)
       envir <- new.env(parent=envir_parent)
       expr <- restore_expression(expr_stored, envir, self$objects)

@@ -29,10 +29,7 @@ rrqueue_keys_queue <- function(queue) {
        tasks_envir     = sprintf("%s:tasks:envir",     queue),
        tasks_complete  = sprintf("%s:tasks:complete",  queue),
 
-       envirs_counter  = sprintf("%s:envirs:counter",  queue),
-       envirs_packages = sprintf("%s:envirs:packages", queue),
-       envirs_sources  = sprintf("%s:envirs:sources",  queue),
-       envirs_default  = sprintf("%s:envirs:default",  queue),
+       envirs_contents = sprintf("%s:envirs:contents", queue),
 
        ## Objects:
        objects         = sprintf("%s:objects",         queue))
