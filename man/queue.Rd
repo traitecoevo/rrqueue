@@ -4,7 +4,7 @@
 \alias{queue}
 \title{Create an rrqueue queue}
 \usage{
-queue(name, packages = NULL, sources = NULL, con = NULL)
+queue(name, packages = NULL, sources = NULL, con = NULL, clean = FALSE)
 }
 \arguments{
 \item{name}{Queue name}
@@ -14,6 +14,10 @@ queue(name, packages = NULL, sources = NULL, con = NULL)
 \item{sources}{Character vector of files to source}
 
 \item{con}{Connection to a redis database}
+
+\item{clean}{Delete any rements of existing queues on startup
+(this can cause things to go haywire if processes are still live
+working on jobs as they'll clobber your queue).}
 }
 \description{
 Create an rrqueue queue

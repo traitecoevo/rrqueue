@@ -4,7 +4,7 @@
 \alias{worker}
 \title{Create an rrqueue worker}
 \usage{
-worker(queue_name, con = NULL, timeout = 5)
+worker(queue_name, con = NULL, timeout = 60)
 }
 \arguments{
 \item{queue_name}{Queue name}
