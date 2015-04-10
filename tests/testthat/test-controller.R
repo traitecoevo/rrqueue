@@ -5,6 +5,7 @@ test_that("controller", {
   on.exit(test_cleanup())
 
   existing <- queues()
+  expect_that(existing, equals(character(0)))
 
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_that(obj$con, is_a("hiredis"))

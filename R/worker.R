@@ -44,6 +44,8 @@ WORKER_BUSY <- "BUSY"
         self$con$HDEL(self$keys$workers_task,   self$name)
         self$con$DEL(self$keys$log)
         self$log("ALIVE")
+        ## This announces that we're up, in case anyone cares.
+        self$con$RPUSH(self$keys$workers_new,   self$name)
       })
 
       ## TODO: first interrupt should be to kill currently evaluating
@@ -316,59 +318,44 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
 }
 
 ## Should provide a controller here perhaps?
-rrqueue_worker_spawn <- function(queue_name, logfile, con=NULL,
-                                 timeout=5, time_poll=0.1) {
-  ## I'd *really* like to get the name of the spawned process here,
-  ## but I don't see how to do that.  Probably this should not really
-  ## be used that much?
-  ##
-  ## One option is to parse the logfile for the name there.
-  rrqueue_worker <- Sys.which("rrqueue_worker")
-  if (rrqueue_worker == "") {
-    tmp <- tempfile()
-    dir.create(tmp)
-    install_rrqueue_worker(tmp)
-    rrqueue_worker <- file.path(tmp, "rrqueue_worker")
-  }
+##
+## TODO: more work needed if the connection is nontrivial; the worker
+## will be spawned to look at a trivial connection, until I fix the
+## docopt script to allow other options (host/port/pw).  I don't think
+## I can get that easily from RcppRedis::Redis though.
+rrqueue_worker_spawn <- function(queue_name, logfile,
+                                 timeout=10, time_poll=1) {
+  rrqueue_worker <- rrqueue_worker_script()
   env <- paste0("RLIBS=", paste(.libPaths(), collapse=":"),
                 'R_TESTS=""')
 
-  ## TODO: this needs checking if the connection is nontrivial.
-  ##
-  ## Get the worker keys (can do more easily if we have a controlling
-  ## object here).
-  con <- redis_connection(con)
-  keys <- rrqueue_keys(queue_name)
-  key <- keys$workers_name
-  workers <- function() {
-    as.character(con$SMEMBERS(key))
+  con <- redis_connection(NULL)
+  key_workers_new <- rrqueue_keys(queue_name)$workers_new
+
+  ## Sanitity check:
+  if (con$LLEN(key_workers_new) > 0L) {
+    stop("Clear the new workers list first: ", key_workers_new)
   }
-  workers0 <- workers()
 
-  system2(rrqueue_worker, queue_name,
-          env=env, wait=FALSE,
-          stdout=logfile, stderr=logfile)
+  code <- system2(rrqueue_worker, queue_name,
+                  env=env, wait=FALSE,
+                  stdout=logfile, stderr=logfile)
+  if (code != 0L) {
+    warning("Error launching script: worker *probably* does not exist")
+  }
 
-  ## TODO: OK, what we *really* want is to drop a key that we can
-  ## watch.  If we specify that on the command line as an argument
-  ## then we'll be able to watch for it; that removes the awful
-  ## polling thing and replaces it with an BLPOP again.  That also
-  ## means we can do things like spawn 10 off at once and watch 10
-  ## lists.
-
-  ## This is going to be much nicer to do with proper subscriptions
-  ## or something.  It should also be possible to run until some
-  ## number of new workers have been spun up.
+  time_poll <- 1
+  timeout <- 10
   for (i in seq_len(ceiling(timeout / time_poll))) {
-    workers1 <- workers()
-    if (!identical(workers1, workers0)) {
-      worker_new <- setdiff(workers1, workers0)
-      if (length(worker_new) == 1L) {
-        return(worker_new)
-      }
-      stop("I am confused")
+    x <- con$context$run(c("BLPOP", key_workers_new, timeout))
+    if (is.null(x)) {
+      message(".", appendLF=FALSE)
+      flush.console()
+    } else {
+      new_worker <- x[[2]]
+      message("new worker: ", new_worker)
+      return(new_worker)
     }
-    Sys.sleep(time_poll)
   }
   stop("Worker not identified in time")
 }
@@ -380,4 +367,15 @@ install_rrqueue_worker <- function(destination_directory, overwrite=FALSE) {
             "w <- rrqueue:::rrqueue_worker_main()")
   dest <- file.path(destination_directory, "rrqueue_worker")
   install_script(code, dest, overwrite)
+}
+
+rrqueue_worker_script <- function() {
+  rrqueue_worker <- Sys.which("rrqueue_worker")
+  if (rrqueue_worker == "") {
+    tmp <- tempfile()
+    dir.create(tmp)
+    install_rrqueue_worker(tmp)
+    rrqueue_worker <- file.path(tmp, "rrqueue_worker")
+  }
+  rrqueue_worker
 }
