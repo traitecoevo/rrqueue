@@ -34,6 +34,10 @@
         message("creating new queue")
         self$clean()
       }
+      nw <- self$n_workers()
+      if (nw > 0L) {
+        message(sprintf("%d workers available", nw))
+      }
 
       self$con$SADD(self$keys$rrqueue_queues, self$name)
       self$initialize_environment(packages, sources, TRUE)
@@ -41,12 +45,17 @@
     },
 
     clean=function() {
-      ## NOTE: Not sure if this is always a good idea!
       self$con$SREM(self$keys$rrqueue_queues, self$name)
 
-      self$con$DEL(self$keys$workers_name)
-      self$con$DEL(self$keys$workers_status)
-      self$con$DEL(self$keys$workers_task)
+      ## TODO: This one here seems daft.  If there are workers they
+      ## might still be around, and they might be working on tasks.
+      ## Might be best not to get too involved with modifying the
+      ## worker queue, aside from messaging, really; leave deleting
+      ## worker queues to a standalone function?
+      ##
+      ##   self$con$DEL(self$keys$workers_name)
+      ##   self$con$DEL(self$keys$workers_status)
+      ##   self$con$DEL(self$keys$workers_task)
 
       self$con$DEL(self$keys$tasks_counter)
       self$con$DEL(self$keys$tasks_id)
