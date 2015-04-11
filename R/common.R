@@ -25,6 +25,7 @@ rrqueue_keys_queue <- function(queue) {
        tasks_id        = sprintf("%s:tasks:id",        queue),
        tasks_expr      = sprintf("%s:tasks:expr",      queue),
        tasks_status    = sprintf("%s:tasks:status",    queue),
+       tasks_worker    = sprintf("%s:tasks:worker",    queue),
        tasks_result    = sprintf("%s:tasks:result",    queue),
        tasks_envir     = sprintf("%s:tasks:envir",     queue),
        tasks_complete  = sprintf("%s:tasks:complete",  queue),
@@ -36,8 +37,9 @@ rrqueue_keys_queue <- function(queue) {
 }
 
 rrqueue_keys_worker <- function(queue, worker) {
-  list(message = rrqueue_key_worker_message(queue, worker),
-       log     = rrqueue_key_worker_log(queue, worker))
+  list(message   = rrqueue_key_worker_message(queue, worker),
+       log       = rrqueue_key_worker_log(queue, worker),
+       heartbeat = rrqueue_key_worker_heartbeat(queue, worker))
 }
 
 ## Special key for worker-specific commands to be published to.
@@ -46,6 +48,9 @@ rrqueue_key_worker_message <- function(queue, worker) {
 }
 rrqueue_key_worker_log <- function(queue, worker) {
   sprintf("%s:worker:%s:log", queue, worker)
+}
+rrqueue_key_worker_heartbeat <- function(queue, worker) {
+  sprintf("%s:worker:%s:heartbeat", queue, worker)
 }
 rrqueue_key_task_complete <- function(queue, id) {
   sprintf("%s:tasks:complete:%s", queue, id)

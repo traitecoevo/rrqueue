@@ -68,6 +68,7 @@ WORKER_BUSY <- "BUSY"
         self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
         self$con$HDEL(self$keys$workers_task,   self$name)
         self$con$DEL(self$keys$log)
+        self$con$DEL(self$keys$heartbeat)
         self$log("ALIVE")
         ## This announces that we're up, in case anyone cares.
         self$con$RPUSH(self$keys$workers_new,   self$name)
@@ -168,6 +169,13 @@ WORKER_BUSY <- "BUSY"
     run_task=function(id) {
       keys <- self$keys
       con <- self$con
+      ## Need to start this as soon as possible after taking the job;
+      ## ideally we'd do it as we pop the job.  If this one fails,
+      ## it's all over really.
+      h <- heartbeat(keys$heartbeat, 10, 30, con)
+      ## This would happen with garbage collection anyway, but now
+      ## happens deterministically.
+      on.exit(h$stop())
 
       self$log("TASK_START", id)
 
@@ -180,6 +188,7 @@ WORKER_BUSY <- "BUSY"
       redis_multi(con, {
         con$HSET(keys$workers_status, self$name, WORKER_BUSY)
         con$HSET(keys$workers_task,   self$name, id)
+        con$HSET(keys$tasks_worker,   id,        self$name)
         con$HSET(keys$tasks_status,   id,        TASK_RUNNING)
       })
 

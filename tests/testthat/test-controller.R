@@ -84,8 +84,8 @@ test_that("controller", {
 
   expect_that(task1$status(), equals(TASK_PENDING))
   expect_that(task2$status(), equals(TASK_PENDING))
-  expect_that(task1$result(), is_null())
-  expect_that(task2$result(), is_null())
+  expect_that(task1$result(), throws_error("incomplete"))
+  expect_that(task2$result(), throws_error("incomplete"))
   expect_that(task1$key_complete,
               equals(rrqueue_key_task_complete(obj$name, ids[[1]])))
   expect_that(task2$key_complete,
@@ -99,8 +99,8 @@ test_that("controller", {
   expect_that(con$LRANGE(keys$tasks_id, 0, -1), equals(list()))
 
   ## TODO: Might be worth changing this to TASK_MISSING
-  expect_that(task1$status(), is_null())
-  expect_that(task2$status(), is_null())
+  expect_that(task1$status(), equals(TASK_MISSING))
+  expect_that(task2$status(), equals(TASK_MISSING))
 
   ## This needs to send output to a file and not to stdout!
   logfile <- "worker.log"
@@ -144,10 +144,8 @@ test_that("controller", {
   expect_that(obj$tasks_status()[[task$id]], equals(TASK_COMPLETE))
   expect_that(obj$tasks_collect(task$id),    equals(sin(1)))
 
-  ## TODO: deserialise the result, but get semantics correct here; see
-  ## queue$tasks_collect() for information.
   expect_that(task$status(), equals(TASK_COMPLETE))
-  expect_that(string_to_object(task$result()), equals(sin(1)))
+  expect_that(task$result(), equals(sin(1)))
 
   ## Another, using arguments:
   x <- 1

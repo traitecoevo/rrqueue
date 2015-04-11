@@ -41,11 +41,23 @@ TASK_ENVIR_ERROR <- "ENVIR_ERROR"
 
     ## TODO: These could be active bindings?
     status=function() {
-      self$con$HGET(self$keys$tasks_status, self$id)
+      status <- self$con$HGET(self$keys$tasks_status, self$id)
+      if (is.null(status)) {
+        status <- TASK_MISSING
+      }
+      status
     },
+
     result=function() {
-      self$con$HGET(self$keys$tasks_result, self$id)
+      status <- self$status()
+      if (status == TASK_MISSING) {
+        stop("task does not exist")
+      } else if (status != TASK_COMPLETE) {
+        stop("task is incomplete")
+      }
+      string_to_object(self$con$HGET(self$keys$tasks_result, self$id))
     },
+
     envir=function() {
       self$con$HGET(self$keys$tasks_envir, self$id)
     }
