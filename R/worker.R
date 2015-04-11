@@ -13,42 +13,17 @@ WORKER_BUSY <- "BUSY"
     timeout=NULL,
     name=NULL,
     objects=NULL,
+    styles=NULL,
 
     initialize=function(queue_name, con, timeout) {
-      ## TODO: Refactor this into bits that set variable, bits that
-      ## create the database and bits that start the main loop...
-      banner(sprintf("_- %s! -_", .packageName))
+      self$queue_name <- queue_name
       self$con <- redis_connection(con)
       self$timeout <- timeout
+
       self$envir <- list()
-
-      hostname <- Sys.info()[["nodename"]]
-      pid      <- Sys.getpid()
-
-      self$name <- sprintf("%s::%d", hostname, pid)
-      self$queue_name <- queue_name
+      self$styles <- worker_styles()
+      self$name <- sprintf("%s::%d", Sys.info()[["nodename"]], Sys.getpid())
       self$keys <- rrqueue_keys(self$queue_name, worker_name=self$name)
-
-      self$objects <- object_cache(con, self$keys$objects)
-
-      ## Register the worker:
-      ## TODO: work out how to force the worker in
-      if (self$con$SISMEMBER(self$keys$workers_name, self$name) == 1L) {
-        stop("Looks like this worker exists already...")
-      }
-      message("worker:   ", self$name)
-      message("hostname: ", hostname)
-      message("pid:      ", pid)
-      message("message:  ", self$keys$message)
-      redis_multi(self$con, {
-        self$con$SADD(self$keys$workers_name,   self$name)
-        self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
-        self$con$HDEL(self$keys$workers_task,   self$name)
-        self$con$DEL(self$keys$log)
-        self$log("ALIVE")
-        ## This announces that we're up, in case anyone cares.
-        self$con$RPUSH(self$keys$workers_new,   self$name)
-      })
 
       ## TODO: first interrupt should be to kill currently evaluating
       ## process, not full shutdown.
@@ -64,21 +39,47 @@ WORKER_BUSY <- "BUSY"
         stop(e)
       }
       catch_worker_stop <- function(e) {
-        message(e$message)
         self$shutdown("OK")
       }
+
+      ## NOTE: This needs to happen *before* running the
+      ## initialize_worker; it checks that we can actually use the
+      ## database and that we will not write anything to an existing
+      ## worker.  An error here will not be caught.
+      ##
+      ## TODO: This could just throw WorkerClash and get a different
+      ## handler in the tryCatch
+      if (self$con$SISMEMBER(self$keys$workers_name, self$name) == 1L) {
+        stop("Looks like this worker exists already...")
+      }
+
+      tryCatch(self$initialize_worker(),
+               error=catch_error)
       tryCatch(self$main(),
                WorkerStop=catch_worker_stop,
                error=catch_error,
                interrupt=catch_interrupt)
     },
 
+    initialize_worker=function() {
+      self$print_info()
+      redis_multi(self$con, {
+        self$con$SADD(self$keys$workers_name,   self$name)
+        self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
+        self$con$HDEL(self$keys$workers_task,   self$name)
+        self$con$DEL(self$keys$log)
+        self$log("ALIVE")
+        ## This announces that we're up, in case anyone cares.
+        self$con$RPUSH(self$keys$workers_new,   self$name)
+      })
+      self$objects <- object_cache(self$con, self$keys$objects)
+    },
+
     initialize_environment=function(id) {
       ## TODO: consider locking the environment
       e <- self$envir[[id]]
       if (is.null(e)) {
-        message("initializing environment ", id)
-        self$log("ENV", id)
+        self$log("ENVIR", id)
         keys <- self$keys
         dat_str <- self$con$HGET(self$keys$envirs_contents, id)
         dat <- string_to_object(dat_str)
@@ -95,25 +96,42 @@ WORKER_BUSY <- "BUSY"
 
         e <- create_environment(dat$packages, dat$sources)
         self$envir[[id]] <- e
-        message(sprintf("\tdone (%d packages, %d sources)",
-                        length(dat$packages), length(dat$sources)))
+        ## Here; can do a bit better:
+        fmt <- function(x) {
+          if (is.null(x)) {
+            "(none)"
+          } else {
+            paste(x, collapse=" ")
+          }
+        }
+        self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
+        self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
       }
       e
     },
 
-    log=function(label, message=NULL) {
-      t <- as.integer(Sys.time()) # to nearest second
+    ## TODO: if we're not running in a terminal, then we should output
+    ## the worker id into the screen message.
+    log=function(label, message=NULL, push=TRUE) {
+      t <- Sys.time()
+      ti <- as.integer(t) # to nearest second
+      ts <- self$styles$info(as.character(t))
       if (is.null(message)) {
-        msg <- sprintf("%d %s", t, label)
+        msg_log <- sprintf("%d %s", ti, label)
+        msg_scr <- sprintf("[%s] %s", ts, self$styles$key(label))
       } else {
-        msg <- sprintf("%d %s %s", t, label, message)
+        msg_log <- sprintf("%d %s %s", ti, label, message)
+        msg_scr <- sprintf("[%s] %s %s", ts, self$styles$key(label),
+                           self$styles$value(message))
       }
-      self$con$RPUSH(self$keys$log, msg)
+      message(msg_scr)
+      if (push) {
+        self$con$RPUSH(self$keys$log, msg_log)
+      }
     },
 
     ## TODO: Store time since last task.
     main=function() {
-      message("waiting for tasks")
       ## TODO: should not use BLPOP here but instead use BRPOPLPUSH
       ## see http://redis.io/commands/{blpop,rpoplpush,brpoplpush}
       con <- self$con
@@ -121,8 +139,6 @@ WORKER_BUSY <- "BUSY"
       key_queue_tasks <- self$keys$tasks_id
       key_queue_msg  <- self$keys$message
       key_queue <- c(key_queue_tasks, key_queue_msg)
-
-      wait <- worker_wait_symbols()
 
       ## TODO: should be possible to send SIGHUP or something to
       ## trigger stopping current task but keep listening.
@@ -132,7 +148,7 @@ WORKER_BUSY <- "BUSY"
       repeat {
         task <- con$context$run(c("BLPOP", key_queue, timeout))
         if (is.null(task)) {
-          message(wait())
+          self$log("WAITING", push=FALSE)
         } else {
           channel <- task[[1]]
           if (channel == key_queue_tasks) {
@@ -147,36 +163,24 @@ WORKER_BUSY <- "BUSY"
       }
     },
 
-    ## TODO: Store task begin/end times?
-    ## TODO: Push events to a log on redis: worker:log - it can be a
-    ## list.  Events would be:
-    ##   <TIME(int)> <COMMAND> [info]
-    ##   <time> ALIVE
-    ##   <time> ENV id
-    ##   <time> MESSAGE content
-    ##   <time> TASK_START id
-    ##   <time> TASK_ERROR id
-    ##   <time> TASK_COMPLETE id
-    ##   <time> STOP
-
     ## TODO: push this out into its own function so the class is
     ## easier to follow.
     run_task=function(id) {
       keys <- self$keys
       con <- self$con
 
-      message("Running task ", id)
       self$log("TASK_START", id)
 
+      expr <- self$task_retrieve(id)
+
       context <- tryCatch(
-        self$task_prepare(id),
-        WorkerError=function(e) stop(e), # I think...
+        self$task_prepare(id, expr),
         error=function(e) stop(WorkerEnvironmentFailed(self, id, e)))
 
       redis_multi(con, {
         con$HSET(keys$workers_status, self$name, WORKER_BUSY)
-        con$HSET(keys$workers_task, self$name, id)
-        con$HSET(keys$tasks_status, id, TASK_RUNNING)
+        con$HSET(keys$workers_task,   self$name, id)
+        con$HSET(keys$tasks_status,   id,        TASK_RUNNING)
       })
 
       ## NOTE: if the underlying process *wants* to return an error
@@ -194,22 +198,26 @@ WORKER_BUSY <- "BUSY"
       args <- sub(re, "\\2", msg, perl=TRUE)
       ## TODO: purge object cache (save on memory)
       switch(cmd,
-             PING=run_message_PING(args),
-             ECHO=run_message_ECHO(args),
+             PING=message("PONG"),
+             ECHO=message(args),
              EVAL=run_message_EVAL(args),
              STOP=run_message_STOP(self, args),
+             INFO=self$print_info(),
              INSTALL=run_message_INSTALL(args),
              message(sprintf("Recieved unknown message: [%s] [%s]", cmd, args)))
+    },
+
+    task_retrieve=function(id) {
+      expr_stored <- self$con$HGET(self$keys$tasks_expr, id)
+      if (is.null(expr_stored)) {
+        stop(WorkerTaskMissing(self, id))
+      }
+      expr_stored
     },
 
     task_prepare=function(id, expr_stored) {
       con <- self$con
       keys <- self$keys
-
-      expr_stored <- con$HGET(keys$tasks_expr, id)
-      if (is.null(expr_stored)) {
-        stop(WorkerTaskMissing(self, id))
-      }
 
       envir_id <- con$HGET(keys$tasks_envir, id)
       envir_parent <- self$initialize_environment(envir_id)
@@ -223,7 +231,6 @@ WORKER_BUSY <- "BUSY"
       con <- self$con
       keys <- self$keys
       key_complete <- con$HGET(keys$tasks_complete, id)
-      message(sprintf("\ttask %s finished with status %s", id, task_status))
       redis_multi(con, {
         con$HSET(keys$tasks_result, id, object_to_string(data))
         con$HDEL(keys$workers_task, self$name)
@@ -233,14 +240,29 @@ WORKER_BUSY <- "BUSY"
         con$RPUSH(key_complete, id)
         self$log(paste0("TASK_", task_status), id)
       })
-      message(sprintf("\ttask %s cleanup complete", id))
+    },
+
+    print_info=function() {
+      banner(sprintf("_- %s! -_", .packageName))
+      dat <- list(redis_host=self$con$context$host,
+                  redis_port=self$con$context$port,
+                  worker=self$name,
+                  queue_name=self$queue_name,
+                  hostname=Sys.info()[["nodename"]],
+                  pid=Sys.getpid(),
+                  message=self$keys$message,
+                  log=self$keys$log)
+
+      n <- nchar(names(dat))
+      pad <- vcapply(max(n) - n, strrep, str=" ")
+      ret <- sprintf("\t%s:%s %s",
+                     self$styles$key(names(dat)), pad,
+                     self$styles$value(as.character(dat)))
+      message(paste(ret, collapse="\n"))
     },
 
     ## TODO: organise doing this on finalisation:
     shutdown=function(status="OK") {
-      ## TODO: declare running tasks abandoned so that they get
-      ## rescheduled.
-      message("shutting down")
       self$con$SREM(self$keys$workers_name,   self$name)
       self$con$HDEL(self$keys$workers_status, self$name)
       self$log("STOP", status)
@@ -256,48 +278,18 @@ worker <- function(queue_name, con=NULL, timeout=60) {
   .R6_worker$new(queue_name, con, timeout)
 }
 
-##' @importFrom remoji emoji
-worker_wait_symbols <- function() {
-  if (is_terminal()) {
-    prefix <- remoji::emoji(c("sleeping", "zzz", "computer"), pad=TRUE)
-    clocks <- remoji::emoji(sprintf("clock%d", 1:12))
-    sym <- paste0(paste(prefix, collapse=""), clocks)
-  } else {
-    sym <- c("-", "\\", "|", "/")
-  }
-  i <- 0L
-  n <- length(sym)
-  function() {
-    if (i >= n) {
-      i <<- 1
-    } else {
-      i <<- i + 1L
-    }
-    sym[[i]]
-  }
-}
-
 ## The message passing is really simple minded; it doesn't do
 ## bidirectional messaging at all yet because that's hard to get right
 ## from the controller.
 ##
 ## Eventually that would be something that would be useful, but it'll
 ## get another name I think.
-run_message_PING <- function(args) {
-  message("PONG")
-}
-run_message_ECHO <- function(args) {
-  message(args)
-}
-run_message_EVAL <- function(args) {
-  message("> EVAL ", args)
-  try(eval(parse(text=args), .GlobalEnv))
-}
 run_message_STOP <- function(worker, args) {
-  if (args == "") {
-    args <- "STOP requested by controller"
-  }
   stop(WorkerStop(worker, args))
+}
+
+run_message_EVAL <- function(args) {
+  print(try(eval(parse(text=args), .GlobalEnv)))
 }
 
 ## TODO: I have nice code code for doing this in remake I could reuse
@@ -394,4 +386,10 @@ rrqueue_worker_script <- function() {
     rrqueue_worker <- file.path(tmp, "rrqueue_worker")
   }
   rrqueue_worker
+}
+
+worker_styles <- function() {
+  list(info=crayon::make_style("grey"),
+       key=crayon::make_style("gold"),
+       value=crayon::make_style("dodgerblue2"))
 }

@@ -184,7 +184,7 @@ test_that("controller", {
   expect_that(dlog, is_a("data.frame"))
 
   expect_that(dlog$command, equals(c("ALIVE",
-                                     "TASK_START", "ENV", "TASK_COMPLETE",
+                                     "TASK_START", "ENVIR", "TASK_COMPLETE",
                                      "TASK_START", "TASK_COMPLETE",
                                      "MESSAGE", "STOP")))
   expect_that(dlog$message, equals(c("", "3", obj$envir_id, "3", "4", "4",

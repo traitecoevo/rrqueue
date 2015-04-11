@@ -1,11 +1,8 @@
+##' @importFrom crayon make_style
 banner <- function(text) {
   pkgs <- .packages(TRUE)
-  if ("crayon" %in% pkgs) {
-    style <- crayon::make_style("magenta")
-    f <- function(x) message(style(x))
-  } else {
-    f <- message
-  }
+  style <- crayon::make_style(random_colour())
+  f <- function(x) message(style(x))
   if ("rfiglet" %in% pkgs) {
     text <- as.character(rfiglet::figlet(text, "slant"))
   }
@@ -117,4 +114,12 @@ sys_source <- function(...) {
   })
   sys.source(...)
   dat
+}
+
+random_colour <- function(n=1) {
+  rgb(runif(n), runif(n), runif(n))
+}
+
+strrep <- function (str, n) {
+  paste(rep_len(str, n), collapse = "")
 }
