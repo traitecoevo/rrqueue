@@ -126,3 +126,7 @@ random_colour <- function(n=1) {
 strrep <- function (str, n) {
   paste(rep_len(str, n), collapse = "")
 }
+
+Sys_kill <- function(pid, signal=NULL) {
+  system2("kill", c(pid, signal))
+}

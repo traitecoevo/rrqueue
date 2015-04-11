@@ -25,6 +25,8 @@ rrqueue_keys_queue <- function(queue) {
        tasks_id        = sprintf("%s:tasks:id",        queue),
        tasks_expr      = sprintf("%s:tasks:expr",      queue),
        tasks_status    = sprintf("%s:tasks:status",    queue),
+       tasks_time_0    = sprintf("%s:tasks:time:0",    queue),
+       tasks_time_1    = sprintf("%s:tasks:time:1",    queue),
        tasks_worker    = sprintf("%s:tasks:worker",    queue),
        tasks_result    = sprintf("%s:tasks:result",    queue),
        tasks_envir     = sprintf("%s:tasks:envir",     queue),
@@ -44,16 +46,16 @@ rrqueue_keys_worker <- function(queue, worker) {
 
 ## Special key for worker-specific commands to be published to.
 rrqueue_key_worker_message <- function(queue, worker) {
-  sprintf("%s:worker:%s:message", queue, worker)
+  sprintf("%s:workers:%s:message", queue, worker)
 }
 rrqueue_key_worker_log <- function(queue, worker) {
-  sprintf("%s:worker:%s:log", queue, worker)
+  sprintf("%s:workers:%s:log", queue, worker)
 }
 rrqueue_key_worker_heartbeat <- function(queue, worker) {
-  sprintf("%s:worker:%s:heartbeat", queue, worker)
+  sprintf("%s:workers:%s:heartbeat", queue, worker)
 }
 rrqueue_key_task_complete <- function(queue, id) {
-  sprintf("%s:tasks:complete:%s", queue, id)
+  sprintf("%s:tasks:%s:complete", queue, id)
 }
 
 ## TODO: come up with a way of scheduling object deletion.  Things

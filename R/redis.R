@@ -27,3 +27,7 @@ from_redis_hash <- function(con, name, f=as.character) {
   setNames(f(x[2, ]),
            as.character(x[1, ]))
 }
+
+redis_time <- function(con) {
+  paste(as.character(con$context$run("TIME")), collapse=".")
+}

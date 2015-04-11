@@ -1,5 +1,6 @@
 WORKER_IDLE <- "IDLE"
 WORKER_BUSY <- "BUSY"
+WORKER_LOST <- "LOST"
 
 ##' @importFrom R6 R6Class
 .R6_worker <- R6::R6Class(
@@ -164,8 +165,6 @@ WORKER_BUSY <- "BUSY"
       }
     },
 
-    ## TODO: push this out into its own function so the class is
-    ## easier to follow.
     run_task=function(id) {
       keys <- self$keys
       con <- self$con
@@ -185,11 +184,15 @@ WORKER_BUSY <- "BUSY"
         self$task_prepare(id, expr),
         error=function(e) stop(WorkerEnvironmentFailed(self, id, e)))
 
+      ## Here, we get time from the Redis server, not R; that means
+      ## that all ideas of time are centralised.
+      time <- redis_time(con)
       redis_multi(con, {
         con$HSET(keys$workers_status, self$name, WORKER_BUSY)
         con$HSET(keys$workers_task,   self$name, id)
         con$HSET(keys$tasks_worker,   id,        self$name)
         con$HSET(keys$tasks_status,   id,        TASK_RUNNING)
+        con$HSET(keys$tasks_time_0,   id,        time)
       })
 
       ## NOTE: if the underlying process *wants* to return an error
@@ -240,11 +243,13 @@ WORKER_BUSY <- "BUSY"
       con <- self$con
       keys <- self$keys
       key_complete <- con$HGET(keys$tasks_complete, id)
+      time <- redis_time(con)
       redis_multi(con, {
-        con$HSET(keys$tasks_result, id, object_to_string(data))
-        con$HDEL(keys$workers_task, self$name)
-        con$HSET(keys$tasks_status, id, task_status)
+        con$HSET(keys$tasks_result,   id,        object_to_string(data))
+        con$HSET(keys$tasks_status,   id,        task_status)
+        con$HSET(keys$tasks_time_1,   id,        time)
         con$HSET(keys$workers_status, self$name, WORKER_IDLE)
+        con$HDEL(keys$workers_task,   self$name)
         ## This advertises to the controller that we're done
         con$RPUSH(key_complete, id)
         self$log(paste0("TASK_", task_status), id)
