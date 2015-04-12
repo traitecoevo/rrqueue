@@ -11,15 +11,20 @@ WORKER_LOST <- "LOST"
     queue_name=NULL,
     keys=NULL,
     envir=NULL,
-    timeout=NULL,
+    task_timeout=NULL,
+    heartbeat_period=NULL,
+    heartbeat_expire=NULL,
     name=NULL,
     objects=NULL,
     styles=NULL,
 
-    initialize=function(queue_name, con, timeout) {
+    initialize=function(queue_name, con, task_timeout,
+      heartbeat_period, heartbeat_expire) {
       self$queue_name <- queue_name
       self$con <- redis_connection(con)
-      self$timeout <- timeout
+      self$task_timeout <- task_timeout
+      self$heartbeat_period <- heartbeat_period
+      self$heartbeat_expire <- heartbeat_expire
 
       self$envir <- list()
       self$styles <- worker_styles()
@@ -138,7 +143,7 @@ WORKER_LOST <- "LOST"
       ## TODO: should not use BLPOP here but instead use BRPOPLPUSH
       ## see http://redis.io/commands/{blpop,rpoplpush,brpoplpush}
       con <- self$con
-      timeout <- self$timeout
+      task_timeout <- self$task_timeout
       key_queue_tasks <- self$keys$tasks_id
       key_queue_msg  <- self$keys$message
       key_queue <- c(key_queue_tasks, key_queue_msg)
@@ -149,7 +154,7 @@ WORKER_LOST <- "LOST"
       ## TODO: another option is to look at a redis key after
       ## interrupt?
       repeat {
-        task <- con$context$run(c("BLPOP", key_queue, timeout))
+        task <- con$context$run(c("BLPOP", key_queue, task_timeout))
         if (is.null(task)) {
           self$log("WAITING", push=FALSE)
         } else {
@@ -172,7 +177,9 @@ WORKER_LOST <- "LOST"
       ## Need to start this as soon as possible after taking the job;
       ## ideally we'd do it as we pop the job.  If this one fails,
       ## it's all over really.
-      h <- heartbeat(keys$heartbeat, 10, 30, con)
+      h <- heartbeat(con, keys$heartbeat,
+                     self$heartbeat_period,
+                     self$heartbeat_expire)
       ## This would happen with garbage collection anyway, but now
       ## happens deterministically.
       on.exit(h$stop())
@@ -287,10 +294,15 @@ WORKER_LOST <- "LOST"
 ##' @title Create an rrqueue worker
 ##' @param queue_name Queue name
 ##' @param con Connection to a redis database
-##' @param timeout Timeout for the blocking connection
+##' @param task_timeout Task_Timeout for the blocking connection
 ##' @export
-worker <- function(queue_name, con=NULL, timeout=60) {
-  .R6_worker$new(queue_name, con, timeout)
+worker <- function(queue_name, con=NULL, task_timeout=60,
+                   heartbeat_period=10, heartbeat_expire=30) {
+  if (heartbeat_expire <= heartbeat_period) {
+    stop("heartbeat_expire must be longer than heartbeat_period")
+  }
+  .R6_worker$new(queue_name, con, task_timeout,
+                 heartbeat_period, heartbeat_expire)
 }
 
 ## The message passing is really simple minded; it doesn't do
@@ -324,83 +336,6 @@ run_message_INSTALL <- function(args) {
       devtools::install_github(pkgs[is_gh])
     }
   })
-}
-
-rrqueue_worker_main_options <- function(...) {
-  'Usage: rrqueue_worker <queue_name>' -> doc
-  oo <- options(warnPartialMatchArgs=FALSE)
-  if (isTRUE(oo$warnPartialMatchArgs)) {
-    on.exit(options(oo))
-  }
-  docopt::docopt(doc, ...)
-}
-
-rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
-  opts <- rrqueue_worker_main_options(args)
-  worker(opts$queue_name)
-}
-
-## Should provide a controller here perhaps?
-##
-## TODO: more work needed if the connection is nontrivial; the worker
-## will be spawned to look at a trivial connection, until I fix the
-## docopt script to allow other options (host/port/pw).  I don't think
-## I can get that easily from RcppRedis::Redis though.
-rrqueue_worker_spawn <- function(queue_name, logfile,
-                                 timeout=10, time_poll=1) {
-  rrqueue_worker <- rrqueue_worker_script()
-  env <- paste0("RLIBS=", paste(.libPaths(), collapse=":"),
-                'R_TESTS=""')
-
-  con <- redis_connection(NULL)
-  key_workers_new <- rrqueue_keys(queue_name)$workers_new
-
-  ## Sanitity check:
-  if (con$LLEN(key_workers_new) > 0L) {
-    stop("Clear the new workers list first: ", key_workers_new)
-  }
-
-  code <- system2(rrqueue_worker, queue_name,
-                  env=env, wait=FALSE,
-                  stdout=logfile, stderr=logfile)
-  if (code != 0L) {
-    warning("Error launching script: worker *probably* does not exist")
-  }
-
-  time_poll <- 1
-  timeout <- 10
-  for (i in seq_len(ceiling(timeout / time_poll))) {
-    x <- con$context$run(c("BLPOP", key_workers_new, timeout))
-    if (is.null(x)) {
-      message(".", appendLF=FALSE)
-      flush.console()
-    } else {
-      new_worker <- x[[2]]
-      message("new worker: ", new_worker)
-      return(new_worker)
-    }
-  }
-  stop("Worker not identified in time")
-}
-
-## Copied from remake
-install_rrqueue_worker <- function(destination_directory, overwrite=FALSE) {
-  code <- c("#!/usr/bin/env Rscript",
-            "library(methods)",
-            "w <- rrqueue:::rrqueue_worker_main()")
-  dest <- file.path(destination_directory, "rrqueue_worker")
-  install_script(code, dest, overwrite)
-}
-
-rrqueue_worker_script <- function() {
-  rrqueue_worker <- Sys.which("rrqueue_worker")
-  if (rrqueue_worker == "") {
-    tmp <- tempfile()
-    dir.create(tmp)
-    install_rrqueue_worker(tmp)
-    rrqueue_worker <- file.path(tmp, "rrqueue_worker")
-  }
-  rrqueue_worker
 }
 
 worker_styles <- function() {

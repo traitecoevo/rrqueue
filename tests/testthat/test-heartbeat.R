@@ -13,7 +13,8 @@ test_that("heartbeat", {
 
   logfile <- "worker_heartbeat.log"
   Sys.setenv("R_TESTS" = "")
-  wid <- rrqueue_worker_spawn(obj$name, logfile)
+  wid <- rrqueue_worker_spawn(obj$name, logfile,
+                              heartbeat_period=1, heartbeat_expire=3)
   ## w <- rrqueue::worker("testq:heartbeat")
   expect_that(obj$n_workers(), equals(1))
 
@@ -23,7 +24,7 @@ test_that("heartbeat", {
   expect_that(t$result(), equals(sin(1)))
   expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE)))
 
-  t_double <- 10
+  t_double <- 5
   e <- environment()
   t <- obj$enqueue(slowdouble(t_double), e)
   Sys.sleep(0.5)

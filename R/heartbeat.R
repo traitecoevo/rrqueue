@@ -1,8 +1,8 @@
 ## Heartbeat support, but with a different interface to RedisHeartbeat
-heartbeat <- function(key, timeout, expire, con) {
+heartbeat <- function(con, key, period, expire) {
   if (requireNamespace("RedisHeartbeat", quietly=TRUE)) {
     h <- RedisHeartbeat::heartbeat(con$context$host, con$context$port)
-    h$start(key, timeout, expire)
+    h$start(key, period, expire)
     h
   } else {
     con$SET(key, "NO_HEARTBEAT_SUPPORT")
