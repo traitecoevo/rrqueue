@@ -115,19 +115,37 @@
       task(self$con, self$name, task_id, key_complete)
     },
 
-    ## TODO: It's probably best to requeue a new task here with a new
-    ## number so that nothing clobbers anything else.  That requires
-    ## we support task redirects though so that when we ask for
-    ## task_id "i" it says "you really want "j".  That's just another
-    ## hash that initially has i -> i.
-    ## In any case, this barely changes, unless something crazy was
-    ## done with tasks_complete?
     requeue=function(task_id) {
-      redis_multi(self$con, {
-        self$con$HSET(self$keys$tasks_status, task_id, TASK_PENDING)
-        self$con$RPUSH(self$keys$tasks_id,    task_id)
+      con <- self$con
+      keys <- self$keys
+
+      status <- con$HGET(keys$tasks_status, task_id)
+      if (status != TASK_ORPHAN) {
+        stop("Can only reqeueue orphaned tasks")
+      }
+
+      ## TODO: The migration could happen in a lua script.
+      expr_str     <- con$HGET(keys$tasks_expr,     task_id)
+      envir_id     <- con$HGET(keys$tasks_envir,    task_id)
+      key_complete <- con$HGET(keys$tasks_complete, task_id)
+
+      task2_id <- as.character(con$INCR(keys$tasks_counter))
+
+      key_complete_orphan <- paste0(key_complete, ":orphan")
+
+      redis_multi(con, {
+        ## information about the old, abandoned job:
+        con$HSET(keys$tasks_complete, task_id, key_complete_orphan)
+        con$HSET(keys$tasks_redirect, task_id, task2_id)
+        con$HSET(keys$tasks_status,   task_id, TASK_REDIRECT)
+        ## information for the new job
+        con$HSET(keys$tasks_expr,     task2_id, expr_str)
+        con$HSET(keys$tasks_envir,    task2_id, envir_id)
+        con$HSET(keys$tasks_complete, task2_id, key_complete)
+        con$HSET(keys$tasks_status,   task2_id, TASK_PENDING)
+        con$RPUSH(keys$tasks_id,      task2_id)
       })
-      self$task(task_id)
+      task(con, self$name, task2_id, key_complete)
     },
 
     task=function(task_id) {
@@ -172,6 +190,8 @@
     n_workers=function() {
       ## NOTE: this is going to be an *estimate* because there might
       ## be old workers floating around.
+      ##
+      ## TODO: Drop orphan workers here.
       self$con$SCARD(self$keys$workers_name)
     },
 

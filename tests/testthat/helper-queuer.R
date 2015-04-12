@@ -7,7 +7,7 @@ empty_named_character <- function() {
 ## TODO: This will move into the package.
 ## TODO: should be done with a cursor.
 rrqueue_cleanup <- function(con, name) {
-  del <- as.character(con$KEYS("tmpjobs*"))
+  del <- as.character(con$KEYS(paste0(name, "*")))
   if (length(del) > 0L) {
     con$DEL(del)
   }
@@ -16,4 +16,12 @@ rrqueue_cleanup <- function(con, name) {
 
 test_cleanup <- function() {
   rrqueue_cleanup(redis_connection(NULL), "tmpjobs")
+  rrqueue_cleanup(redis_connection(NULL), "testq:heartbeat")
+}
+
+skip_if_no_heartbeat <- function() {
+  if (heartbeat_available()) {
+    return()
+  }
+  skip("RedisHeartbeat is not available")
 }

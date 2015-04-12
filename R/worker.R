@@ -33,6 +33,7 @@ WORKER_LOST <- "LOST"
         ## but it does apply here.  Make this ignorable.
         message("Catching interrupt - halting worker")
         self$shutdown("INTERRUPT")
+        ## TODO: flag all jobs immediately as orphaned?
       }
       catch_error <- function(e) {
         message("Caught fatal error - halting")

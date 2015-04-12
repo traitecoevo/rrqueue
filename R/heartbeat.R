@@ -6,8 +6,12 @@ heartbeat <- function(key, timeout, expire, con) {
     h
   } else {
     con$SET(key, "NO_HEARTBEAT_SUPPORT")
-    list(stop=function() {})
+    list(stop=function() con$DEL(key))
   }
+}
+
+heartbeat_available <- function() {
+  requireNamespace("RedisHeartbeat", quietly=TRUE)
 }
 
 heartbeat_time <- function(obj) {
