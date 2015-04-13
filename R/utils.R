@@ -52,20 +52,6 @@ vlapply <- function(X, FUN, ...) {
   vapply(X, FUN, logical(1), ...)
 }
 
-install_script <- function(contents, dest, overwrite=FALSE) {
-  destination_directory <- dirname(dest)
-  if (!file.exists(destination_directory) ||
-      !is_directory(destination_directory)) {
-    stop("Destination must be an existing directory")
-  }
-
-  if (file.exists(dest) && !overwrite) {
-    stop(sprintf("File %s already exists", dest))
-  }
-  writeLines(contents, dest)
-  Sys.chmod(dest, "0755")
-}
-
 docopt_parse <- function(...) {
   oo <- options(warnPartialMatchArgs=FALSE)
   if (isTRUE(oo$warnPartialMatchArgs)) {
@@ -129,4 +115,13 @@ strrep <- function (str, n) {
 
 Sys_kill <- function(pid, signal=NULL) {
   system2("kill", c(pid, signal))
+}
+
+install_scripts <- function(dest, overwrite=FALSE) {
+  src <- system.file("scripts", package=.packageName)
+  scripts <- dir(src)
+  dir.create(dest, FALSE, TRUE)
+  ok <- file.copy(file.path(src, scripts),
+                  file.path(dest, scripts), overwrite=overwrite)
+  invisible(ok)
 }

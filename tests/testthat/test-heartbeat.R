@@ -37,8 +37,8 @@ test_that("heartbeat", {
   ttl <- obj$con$TTL(h)
   ## TODO: Need to make heartbeat configurable upon spawning worker or
   ## we're going to wait for ages
-  expect_that(ttl, is_more_than(20))
-  expect_that(ttl, is_less_than(31))
+  expect_that(ttl, is_more_than(1))
+  expect_that(ttl, is_less_than(3 + 1))
 
   Sys_kill(parse_worker_name(wid)$pid)
   Sys.sleep(0.5)

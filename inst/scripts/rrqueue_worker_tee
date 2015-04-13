@@ -1,0 +1,4 @@
+#!/bin/sh
+LOGFILE=$1
+shift
+rrqueue_worker "$@" 2>&1 | tee "$LOGFILE"

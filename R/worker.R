@@ -23,8 +23,8 @@ WORKER_LOST <- "LOST"
       self$queue_name <- queue_name
       self$con <- redis_connection(con)
       self$task_timeout <- task_timeout
-      self$heartbeat_period <- heartbeat_period
-      self$heartbeat_expire <- heartbeat_expire
+      self$heartbeat_period <- as.numeric(heartbeat_period)
+      self$heartbeat_expire <- as.numeric(heartbeat_expire)
 
       self$envir <- list()
       self$styles <- worker_styles()
@@ -275,11 +275,13 @@ WORKER_LOST <- "LOST"
                   hostname=Sys.info()[["nodename"]],
                   pid=Sys.getpid(),
                   message=self$keys$message,
-                  log=self$keys$log)
+                  log=self$keys$log,
+                  heartbeat_period=self$heartbeat_period,
+                  heartbeat_expire=self$heartbeat_expire)
 
       n <- nchar(names(dat))
       pad <- vcapply(max(n) - n, strrep, str=" ")
-      ret <- sprintf("\t%s:%s %s",
+      ret <- sprintf("    %s:%s %s",
                      self$styles$key(names(dat)), pad,
                      self$styles$value(as.character(dat)))
       message(paste(ret, collapse="\n"))
@@ -296,7 +298,10 @@ WORKER_LOST <- "LOST"
 ##' @title Create an rrqueue worker
 ##' @param queue_name Queue name
 ##' @param con Connection to a redis database
-##' @param task_timeout Task_Timeout for the blocking connection
+##' @param task_timeout Timeout for the blocking connection
+##' @param heartbeat_period Period between heartbeat pulses
+##' @param heartbeat_expire Time that heartbeat pulses will persist
+##' for (must be greater than \code{heartbeat_period}
 ##' @export
 worker <- function(queue_name, con=NULL, task_timeout=60,
                    heartbeat_period=10, heartbeat_expire=30) {

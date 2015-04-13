@@ -89,17 +89,32 @@ worker_group <- function(queue_name, n, logfile_fmt, poll=10, con=NULL) {
   .R6_worker_group$new(queue_name, n, logfile_fmt, poll, con)
 }
 
+## TODO: This might change because it's not going to scale that well
+## for different Redis hosts.
 worker_group_main <- function(args=commandArgs(TRUE)) {
-  'Usage: rrqueue_worker_group <queue_name> <n> <logfile_fmt>' -> doc
-  opts <- docopt_parse(doc, args)
-  worker_group(opts$queue_name, opts$n, opts$logfile_fmt)
+  'Usage: rrqueue_worker <queue_name> <n> <logfile_format> <redis_host>
+  ' -> doc
+  oo <- options(warnPartialMatchArgs=FALSE)
+  if (isTRUE(oo$warnPartialMatchArgs)) {
+    on.exit(options(oo))
+  }
+  opts <- docopt::docopt(doc, args)
+  worker_group(opts$queue_name,
+               opts$n,
+               opts$logfile_fmt,
+               con=RedisAPI::hiredis(redis_host))
 }
 
-install_rrqueue_worker_group <- function(destination_directory,
-                                         overwrite=FALSE) {
-  code <- c("#!/usr/bin/env Rscript",
-            "library(methods)",
-            "w <- rrqueue:::worker_group_main()")
-  dest <- file.path(destination_directory, "rrqueue_worker_group")
-  install_script(code, dest, overwrite)
+worker_group_simple <- function(args=commandArgs(TRUE)) {
+  'Usage: rrqueue_worker <queue_name> <n> <logfile_format> <redis_host>
+  ' -> doc
+  oo <- options(warnPartialMatchArgs=FALSE)
+  if (isTRUE(oo$warnPartialMatchArgs)) {
+    on.exit(options(oo))
+  }
+  opts <- docopt::docopt(doc, args)
+  worker_group(opts$queue_name,
+               opts$n,
+               opts$logfile_fmt,
+               con=RedisAPI::hiredis(redis_host))
 }

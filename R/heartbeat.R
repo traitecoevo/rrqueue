@@ -6,7 +6,7 @@ heartbeat <- function(con, key, period, expire) {
     h
   } else {
     con$SET(key, "NO_HEARTBEAT_SUPPORT")
-    list(stop=function() con$DEL(key))
+    list(stop=function() {con$DEL(key); FALSE})
   }
 }
 

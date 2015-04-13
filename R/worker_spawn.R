@@ -1,15 +1,21 @@
 rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
   'Usage: rrqueue_worker [options] <queue_name>
 
-  --heartbeat-period T  Heartbeat period [default: 10]
-  --heartbeat-expire T  Heartbeat expiry time [default: 30]
+  --heartbeat-period T   Heartbeat period [default: 10]
+  --heartbeat-expire T   Heartbeat expiry time [default: 30]
+  --redis-host HOSTNAME  Hostname for Redis [default: 127.0.0.1]
+  --redis-port PORT      Port for Redis [default: 6379]
+  --log-dir DIR          Directory to log into
   ' -> doc
   oo <- options(warnPartialMatchArgs=FALSE)
   if (isTRUE(oo$warnPartialMatchArgs)) {
     on.exit(options(oo))
   }
   opts <- docopt::docopt(doc, args)
-  worker(opts$queue_name)
+  con <- RedisAPI::hiredis(opts$"redis-host", as.integer(opts$"redis-port"))
+  worker(opts$queue_name, con,
+         heartbeat_period=opts$"heartbeat-period",
+         heartbeat_expire=opts$"heartbeat-expire")
 }
 
 ## Should provide a controller here perhaps?
@@ -21,19 +27,19 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
 rrqueue_worker_spawn <- function(queue_name, logfile,
                                  timeout=20, time_poll=3,
                                  heartbeat_period=NULL,
-                                 heartbeat_expire=NULL) {
-  rrqueue_worker <- rrqueue_worker_script()
+                                 heartbeat_expire=NULL,
+                                 redis_host="127.0.0.1",
+                                 redis_port=6379) {
+  rrqueue_worker <- find_script("rrqueue_worker")
   env <- paste0("RLIBS=", paste(.libPaths(), collapse=":"),
                 'R_TESTS=""')
 
-  con <- redis_connection(NULL)
+  con <- RedisAPI::hiredis(redis_host, redis_port)
   key_workers_new <- rrqueue_keys(queue_name)$workers_new
-
   ## Sanitity check:
   if (con$LLEN(key_workers_new) > 0L) {
     stop("Clear the new workers list first: ", key_workers_new)
   }
-
 
   opts <- character(0)
   if (!is.null(heartbeat_expire)) {
@@ -41,6 +47,12 @@ rrqueue_worker_spawn <- function(queue_name, logfile,
   }
   if (!is.null(heartbeat_period)) {
     opts <- c(opts, "--heartbeat-period", heartbeat_period)
+  }
+  if (!is.null(redis_host)) {
+    opts <- c(opts, "--redis-host", redis_host)
+  }
+  if (!is.null(redis_port)) {
+    opts <- c(opts, "--redis-port", redis_port)
   }
   opts <- c(opts, queue_name)
   code <- system2(rrqueue_worker, opts,
@@ -64,22 +76,12 @@ rrqueue_worker_spawn <- function(queue_name, logfile,
   stop("Worker not identified in time")
 }
 
-## Copied from remake
-install_rrqueue_worker <- function(destination_directory, overwrite=FALSE) {
-  code <- c("#!/usr/bin/env Rscript",
-            "library(methods)",
-            "w <- rrqueue:::rrqueue_worker_main()")
-  dest <- file.path(destination_directory, "rrqueue_worker")
-  install_script(code, dest, overwrite)
-}
-
-rrqueue_worker_script <- function() {
-  rrqueue_worker <- Sys.which("rrqueue_worker")
-  if (rrqueue_worker == "") {
+find_script <- function(name) {
+  cmd <- Sys.which(name)
+  if (cmd == "") {
     tmp <- tempfile()
-    dir.create(tmp)
-    install_rrqueue_worker(tmp)
-    rrqueue_worker <- file.path(tmp, "rrqueue_worker")
+    install_scripts(tmp)
+    cmd <- file.path(tmp, name)
   }
-  rrqueue_worker
+  cmd
 }
