@@ -62,10 +62,13 @@ WORKER_LOST <- "LOST"
 
       withCallingHandlers(self$initialize_worker(),
                           error=catch_error)
-      withCallingHandlers(self$main(),
-                          WorkerStop=catch_worker_stop,
-                          error=catch_error,
-                          interrupt=catch_interrupt)
+      ## The problem is that here, withCallingHandlers will let us
+      ## continue after clearing the WorkerStop error onto the error
+      ## error, so we get a OK/STOP pair.
+      tryCatch(self$main(),
+               WorkerStop=catch_worker_stop,
+               error=catch_error,
+               interrupt=catch_interrupt)
     },
 
     initialize_worker=function() {
