@@ -20,7 +20,7 @@ test_that("heartbeat", {
 
   ## First, check that things are working
   t <- obj$enqueue(sin(1))
-  done <- obj$con$context$run(c("BLPOP", t$key_complete, 10))
+  done <- obj$con$BLPOP(t$key_complete, 10)
   expect_that(t$result(), equals(sin(1)))
   expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE)))
 

@@ -51,7 +51,7 @@ rrqueue_worker_spawn <- function(queue_name, logfile,
   }
 
   for (i in seq_len(ceiling(timeout / time_poll))) {
-    x <- con$context$run(c("BLPOP", key_workers_new, time_poll))
+    x <- con$BLPOP(key_workers_new, time_poll)
     if (is.null(x)) {
       message(".", appendLF=FALSE)
       flush.console()

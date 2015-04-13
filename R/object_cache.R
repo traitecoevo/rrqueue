@@ -17,7 +17,7 @@
     },
 
     list=function(con) {
-      as.character(self$con$hkeys(self$keys$hash))
+      as.character(self$con$HKEYS(self$keys$hash))
     },
 
     drop=function(names) {

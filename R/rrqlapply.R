@@ -24,7 +24,7 @@ rrqlapply <- function(x, fun, rrq) {
   ## TODO: use Gabor's new progress bars here? (gaborcsardi/progress)
   timeout <- 1
   repeat {
-    res <- rrq$con$context$run(c("BLPOP", key_complete, timeout))
+    res <- rrq$con$BLPOP(key_complete, timeout)
     if (is.null(res)) {
       message(".", appendLF=FALSE)
     } else {

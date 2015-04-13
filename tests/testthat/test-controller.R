@@ -8,7 +8,7 @@ test_that("controller", {
   expect_that(existing, equals(character(0)))
 
   obj <- queue("tmpjobs", sources="myfuns.R")
-  expect_that(obj$con, is_a("hiredis"))
+  expect_that(obj$con, is_a("redis_api"))
   expect_that(obj$name, equals("tmpjobs"))
 
   expect_that(setdiff(queues(), existing), equals("tmpjobs"))
@@ -130,7 +130,7 @@ test_that("controller", {
   task <- obj$enqueue(sin(1))
 
   ## Blocking check for job completion.
-  done <- obj$con$context$run(c("BLPOP", task$key_complete, 10))
+  done <- obj$con$BLPOP(task$key_complete, 10)
   expect_that(done[[1]], equals(task$key_complete))
   expect_that(done[[2]], equals(task$id))
 
@@ -152,7 +152,7 @@ test_that("controller", {
   e <- environment()
   task <- obj$enqueue(sin(x), e)
 
-  done <- obj$con$context$run(c("BLPOP", task$key_complete, 10))
+  done <- obj$con$BLPOP(task$key_complete, 10)
   expect_that(obj$tasks_status()[[task$id]], equals(TASK_COMPLETE))
   expect_that(obj$tasks_collect(task$id), equals(sin(x)))
 

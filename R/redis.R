@@ -1,15 +1,10 @@
-## import is not quite enough here as we want to be able to use these
-## in tests, etc.
-object_to_string <- rrlite::object_to_string
-string_to_object <- rrlite::string_to_object
-
-##' @importFrom rrlite hiredis
+##' @importFrom RedisAPI hiredis object_to_string string_to_object
 redis_connection <- function(con) {
-  if (is.null(con)) rrlite::hiredis() else con
+  if (is.null(con)) RedisAPI::hiredis() else con
 }
 
 redis_version <- function(con) {
-  rrlite::parse_redis_info(con$INFO())$redis_version
+  RedisAPI::parse_info(con$INFO())$redis_version
 }
 
 redis_multi <- function(con, code) {
@@ -29,5 +24,5 @@ from_redis_hash <- function(con, name, f=as.character) {
 }
 
 redis_time <- function(con) {
-  paste(as.character(con$context$run("TIME")), collapse=".")
+  paste(as.character(con$TIME()), collapse=".")
 }

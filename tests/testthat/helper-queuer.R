@@ -1,5 +1,10 @@
+object_to_string <- RedisAPI::object_to_string
+string_to_object <- RedisAPI::string_to_object
+
 ## TODO: run in db 15 or something?
-empty_named_list <- rrlite:::empty_named_list
+empty_named_list <- function() {
+  structure(list(), names = character(0))
+}
 empty_named_character <- function() {
   structure(character(0), names = character(0))
 }

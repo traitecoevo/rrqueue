@@ -154,7 +154,7 @@ WORKER_LOST <- "LOST"
       ## TODO: another option is to look at a redis key after
       ## interrupt?
       repeat {
-        task <- con$context$run(c("BLPOP", key_queue, task_timeout))
+        task <- con$BLPOP(key_queue, task_timeout)
         if (is.null(task)) {
           self$log("WAITING", push=FALSE)
         } else {
@@ -266,8 +266,8 @@ WORKER_LOST <- "LOST"
 
     print_info=function() {
       banner(sprintf("_- %s! -_", .packageName))
-      dat <- list(redis_host=self$con$context$host,
-                  redis_port=self$con$context$port,
+      dat <- list(redis_host=self$con$host,
+                  redis_port=self$con$port,
                   worker=self$name,
                   queue_name=self$queue_name,
                   hostname=Sys.info()[["nodename"]],
