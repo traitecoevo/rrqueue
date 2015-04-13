@@ -60,12 +60,12 @@ WORKER_LOST <- "LOST"
         stop("Looks like this worker exists already...")
       }
 
-      tryCatch(self$initialize_worker(),
-               error=catch_error)
-      tryCatch(self$main(),
-               WorkerStop=catch_worker_stop,
-               error=catch_error,
-               interrupt=catch_interrupt)
+      withCallingHandlers(self$initialize_worker(),
+                          error=catch_error)
+      withCallingHandlers(self$main(),
+                          WorkerStop=catch_worker_stop,
+                          error=catch_error,
+                          interrupt=catch_interrupt)
     },
 
     initialize_worker=function() {
@@ -93,7 +93,6 @@ WORKER_LOST <- "LOST"
         dat <- string_to_object(dat_str)
 
         ## Check the hashes of the files
-        ## TODO: this all needs to be run in tryCatch
         hash_expected <- dat$source_files
         if (length(hash_expected) > 0L) {
           hash_recieved <- hash_file(names(hash_expected))
@@ -160,7 +159,7 @@ WORKER_LOST <- "LOST"
         } else {
           channel <- task[[1]]
           if (channel == key_queue_tasks) {
-            tryCatch(
+            withCallingHandlers(
               self$run_task(task[[2]]),
               WorkerError=function(e)
                 self$task_cleanup(e, e$task_id, e$task_status))
@@ -188,7 +187,7 @@ WORKER_LOST <- "LOST"
 
       expr <- self$task_retrieve(id)
 
-      context <- tryCatch(
+      context <- withCallingHandlers(
         self$task_prepare(id, expr),
         error=function(e) stop(WorkerEnvironmentFailed(self, id, e)))
 
