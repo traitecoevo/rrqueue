@@ -112,7 +112,7 @@
         self$con$HSET(self$keys$tasks_status,   task_id, TASK_PENDING)
         self$con$RPUSH(self$keys$tasks_id,      task_id)
       })
-      task(self$con, self$name, task_id, key_complete)
+      invisible(task(self$con, self$name, task_id, key_complete))
     },
 
     requeue=function(task_id) {

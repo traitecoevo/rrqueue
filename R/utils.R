@@ -117,7 +117,7 @@ Sys_kill <- function(pid, signal=NULL) {
   system2("kill", c(pid, signal))
 }
 
-install_scripts <- function(dest, overwrite=FALSE) {
+install_scripts <- function(dest, overwrite=TRUE) {
   src <- system.file("scripts", package=.packageName)
   scripts <- dir(src)
   dir.create(dest, FALSE, TRUE)

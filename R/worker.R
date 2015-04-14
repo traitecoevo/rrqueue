@@ -268,16 +268,17 @@ WORKER_LOST <- "LOST"
 
     print_info=function() {
       banner(sprintf("_- %s! -_", .packageName))
-      dat <- list(redis_host=self$con$host,
+      dat <- list(hostname=Sys.info()[["nodename"]],
+                  pid=Sys.getpid(),
+                  redis_host=self$con$host,
                   redis_port=self$con$port,
                   worker=self$name,
                   queue_name=self$queue_name,
-                  hostname=Sys.info()[["nodename"]],
-                  pid=Sys.getpid(),
-                  message=self$keys$message,
-                  log=self$keys$log,
+                  task_timeout=self$task_timeout,
                   heartbeat_period=self$heartbeat_period,
-                  heartbeat_expire=self$heartbeat_expire)
+                  heartbeat_expire=self$heartbeat_expire,
+                  message=self$keys$message,
+                  log=self$keys$log)
 
       n <- nchar(names(dat))
       pad <- vcapply(max(n) - n, strrep, str=" ")

@@ -1,4 +1,14 @@
 #!/bin/sh
-LOGFILE=$1
+set -e
+# set -x
+LOGDIR=$1
 shift
-rrqueue_worker "$@" 2>&1 | tee "$LOGFILE"
+mkdir -p ${LOGDIR}
+
+# log files will have the form <directory/<hostname>_<id> -- mktemp
+# and rely on timestamps to work out which is most recent; this is
+# safe for race conditions.
+LOGFILE=$(mktemp "${LOGDIR}/$(hostname)_XXXX")
+
+echo "Logging to $LOGFILE"
+rrqueue_worker "$@" 2>&1 | tee -i "$LOGFILE"
