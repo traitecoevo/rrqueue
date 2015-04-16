@@ -77,6 +77,9 @@
     workers_list=function() {
       workers_list(self$con, self$keys)
     },
+    worker_get=function(worker_id) {
+      worker_handle(self$con, self$queue_name, worker_id)
+    },
     workers_status=function(worker_ids=NULL) {
       workers_status(self$con, self$keys, worker_ids)
     },
