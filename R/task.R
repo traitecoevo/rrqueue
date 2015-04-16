@@ -1,11 +1,21 @@
+## First, the ideal lifecycle:
+## * after submissing a job is pending (time_sub)
 TASK_PENDING  <- "PENDING"
+## * after it is picked up by a worker it is running (time_beg)
 TASK_RUNNING  <- "RUNNING"
+## * after it is finished by a worker it is complete or error (time_end)
 TASK_COMPLETE <- "COMPLETE"
 TASK_ERROR    <- "ERROR"
-TASK_MISSING  <- "MISSING"
+
+## Alternatively:
+## the environment failed to work
 TASK_ENVIR_ERROR <- "ENVIR_ERROR"
+## worker node died
 TASK_ORPHAN   <- "ORPHAN"
+## orphaned task was requeued
 TASK_REDIRECT <- "REDIRECT"
+## An unknown task
+TASK_MISSING  <- "MISSING"
 
 .R6_task <- R6::R6Class(
   "task",
@@ -37,7 +47,7 @@ TASK_REDIRECT <- "REDIRECT"
     },
 
     ## TODO: new methods:
-    ##   - drop / cancel / kill
+    ##   - drop / cancel / kill [hmm]
     ##   - expr
     ##   - locals
 

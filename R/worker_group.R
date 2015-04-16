@@ -47,11 +47,7 @@
 
     main=function() {
       t <- self$poll
-      if (is_terminal()) {
-        sym <- remoji::emoji(c("x", "computer"), pad=TRUE)
-      } else {
-        sym <- c(".", "*")
-      }
+      sym <- c(".", "*")
       names(sym) <- c(WORKER_IDLE, WORKER_BUSY)
       repeat {
         ## TODO: when a worker dies, this will say NA in the status --
@@ -102,19 +98,5 @@ worker_group_main <- function(args=commandArgs(TRUE)) {
   worker_group(opts$queue_name,
                opts$n,
                opts$logfile_fmt,
-               con=RedisAPI::hiredis(redis_host))
-}
-
-worker_group_simple <- function(args=commandArgs(TRUE)) {
-  'Usage: rrqueue_worker <queue_name> <n> <logfile_format> <redis_host>
-  ' -> doc
-  oo <- options(warnPartialMatchArgs=FALSE)
-  if (isTRUE(oo$warnPartialMatchArgs)) {
-    on.exit(options(oo))
-  }
-  opts <- docopt::docopt(doc, args)
-  worker_group(opts$queue_name,
-               opts$n,
-               opts$logfile_fmt,
-               con=RedisAPI::hiredis(redis_host))
+               con=RedisAPI::hiredis(opts$redis_host))
 }

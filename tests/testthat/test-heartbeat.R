@@ -13,7 +13,7 @@ test_that("heartbeat", {
 
   logfile <- "worker_heartbeat.log"
   Sys.setenv("R_TESTS" = "")
-  wid <- rrqueue_worker_spawn(obj$name, logfile,
+  wid <- rrqueue_worker_spawn(obj$queue_name, logfile,
                               heartbeat_period=1, heartbeat_expire=3)
   ## w <- rrqueue::worker("testq:heartbeat")
   expect_that(obj$n_workers(), equals(1))
@@ -32,8 +32,8 @@ test_that("heartbeat", {
                                            "2"=TASK_RUNNING)))
 
   ## Then, test that we see a heartbeat
-  h <- rrqueue_key_worker_heartbeat(obj$name, wid)
-  expect_that(obj$con$GET(h), equals("OK"))
+  h <- rrqueue_key_worker_heartbeat(obj$queue_name, wid)
+  expect_that(obj$con$GET(h), equals("3")) # 3 -> expire
   ttl <- obj$con$TTL(h)
   ## TODO: Need to make heartbeat configurable upon spawning worker or
   ## we're going to wait for ages
@@ -67,7 +67,7 @@ test_that("heartbeat", {
                                            "3"=TASK_PENDING)))
 
   logfile2 <- sub("\\.log$", "2.log", logfile)
-  wid2 <- rrqueue_worker_spawn(obj$name, logfile2)
+  wid2 <- rrqueue_worker_spawn(obj$queue_name, logfile2)
   ##   w <- rrqueue::worker("testq:heartbeat")
 
   Sys.sleep(0.5)
@@ -79,8 +79,8 @@ test_that("heartbeat", {
                                            "2"=TASK_REDIRECT,
                                            "3"=TASK_COMPLETE)))
 
-  t0 <- as.numeric(obj$con$HGET(obj$keys$tasks_time_0, t2$id))
-  t1 <- as.numeric(obj$con$HGET(obj$keys$tasks_time_1, t2$id))
+  t0 <- as.numeric(obj$con$HGET(obj$keys$tasks_time_beg, t2$id))
+  t1 <- as.numeric(obj$con$HGET(obj$keys$tasks_time_end, t2$id))
   expect_that(t1 - t0, is_more_than(t_double))
   expect_that(t1 - t0, is_less_than(t_double + 1))
 

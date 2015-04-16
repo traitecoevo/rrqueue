@@ -4,16 +4,19 @@
 \alias{queue}
 \title{Create an rrqueue queue}
 \usage{
-queue(name, packages = NULL, sources = NULL, con = NULL, clean = FALSE)
+queue(queue_name, packages = NULL, sources = NULL,
+  redis_host = "127.0.0.1", redis_port = 6379, clean = FALSE)
 }
 \arguments{
-\item{name}{Queue name}
+\item{queue_name}{Queue name}
 
 \item{packages}{Character vector of packages to load}
 
 \item{sources}{Character vector of files to source}
 
-\item{con}{Connection to a redis database}
+\item{redis_host}{Redis hostname}
+
+\item{redis_port}{Redis port number}
 
 \item{clean}{Delete any rements of existing queues on startup
 (this can cause things to go haywire if processes are still live

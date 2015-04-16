@@ -1,21 +1,38 @@
-rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
-  'Usage: rrqueue_worker [options] <queue_name>
+## There are *four* ways of launching workers; that's why this is so
+## complicated.
+##
+## 1. manually using worker(...)
+## 2. from R using rrqueue_worker_spawn(...)
+## 3. from the command line using rrqueue_worker
+## 4. from the command line using rrqueue_worker_tee
 
-  --heartbeat-period T   Heartbeat period [default: 10]
-  --heartbeat-expire T   Heartbeat expiry time [default: 30]
+## TODO: autogenerate this in the same way that we do for the args
+## TODO: expose the redis arguments directly rather than as 'con'?
+rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
+  'Usage:
+  rrqueue_worker [options] <queue_name>
+  rrqueue_worker -h | --help
+
+  Options:
   --redis-host HOSTNAME  Hostname for Redis [default: 127.0.0.1]
   --redis-port PORT      Port for Redis [default: 6379]
-  --log-dir DIR          Directory to log into
+  --heartbeat-period T   Heartbeat period [default: 10]
+  --heartbeat-expire T   Heartbeat expiry time [default: 30]
+
+  Arguments:
+  <queue_name>   Name of queue, or omit to read from rrqueue.yml
   ' -> doc
   oo <- options(warnPartialMatchArgs=FALSE)
   if (isTRUE(oo$warnPartialMatchArgs)) {
     on.exit(options(oo))
   }
   opts <- docopt::docopt(doc, args)
-  con <- RedisAPI::hiredis(opts$"redis-host", as.integer(opts$"redis-port"))
+  names(opts) <- sub("-", "_", names(opts))
+
+  con <- RedisAPI::hiredis(opts$redis_host, as.integer(opts$redis_port))
   worker(opts$queue_name, con,
-         heartbeat_period=opts$"heartbeat-period",
-         heartbeat_expire=opts$"heartbeat-expire")
+         heartbeat_period=opts$heartbeat_period,
+         heartbeat_expire=opts$heartbeat_expire)
 }
 
 ## Should provide a controller here perhaps?
@@ -25,11 +42,11 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
 ## docopt script to allow other options (host/port/pw).  I don't think
 ## I can get that easily from RcppRedis::Redis though.
 rrqueue_worker_spawn <- function(queue_name, logfile,
+                                 redis_host="127.0.0.1",
+                                 redis_port=6379,
                                  timeout=20, time_poll=3,
                                  heartbeat_period=NULL,
-                                 heartbeat_expire=NULL,
-                                 redis_host="127.0.0.1",
-                                 redis_port=6379) {
+                                 heartbeat_expire=NULL) {
   rrqueue_worker <- find_script("rrqueue_worker")
   env <- paste0("RLIBS=", paste(.libPaths(), collapse=":"),
                 'R_TESTS=""')
@@ -62,6 +79,7 @@ rrqueue_worker_spawn <- function(queue_name, logfile,
     warning("Error launching script: worker *probably* does not exist")
   }
 
+  ## TODO: we could monitor the file here perhaps?  Especially on error.
   for (i in seq_len(ceiling(timeout / time_poll))) {
     x <- con$BLPOP(key_workers_new, time_poll)
     if (is.null(x)) {
@@ -74,14 +92,4 @@ rrqueue_worker_spawn <- function(queue_name, logfile,
     }
   }
   stop("Worker not identified in time")
-}
-
-find_script <- function(name) {
-  cmd <- Sys.which(name)
-  if (cmd == "") {
-    tmp <- tempfile()
-    install_scripts(tmp)
-    cmd <- file.path(tmp, name)
-  }
-  cmd
 }

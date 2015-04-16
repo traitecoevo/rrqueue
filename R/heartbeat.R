@@ -1,11 +1,14 @@
-## Heartbeat support, but with a different interface to RedisHeartbeat
+## Heartbeat support, but with a slightly different interface to
+## RedisHeartbeat and falling back on something informative if we have
+## no support.
+NO_HEARTBEAT_SUPPORT <- -2
 heartbeat <- function(con, key, period, expire) {
   if (requireNamespace("RedisHeartbeat", quietly=TRUE)) {
-    h <- RedisHeartbeat::heartbeat(con$host, con$port)
-    h$start(key, period, expire)
-    h
+    RedisHeartbeat::heartbeat(key, period,
+                              expire=expire, value=expire,
+                              host=con$host, port=con$port)
   } else {
-    con$SET(key, "NO_HEARTBEAT_SUPPORT")
+    con$SET(key, NO_HEARTBEAT_SUPPORT)
     list(stop=function() {con$DEL(key); FALSE})
   }
 }
@@ -19,7 +22,7 @@ heartbeat_time <- function(obj) {
   task_ids <- names(status[status == TASK_RUNNING])
   if (length(task_ids) > 0L) {
     w_running <- as.character(obj$con$HMGET(obj$keys$tasks_worker, task_ids))
-    key <- rrqueue_key_worker_heartbeat(obj$name, w_running)
+    key <- rrqueue_key_worker_heartbeat(obj$queue_name, w_running)
     d <- data.frame(worker_id=w_running,
                     task_id=task_ids,
                     time=vnapply(key, obj$con$PTTL),
@@ -44,7 +47,7 @@ identify_orphan_tasks <- function(obj) {
   keys <- obj$keys
   time <- redis_time(obj$con)
   for (i in seq_along(task_id)) {
-    con$HSET(keys$tasks_time_1,   task_id[[i]],   time)
+    con$HSET(keys$tasks_time_end, task_id[[i]],   time)
     con$HSET(keys$tasks_status,   task_id[[i]],   TASK_ORPHAN)
     con$HSET(keys$workers_status, worker_id[[i]], WORKER_LOST)
   }

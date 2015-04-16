@@ -2,6 +2,14 @@ WORKER_IDLE <- "IDLE"
 WORKER_BUSY <- "BUSY"
 WORKER_LOST <- "LOST"
 
+## TODO: Part way through restructuring the task timeout / heartbeat
+## thing, but it might be wise to have the timeout be slower during
+## the idle phase?  That could be done with a multiplier on the
+## heartbeat.
+
+## TODO: Printing WAITING every 30 seconds is going to get annoying
+## really quickly; might be worth working out how do stop that.
+
 ##' @importFrom R6 R6Class
 .R6_worker <- R6::R6Class(
   "worker",
@@ -10,26 +18,24 @@ WORKER_LOST <- "LOST"
     con=NULL,
     queue_name=NULL,
     keys=NULL,
-    envir=NULL,
-    task_timeout=NULL,
+    envir=list(),
+    heartbeat=NULL,
     heartbeat_period=NULL,
     heartbeat_expire=NULL,
     name=NULL,
     objects=NULL,
     styles=NULL,
 
-    initialize=function(queue_name, con, task_timeout,
+    initialize=function(queue_name, redis_host, redis_port,
       heartbeat_period, heartbeat_expire) {
+      #
+      self$name <- sprintf("%s::%d", hostname(), process_id())
       self$queue_name <- queue_name
-      self$con <- redis_connection(con)
-      self$task_timeout <- task_timeout
       self$heartbeat_period <- as.numeric(heartbeat_period)
       self$heartbeat_expire <- as.numeric(heartbeat_expire)
 
-      self$envir <- list()
-      self$styles <- worker_styles()
-      self$name <- sprintf("%s::%d", Sys.info()[["nodename"]], Sys.getpid())
       self$keys <- rrqueue_keys(self$queue_name, worker_name=self$name)
+      self$styles <- worker_styles()
 
       ## TODO: first interrupt should be to kill currently evaluating
       ## process, not full shutdown.
@@ -48,6 +54,9 @@ WORKER_LOST <- "LOST"
       catch_worker_stop <- function(e) {
         self$shutdown("OK")
       }
+
+      ## Establish the database connection
+      self$con <- redis_connection(redis_host, redis_port)
 
       ## NOTE: This needs to happen *before* running the
       ## initialize_worker; it checks that we can actually use the
@@ -71,23 +80,30 @@ WORKER_LOST <- "LOST"
                interrupt=catch_interrupt)
     },
 
+    ## This is in its own function so that error handling can be done
+    ## gracefully; it's only called by initialize()
     initialize_worker=function() {
       self$print_info()
+
+      self$heartbeat <- heartbeat(self$con, self$keys$heartbeat,
+                                  self$heartbeat_period,
+                                  self$heartbeat_expire)
+
       redis_multi(self$con, {
         self$con$SADD(self$keys$workers_name,   self$name)
         self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
         self$con$HDEL(self$keys$workers_task,   self$name)
         self$con$DEL(self$keys$log)
-        self$con$DEL(self$keys$heartbeat)
         self$log("ALIVE")
-        ## This announces that we're up, in case anyone cares.
+        ## This announces that we're up; things may monitor this
+        ## queue, and worker_spawn does a BLPOP to
         self$con$RPUSH(self$keys$workers_new,   self$name)
       })
       self$objects <- object_cache(self$con, self$keys$objects)
     },
 
+    ## This gets called at the beginning of a job.
     initialize_environment=function(id) {
-      ## TODO: consider locking the environment
       e <- self$envir[[id]]
       if (is.null(e)) {
         self$log("ENVIR", id)
@@ -145,7 +161,6 @@ WORKER_LOST <- "LOST"
       ## TODO: should not use BLPOP here but instead use BRPOPLPUSH
       ## see http://redis.io/commands/{blpop,rpoplpush,brpoplpush}
       con <- self$con
-      task_timeout <- self$task_timeout
       key_queue_tasks <- self$keys$tasks_id
       key_queue_msg  <- self$keys$message
       key_queue <- c(key_queue_tasks, key_queue_msg)
@@ -155,8 +170,13 @@ WORKER_LOST <- "LOST"
       ##
       ## TODO: another option is to look at a redis key after
       ## interrupt?
+      ##
+      ## TODO: hopefully can do some of that with the heartbeat.
+      ## Remaining question is how long to poll between jobs here?  No
+      ## real need for it to be the same as the heartbeat period but
+      ## might as well make it so.
       repeat {
-        task <- con$BLPOP(key_queue, task_timeout)
+        task <- con$BLPOP(key_queue, self$heartbeat_period)
         if (is.null(task)) {
           self$log("WAITING", push=FALSE)
         } else {
@@ -176,16 +196,6 @@ WORKER_LOST <- "LOST"
     run_task=function(id) {
       keys <- self$keys
       con <- self$con
-      ## Need to start this as soon as possible after taking the job;
-      ## ideally we'd do it as we pop the job.  If this one fails,
-      ## it's all over really.
-      h <- heartbeat(con, keys$heartbeat,
-                     self$heartbeat_period,
-                     self$heartbeat_expire)
-      ## This would happen with garbage collection anyway, but now
-      ## happens deterministically.
-      on.exit(h$stop())
-
       self$log("TASK_START", id)
 
       expr <- self$task_retrieve(id)
@@ -202,7 +212,7 @@ WORKER_LOST <- "LOST"
         con$HSET(keys$workers_task,   self$name, id)
         con$HSET(keys$tasks_worker,   id,        self$name)
         con$HSET(keys$tasks_status,   id,        TASK_RUNNING)
-        con$HSET(keys$tasks_time_0,   id,        time)
+        con$HSET(keys$tasks_time_beg, id,        time)
       })
 
       ## NOTE: if the underlying process *wants* to return an error
@@ -225,7 +235,6 @@ WORKER_LOST <- "LOST"
              EVAL=run_message_EVAL(args),
              STOP=run_message_STOP(self, args),
              INFO=self$print_info(),
-             INSTALL=run_message_INSTALL(args),
              message(sprintf("Recieved unknown message: [%s] [%s]", cmd, args)))
     },
 
@@ -257,7 +266,7 @@ WORKER_LOST <- "LOST"
       redis_multi(con, {
         con$HSET(keys$tasks_result,   id,        object_to_string(data))
         con$HSET(keys$tasks_status,   id,        task_status)
-        con$HSET(keys$tasks_time_1,   id,        time)
+        con$HSET(keys$tasks_time_end, id,        time)
         con$HSET(keys$workers_status, self$name, WORKER_IDLE)
         con$HDEL(keys$workers_task,   self$name)
         ## This advertises to the controller that we're done
@@ -267,14 +276,13 @@ WORKER_LOST <- "LOST"
     },
 
     print_info=function() {
-      banner(sprintf("_- %s! -_", .packageName))
+      message(crayon::make_style(random_colour())(worker_banner_text()))
       dat <- list(hostname=Sys.info()[["nodename"]],
                   pid=Sys.getpid(),
                   redis_host=self$con$host,
                   redis_port=self$con$port,
                   worker=self$name,
                   queue_name=self$queue_name,
-                  task_timeout=self$task_timeout,
                   heartbeat_period=self$heartbeat_period,
                   heartbeat_expire=self$heartbeat_expire,
                   message=self$keys$message,
@@ -290,6 +298,8 @@ WORKER_LOST <- "LOST"
 
     ## TODO: organise doing this on finalisation:
     shutdown=function(status="OK") {
+      self$heartbeat$stop()
+      self$con$DEL(self$keys$heartbeat)
       self$con$SREM(self$keys$workers_name,   self$name)
       self$con$HDEL(self$keys$workers_status, self$name)
       self$log("STOP", status)
@@ -298,18 +308,17 @@ WORKER_LOST <- "LOST"
 ##' Create an rrqueue worker.  This blocks the main loop.
 ##' @title Create an rrqueue worker
 ##' @param queue_name Queue name
-##' @param con Connection to a redis database
-##' @param task_timeout Timeout for the blocking connection
+##' @param redis_host Host name/IP for the Redis server
+##' @param redis_port Port for the Redis server
 ##' @param heartbeat_period Period between heartbeat pulses
 ##' @param heartbeat_expire Time that heartbeat pulses will persist
-##' for (must be greater than \code{heartbeat_period}
+##' for (must be greater than \code{heartbeat_period})
 ##' @export
-worker <- function(queue_name, con=NULL, task_timeout=60,
-                   heartbeat_period=10, heartbeat_expire=30) {
-  if (heartbeat_expire <= heartbeat_period) {
-    stop("heartbeat_expire must be longer than heartbeat_period")
-  }
-  .R6_worker$new(queue_name, con, task_timeout,
+worker <- function(queue_name,
+                   redis_host="127.0.0.1", redis_port=6379,
+                   heartbeat_period=30,
+                   heartbeat_expire=heartbeat_period * 3) {
+  .R6_worker$new(queue_name, redis_host, redis_port,
                  heartbeat_period, heartbeat_expire)
 }
 
@@ -327,27 +336,24 @@ run_message_EVAL <- function(args) {
   print(try(eval(parse(text=args), .GlobalEnv)))
 }
 
-## TODO: I have nice code code for doing this in remake I could reuse
-## here
-## TODO: setdiff on missing packages?
-run_message_INSTALL <- function(args) {
-  message("> INSTALL ", args)
-  try({
-    pkgs <- strsplit(args, "\\s+")[[1]]
-    ## Interpret things that contain "/" as gh packages
-    is_gh <- grepl("/", pkgs, fixed=TRUE)
-    is_cran <- !is_gh
-    if (any(is_cran)) {
-      install.packages(pkgs[is_cran])
-    }
-    if (any(is_gh)) {
-      devtools::install_github(pkgs[is_gh])
-    }
-  })
-}
-
+##' @importFrom crayon make_style
 worker_styles <- function() {
   list(info=crayon::make_style("grey"),
        key=crayon::make_style("gold"),
        value=crayon::make_style("dodgerblue2"))
+}
+
+
+## To regenerate / change:
+##   fig <- rfiglet::figlet(sprintf("_- %s -_", "rrqueue!"), "slant")
+##   dput(rstrip(strsplit(as.character(fig), "\n")[[1]]))
+worker_banner_text <- function() {
+  c("                                                       __",
+    "                ______________ ___  _____  __  _____  / /",
+    "      ______   / ___/ ___/ __ `/ / / / _ \\/ / / / _ \\/ /  ______",
+    "     /_____/  / /  / /  / /_/ / /_/ /  __/ /_/ /  __/_/  /_____/",
+    " ______      /_/  /_/   \\__, /\\__,_/\\___/\\__,_/\\___(_)      ______",
+    "/_____/                   /_/                              /_____/"
+    ) -> txt
+  paste(txt, collapse="\n")
 }

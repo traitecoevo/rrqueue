@@ -9,11 +9,11 @@ test_that("controller", {
 
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_that(obj$con, is_a("redis_api"))
-  expect_that(obj$name, equals("tmpjobs"))
+  expect_that(obj$queue_name, equals("tmpjobs"))
 
   expect_that(setdiff(queues(), existing), equals("tmpjobs"))
 
-  keys <- rrqueue_keys(obj$name)
+  keys <- rrqueue_keys(obj$queue_name)
 
   con <- obj$con
 
@@ -42,7 +42,8 @@ test_that("controller", {
               equals(c("1"=TASK_PENDING, "2"=TASK_PENDING)))
 
   keys_tasks <- c(keys$tasks_expr, keys$tasks_counter, keys$tasks_id,
-                  keys$tasks_status, keys$tasks_envir, keys$tasks_complete)
+                  keys$tasks_status, keys$tasks_envir,
+                  keys$tasks_complete, keys$tasks_time_sub)
   expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
               equals(sort(c(keys_startup, keys_tasks))))
 
@@ -52,6 +53,7 @@ test_that("controller", {
   expect_that(con$TYPE(keys$tasks_status),   equals("hash"))
   expect_that(con$TYPE(keys$tasks_complete), equals("hash"))
   expect_that(con$TYPE(keys$tasks_envir),    equals("hash"))
+  expect_that(con$TYPE(keys$tasks_time_sub), equals("hash"))
 
   ids <- con$LRANGE(keys$tasks_id, 0, -1)
   expect_that(ids, equals(list("1", "2")))
@@ -72,9 +74,9 @@ test_that("controller", {
   expect_that(obj$con$HGET(keys$tasks_envir, ids[[2]]),
               equals(obj$envir_id))
   expect_that(obj$con$HGET(keys$tasks_complete, ids[[1]]),
-              equals(rrqueue_key_task_complete(obj$name, ids[[1]])))
+              equals(rrqueue_key_task_complete(obj$queue_name, ids[[1]])))
   expect_that(obj$con$HGET(keys$tasks_complete, ids[[2]]),
-              equals(rrqueue_key_task_complete(obj$name, ids[[2]])))
+              equals(rrqueue_key_task_complete(obj$queue_name, ids[[2]])))
 
   expect_that(con$GET(keys$tasks_counter), equals("2"))
 
@@ -87,9 +89,9 @@ test_that("controller", {
   expect_that(task1$result(), throws_error("incomplete"))
   expect_that(task2$result(), throws_error("incomplete"))
   expect_that(task1$key_complete,
-              equals(rrqueue_key_task_complete(obj$name, ids[[1]])))
+              equals(rrqueue_key_task_complete(obj$queue_name, ids[[1]])))
   expect_that(task2$key_complete,
-              equals(rrqueue_key_task_complete(obj$name, ids[[2]])))
+              equals(rrqueue_key_task_complete(obj$queue_name, ids[[2]])))
 
   expect_that(obj$tasks(), equals(from_redis_hash(con, keys$tasks_expr)))
 
@@ -98,7 +100,6 @@ test_that("controller", {
   expect_that(obj$tasks(), equals(empty_named_character()))
   expect_that(con$LRANGE(keys$tasks_id, 0, -1), equals(list()))
 
-  ## TODO: Might be worth changing this to TASK_MISSING
   expect_that(task1$status(), equals(TASK_MISSING))
   expect_that(task2$status(), equals(TASK_MISSING))
 
@@ -106,9 +107,9 @@ test_that("controller", {
   logfile <- "worker.log"
   ## See: https://github.com/hadley/testthat/issues/144
   Sys.setenv("R_TESTS" = "")
-  wid <- rrqueue_worker_spawn(obj$name, logfile)
+  wid <- rrqueue_worker_spawn(obj$queue_name, logfile)
   ## or!
-  ##   w <- rrqueue::worker("tmpjobs")
+  ##   w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 
   expect_that(obj$n_workers(), equals(1))
 
@@ -176,7 +177,7 @@ test_that("controller", {
   expect_that(obj$n_workers(), equals(0))
   expect_that(obj$workers(), equals(character(0)))
 
-  log_key <- rrqueue_key_worker_log(obj$name, w)
+  log_key <- rrqueue_key_worker_log(obj$queue_name, w)
   log <- as.character(obj$con$LRANGE(log_key, 0, -1))
   dlog <- parse_worker_log(log)
   expect_that(dlog, is_a("data.frame"))

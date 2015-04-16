@@ -8,7 +8,7 @@ rrqlapply <- function(x, fun, rrq) {
 
   i <- rrq$con$GET(rrq$keys$tasks_counter)
   i <- if (is.null(i)) 1L else (as.integer(i) + 1L)
-  key_complete <- rrqueue_key_task_complete(rrq$name, i)
+  key_complete <- rrqueue_key_task_complete(rrq$queue_name, i)
 
   tasks <- vector("list", length(x))
   e <- environment()

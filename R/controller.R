@@ -4,48 +4,42 @@
 
 ## TODO: Refuse to run any more jobs unless the environment agrees;
 ## that requires rehashing and is potentially expensive.
-
 .R6_queue <- R6::R6Class(
   "queue",
 
   public=list(
     con=NULL,
-    name=NULL,
+    queue_name=NULL,
     keys=NULL,
     objects=NULL,
     envir=NULL,
     envir_id=NULL,
 
-    initialize=function(name, packages=NULL, sources=NULL, con=NULL,
-                        clean=FALSE) {
-      self$con <- redis_connection(con)
-      self$name <- name
-      self$keys <- rrqueue_keys(self$name)
+    initialize=function(queue_name, packages, sources, redis_host, redis_port) {
+      self$con  <- redis_connection(redis_host, redis_port)
+      self$queue_name <- queue_name
+      self$keys <- rrqueue_keys(self$queue_name)
 
-      existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$name)
+      existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$queue_name)
       if (existing) {
-        if (clean) {
-          message("cleaning old queue")
-          self$clean()
-        } else {
-          message("reattaching to existing queue")
-        }
+        message("reattaching to existing queue")
       } else {
         message("creating new queue")
         self$clean()
       }
+      ## NOTE: this is not very accurate...
       nw <- self$n_workers()
       if (nw > 0L) {
         message(sprintf("%d workers available", nw))
       }
 
-      self$con$SADD(self$keys$rrqueue_queues, self$name)
+      self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
       self$initialize_environment(packages, sources, TRUE)
-      self$objects <- object_cache(con, self$keys$objects)
+      self$objects <- object_cache(self$con, self$keys$objects)
     },
 
     clean=function() {
-      self$con$SREM(self$keys$rrqueue_queues, self$name)
+      self$con$SREM(self$keys$rrqueue_queues, self$queue_name)
 
       ## TODO: This one here seems daft.  If there are workers they
       ## might still be around, and they might be working on tasks.
@@ -63,6 +57,9 @@
       self$con$DEL(self$keys$tasks_status)
       self$con$DEL(self$keys$tasks_result)
       self$con$DEL(self$keys$tasks_envir)
+      self$con$DEL(self$keys$tasks_time_sub)
+      self$con$DEL(self$keys$tasks_time_beg)
+      self$con$DEL(self$keys$tasks_time_end)
 
       self$con$DEL(self$keys$envirs_contents)
     },
@@ -103,16 +100,18 @@
       expr_str <- save_expression(dat, task_id, envir, self$objects)
 
       if (is.null(key_complete)) {
-        key_complete <- rrqueue_key_task_complete(self$name, task_id)
+        key_complete <- rrqueue_key_task_complete(self$queue_name, task_id)
       }
+      time <- redis_time(self$con)
       redis_multi(self$con, {
         self$con$HSET(self$keys$tasks_expr,     task_id, expr_str)
         self$con$HSET(self$keys$tasks_envir,    task_id, self$envir_id)
         self$con$HSET(self$keys$tasks_complete, task_id, key_complete)
         self$con$HSET(self$keys$tasks_status,   task_id, TASK_PENDING)
+        self$con$HSET(self$keys$tasks_time_sub, task_id, time)
         self$con$RPUSH(self$keys$tasks_id,      task_id)
       })
-      invisible(task(self$con, self$name, task_id, key_complete))
+      invisible(task(self$con, self$queue_name, task_id, key_complete))
     },
 
     requeue=function(task_id) {
@@ -132,7 +131,7 @@
       task2_id <- as.character(con$INCR(keys$tasks_counter))
 
       key_complete_orphan <- paste0(key_complete, ":orphan")
-
+      time <- redis_time(con)
       redis_multi(con, {
         ## information about the old, abandoned job:
         con$HSET(keys$tasks_complete, task_id, key_complete_orphan)
@@ -143,14 +142,15 @@
         con$HSET(keys$tasks_envir,    task2_id, envir_id)
         con$HSET(keys$tasks_complete, task2_id, key_complete)
         con$HSET(keys$tasks_status,   task2_id, TASK_PENDING)
+        con$HSET(keys$tasks_time_sub, task2_id, time)
         con$RPUSH(keys$tasks_id,      task2_id)
       })
-      task(con, self$name, task2_id, key_complete)
+      task(con, self$queue_name, task2_id, key_complete)
     },
 
     task=function(task_id) {
       key_complete <- self$con$HGET(self$keys$tasks_complete, task_id)
-      task(self$con, self$name, task_id, key_complete)
+      task(self$con, self$queue_name, task_id, key_complete)
     },
 
     ## TODO: Send messages to workers.  This can be a second list and
@@ -171,20 +171,10 @@
       }
       ## TODO: check if the worker exists before pushing anything onto
       ## its message queue.
-      key <- rrqueue_key_worker_message(self$name, worker)
+      key <- rrqueue_key_worker_message(self$queue_name, worker)
       for (k in key) {
         self$con$RPUSH(k, content)
       }
-    },
-
-    ## Semantics here are going to be really nasty if there are
-    ## pending messages; it might make sense to block for m
-    fetch_message=function(worker, timeout=5) {
-      if (timeout <= 0) {
-        stop("Infinite timeout is not clever here")
-      }
-      key <- key_worker(self$name, worker)$worker_response
-
     },
 
     n_workers=function() {
@@ -204,21 +194,14 @@
       from_redis_hash(self$con, self$keys$tasks_expr)
     },
 
-    tasks_status=function(id=NULL) {
-      if (is.null(id)) {
-        from_redis_hash(self$con, self$keys$tasks_status,
-                        as.character)
-      } else {
-        status <- self$con$HMGET(self$keys$tasks_status, id)
-        status[vapply(status, is.null, logical(1))] <- TASK_MISSING
-        status <- as.character(status)
-        names(status) <- id
-        status
-      }
+    tasks_status=function(task_ids=NULL) {
+      from_redis_hash(self$con, self$keys$tasks_status, task_ids,
+                      as.character, TASK_MISSING)
     },
 
     ## TODO: Only works for one task - but name suggests >= 1
     ## TODO: write vectorised version that always returns a list
+    ## TODO: worth pushing the object through our cache or something?
     tasks_collect=function(id) {
       status <- self$tasks_status(id)
       if (status == TASK_MISSING) {
@@ -259,19 +242,17 @@
 
 ##' Create an rrqueue queue
 ##' @title Create an rrqueue queue
-##' @param name Queue name
+##' @param queue_name Queue name
 ##' @param packages Character vector of packages to load
 ##' @param sources Character vector of files to source
-##' @param con Connection to a redis database
+##' @param redis_host Redis hostname
+##' @param redis_port Redis port number
 ##' @param clean Delete any rements of existing queues on startup
 ##' (this can cause things to go haywire if processes are still live
 ##' working on jobs as they'll clobber your queue).
 ##' @export
-queue <- function(name, packages=NULL, sources=NULL, con=NULL, clean=FALSE) {
-  .R6_queue$new(name, packages, sources, con)
-}
-
-queues <- function(con=NULL) {
-  con <- redis_connection(con)
-  as.character(con$SMEMBERS("rrqueue:queues"))
+queue <- function(queue_name, packages=NULL, sources=NULL,
+                  redis_host="127.0.0.1", redis_port=6379,
+                  clean=FALSE) {
+  .R6_queue$new(queue_name, packages, sources, redis_host, redis_port)
 }

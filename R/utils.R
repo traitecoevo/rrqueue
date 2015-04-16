@@ -1,14 +1,3 @@
-##' @importFrom crayon make_style
-banner <- function(text) {
-  pkgs <- .packages(TRUE)
-  style <- crayon::make_style(random_colour())
-  f <- function(x) message(style(x))
-  if ("rfiglet" %in% pkgs) {
-    text <- as.character(rfiglet::figlet(text, "slant"))
-  }
-  f(text)
-}
-
 ##' @importFrom digest digest
 hash_string <- function(x) {
   digest::digest(x, serialize=FALSE)
@@ -62,6 +51,9 @@ docopt_parse <- function(...) {
 
 lstrip <- function(x) {
   sub("^\\s+", "", x, perl=TRUE)
+}
+rstrip <- function(x) {
+  sub("\\s+$", "", x, perl=TRUE)
 }
 
 ## Source a file (using sys.source) and record all files that file
@@ -124,4 +116,21 @@ install_scripts <- function(dest, overwrite=TRUE) {
   ok <- file.copy(file.path(src, scripts),
                   file.path(dest, scripts), overwrite=overwrite)
   invisible(ok)
+}
+
+find_script <- function(name) {
+  cmd <- Sys.which(name)
+  if (cmd == "") {
+    tmp <- tempfile()
+    install_scripts(tmp)
+    cmd <- file.path(tmp, name)
+  }
+  cmd
+}
+
+hostname <- function() {
+  Sys.info()[["nodename"]]
+}
+process_id <- function() {
+  Sys.getpid()
 }

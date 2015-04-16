@@ -17,11 +17,11 @@ R packages:
 
 ```
 install.packages(c("RcppRedis", "R6", "digest", "docopt"))
-devtools::install_github(c("gaborcsardi/crayon", "richfitz/rfiglet", "richfitz/remoji", "richfitz/RedisAPI"))
+devtools::install_github(c("gaborcsardi/crayon", "ropensci/RedisAPI", "richfitz/RedisHeartbeat"))
 devtools::install_git("https://github.com/traitecoevo/rrqueue")
 ```
 
-(*optional*) to see what is going on, in a terminal, run `redis-cli monitor` which will print all the Redis chatter
+(*optional*) to see what is going on, in a terminal, run `redis-cli monitor` which will print all the Redis chatter, though it will impact on redis performance.
 
 Start a queue that we will submit tasks to
 ```

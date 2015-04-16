@@ -4,15 +4,20 @@
 \alias{worker}
 \title{Create an rrqueue worker}
 \usage{
-worker(queue_name, con = NULL, task_timeout = 60, heartbeat_period = 10,
-  heartbeat_expire = 30)
+worker(queue_name, redis_host = "127.0.0.1", redis_port = 6379,
+  heartbeat_period = 30, heartbeat_expire = heartbeat_period * 3)
 }
 \arguments{
 \item{queue_name}{Queue name}
 
-\item{con}{Connection to a redis database}
+\item{redis_host}{Host name/IP for the Redis server}
 
-\item{task_timeout}{Task_Timeout for the blocking connection}
+\item{redis_port}{Port for the Redis server}
+
+\item{heartbeat_period}{Period between heartbeat pulses}
+
+\item{heartbeat_expire}{Time that heartbeat pulses will persist
+for (must be greater than \code{heartbeat_period})}
 }
 \description{
 Create an rrqueue worker.  This blocks the main loop.
