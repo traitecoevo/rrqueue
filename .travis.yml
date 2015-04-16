@@ -13,6 +13,7 @@ before_install:
   - ./travis-tool.sh bootstrap
 
 install:
+  - ./travis-tool.sh install_aptget libhiredis-dev
   - ./travis-tool.sh install_deps
   - ./travis-tool.sh github_package ropensci/RedisAPI
   - ./travis-tool.sh github_package richfitz/RedisHeartbeat
@@ -26,3 +27,5 @@ notifications:
   email:
     on_success: change
     on_failure: change
+  slack:
+    secure: n9tUe5APG2KTy6KRz6GA6YSCte8tc77TuOKo2sSnnKhdYFFl9wPQ9heuS2JPldpNMB0dmgCsqDuPIiKh8yuKnKQWqSOWiIlkz0vdNthWE
