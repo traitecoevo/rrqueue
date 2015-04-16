@@ -148,6 +148,7 @@
       task(con, self$queue_name, task2_id, key_complete)
     },
 
+    ## TODO: DROP
     task=function(task_id) {
       key_complete <- self$con$HGET(self$keys$tasks_complete, task_id)
       task(self$con, self$queue_name, task_id, key_complete)
@@ -159,6 +160,7 @@
     ## Alternatively, we could just have this for workers that we spin
     ## up ourselves.
 
+    ## TODO: DROP
     workers=function() {
       as.character(self$con$SMEMBERS(self$keys$workers_name))
     },
@@ -177,6 +179,7 @@
       }
     },
 
+    ## TODO: DROP
     n_workers=function() {
       ## NOTE: this is going to be an *estimate* because there might
       ## be old workers floating around.
@@ -185,20 +188,24 @@
       self$con$SCARD(self$keys$workers_name)
     },
 
+    ## TODO: DROP
     workers_status=function() {
       from_redis_hash(self$con, self$keys$workers_status)
     },
 
+    ## TODO: DROP
     tasks=function() {
       ## TODO: this is no longer useful, really.
       from_redis_hash(self$con, self$keys$tasks_expr)
     },
 
+    ## TODO: DROP
     tasks_status=function(task_ids=NULL) {
       from_redis_hash(self$con, self$keys$tasks_status, task_ids,
                       as.character, TASK_MISSING)
     },
 
+    ## TODO: DROP
     ## TODO: Only works for one task - but name suggests >= 1
     ## TODO: write vectorised version that always returns a list
     ## TODO: worth pushing the object through our cache or something?

@@ -122,6 +122,11 @@ restore_expression <- function(dat, envir, object_cache) {
   dat$expr
 }
 
+restore_expression_simple <- function(dat) {
+  dat <- string_to_object(dat)
+  dat$expr
+}
+
 parse_worker_name <- function(str) {
   res <- strsplit(str, "::", fixed=TRUE)
   if (any(viapply(res, length) != 2)) {

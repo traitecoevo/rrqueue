@@ -16,8 +16,8 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
   Options:
   --redis-host HOSTNAME  Hostname for Redis [default: 127.0.0.1]
   --redis-port PORT      Port for Redis [default: 6379]
-  --heartbeat-period T   Heartbeat period [default: 10]
-  --heartbeat-expire T   Heartbeat expiry time [default: 30]
+  --heartbeat-period T   Heartbeat period [default: 30]
+  --heartbeat-expire T   Heartbeat expiry time [default: 90]
 
   Arguments:
   <queue_name>   Name of queue, or omit to read from rrqueue.yml
