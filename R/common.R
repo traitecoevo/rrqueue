@@ -16,7 +16,9 @@ rrqueue_keys_global <- function() {
 }
 
 rrqueue_keys_queue <- function(queue) {
-  list(workers_name    = sprintf("%s:workers:name",    queue),
+  list(queue_name      = queue,
+
+       workers_name    = sprintf("%s:workers:name",    queue),
        workers_status  = sprintf("%s:workers:status",  queue),
        workers_task    = sprintf("%s:workers:task",    queue),
        workers_new     = sprintf("%s:workers:new",     queue),

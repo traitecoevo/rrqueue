@@ -8,7 +8,8 @@ WORKER_LOST <- "LOST"
 ## heartbeat.
 
 ## TODO: Printing WAITING every 30 seconds is going to get annoying
-## really quickly; might be worth working out how do stop that.
+## really quickly; might be worth working out how convey this
+## information more politely.
 
 ##' @importFrom R6 R6Class
 .R6_worker <- R6::R6Class(
@@ -321,6 +322,53 @@ worker <- function(queue_name,
   .R6_worker$new(queue_name, redis_host, redis_port,
                  heartbeat_period, heartbeat_expire)
 }
+
+workers_len <- function(con, keys) {
+  ## NOTE: this is going to be an *estimate* because there might
+  ## be old workers floating around.
+  ##
+  ## TODO: Drop orphan workers here, at which point this becomes a
+  ## bit slower than we'd like...
+  con$SCARD(keys$workers_name)
+}
+
+workers_list <- function(con, keys) {
+  as.character(con$SMEMBERS(keys$workers_name))
+}
+
+workers_status <- function(con, keys, worker_ids=NULL) {
+  from_redis_hash(con, keys$workers_status, worker_ids)
+}
+
+workers_status_time <- function(con, keys, worker_ids=NULL) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  h <- rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)
+  m <- as.numeric(vcapply(h, con$GET))
+  t <- unname(vnapply(h, con$PTTL)) / 1000
+  a <- as.numeric(redis_time(con)) -
+    workers_log_tail(con, keys, worker_ids, 1)$time
+  data.frame(worker_id=worker_ids,
+             expire_max=m,
+             expire=t,
+             last_seen=m - t,
+             last_action=a)
+}
+
+worker_log_tail <- function(con, keys, worker_id, n=1) {
+  log_key <- rrqueue_key_worker_log(keys$queue_name, worker_id)
+  parse_worker_log(as.character(con$LRANGE(log_key, -n, -1)))
+}
+
+workers_log_tail <- function(con, keys, worker_ids=NULL, n=1) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  tmp <- lapply(worker_ids, function(i) worker_log_tail(con, keys, i, n))
+  do.call("rbind", tmp, quote=TRUE)
+}
+
 
 ## The message passing is really simple minded; it doesn't do
 ## bidirectional messaging at all yet because that's hard to get right

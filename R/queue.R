@@ -1,41 +1,31 @@
-## TODO: queue objects should be able to be destroyed at will: all the
-## data should be stored on the server; requires reconfiguring the
-## initialize method though...
-
-## TODO: Refuse to run any more jobs unless the environment agrees;
-## that requires rehashing and is potentially expensive.
+## NOTE: queue objects are be able to be destroyed at will: all the
+## data is be stored on the server.
 .R6_queue <- R6::R6Class(
   "queue",
 
+  inherit=.R6_observer,
+
   public=list(
-    con=NULL,
-    queue_name=NULL,
-    keys=NULL,
-    objects=NULL,
     envir=NULL,
     envir_id=NULL,
 
     initialize=function(queue_name, packages, sources, redis_host, redis_port) {
-      self$con  <- redis_connection(redis_host, redis_port)
-      self$queue_name <- queue_name
-      self$keys <- rrqueue_keys(self$queue_name)
-
+      super$initialize(queue_name, redis_host, redis_port)
       existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$queue_name)
-      if (existing) {
+      if (existing == 1) {
         message("reattaching to existing queue")
       } else {
         message("creating new queue")
         self$clean()
       }
       ## NOTE: this is not very accurate...
-      nw <- self$n_workers()
+      nw <- self$workers_len()
       if (nw > 0L) {
         message(sprintf("%d workers available", nw))
       }
 
       self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
       self$initialize_environment(packages, sources, TRUE)
-      self$objects <- object_cache(self$con, self$keys$objects)
     },
 
     clean=function() {
@@ -148,28 +138,12 @@
       task(con, self$queue_name, task2_id, key_complete)
     },
 
-    ## TODO: DROP
-    task=function(task_id) {
-      key_complete <- self$con$HGET(self$keys$tasks_complete, task_id)
-      task(self$con, self$queue_name, task_id, key_complete)
-    },
-
-    ## TODO: Send messages to workers.  This can be a second list and
-    ## may have broadcast and specific messages.  We could use that to
-    ## advertise that we're not interested in new jobs.
-    ## Alternatively, we could just have this for workers that we spin
-    ## up ourselves.
-
-    ## TODO: DROP
-    workers=function() {
-      as.character(self$con$SMEMBERS(self$keys$workers_name))
-    },
-
     ## These messages are *broadcast* commands.  No data will be
-    ## returned by the worker.
+    ## returned by the worker.  If the worker is omitted, all workers
+    ## get the message.
     send_message=function(content, worker=NULL) {
       if (is.null(worker)) {
-        worker <- self$workers()
+        worker <- self$workers_list()
       }
       ## TODO: check if the worker exists before pushing anything onto
       ## its message queue.
@@ -177,46 +151,6 @@
       for (k in key) {
         self$con$RPUSH(k, content)
       }
-    },
-
-    ## TODO: DROP
-    n_workers=function() {
-      ## NOTE: this is going to be an *estimate* because there might
-      ## be old workers floating around.
-      ##
-      ## TODO: Drop orphan workers here.
-      self$con$SCARD(self$keys$workers_name)
-    },
-
-    ## TODO: DROP
-    workers_status=function() {
-      from_redis_hash(self$con, self$keys$workers_status)
-    },
-
-    ## TODO: DROP
-    tasks=function() {
-      ## TODO: this is no longer useful, really.
-      from_redis_hash(self$con, self$keys$tasks_expr)
-    },
-
-    ## TODO: DROP
-    tasks_status=function(task_ids=NULL) {
-      from_redis_hash(self$con, self$keys$tasks_status, task_ids,
-                      as.character, TASK_MISSING)
-    },
-
-    ## TODO: DROP
-    ## TODO: Only works for one task - but name suggests >= 1
-    ## TODO: write vectorised version that always returns a list
-    ## TODO: worth pushing the object through our cache or something?
-    tasks_collect=function(id) {
-      status <- self$tasks_status(id)
-      if (status == TASK_MISSING) {
-        stop("task does not exist")
-      } else if (status != TASK_COMPLETE) {
-        stop("task is incomplete")
-      }
-      string_to_object(self$con$HGET(self$keys$tasks_result, id))
     },
 
     tasks_drop=function(id) {

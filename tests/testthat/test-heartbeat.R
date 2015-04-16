@@ -16,7 +16,7 @@ test_that("heartbeat", {
   wid <- rrqueue_worker_spawn(obj$queue_name, logfile,
                               heartbeat_period=1, heartbeat_expire=3)
   ## w <- rrqueue::worker("testq:heartbeat")
-  expect_that(obj$n_workers(), equals(1))
+  expect_that(obj$workers_len(), equals(1))
 
   ## First, check that things are working
   t <- obj$enqueue(sin(1))

@@ -38,3 +38,25 @@ do_source <- function(file, ..., source_fun=sys.source) {
   }
   tryCatch(source_fun(file, ...), error=catch_source)
 }
+
+## TODO: envir_contents
+
+envirs_list <- function(con, keys) {
+  as.character(con$HKEYS(keys$envirs_contents))
+}
+
+envirs_contents <- function(con, keys, envir_ids=NULL) {
+  dat <- from_redis_hash(con, keys$envirs_contents, envir_ids)
+  lapply(dat, string_to_object)
+}
+
+envirs_tasks <- function(con, keys, envir_ids=NULL) {
+  ## TODO: should be done with HSCAN, and not implemented for
+  ## efficiency.  There's bound to be a way of doing this natively
+  ## in Redis.
+  if (is.null(envir_ids)) {
+    envir_ids <- envirs_list(con, keys)
+  }
+  tmp <- tasks_envir(con, keys)
+  split(names(tmp), envir_ids[match(tmp, envir_ids)])
+}
