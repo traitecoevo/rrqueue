@@ -189,9 +189,6 @@ test_that("queue", {
   ## on job removal, clean up objects that were created.  That's easy
   ## enough to set up with enqueue, and then trigger later.
 
-  ## TODO: get statistics off the workers about completed jobs
-  ## perhaps?  Can be done by parsing the worker log.
-
   obj$send_message("STOP", w)
   Sys.sleep(.5)
   expect_that(obj$workers_len(), equals(0))

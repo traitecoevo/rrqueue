@@ -278,7 +278,8 @@ WORKER_LOST <- "LOST"
 
     print_info=function() {
       message(crayon::make_style(random_colour())(worker_banner_text()))
-      dat <- list(hostname=Sys.info()[["nodename"]],
+      dat <- list(version=version_string(),
+                  hostname=Sys.info()[["nodename"]],
                   pid=Sys.getpid(),
                   redis_host=self$con$host,
                   redis_port=self$con$port,

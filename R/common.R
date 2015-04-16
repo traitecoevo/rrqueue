@@ -153,3 +153,26 @@ parse_worker_log <- function(log) {
 task_object_prefix <- function(task_id) {
   sprintf(".%s:", task_id)
 }
+
+version_info <- function(package=.packageName) {
+  descr <- packageDescription(package)
+  version <- package_version(descr$Version)
+  repository <- descr$Repository
+  sha <- descr$RemoteSha
+  list(package=package,
+       version=version,
+       repository=repository,
+       sha=sha)
+}
+
+version_string <- function() {
+  data <- version_info()
+  if (!is.null(data$repository)) {
+    qual <- data$repository
+  } else if (!is.null(data$sha)) {
+    qual <- data$sha
+  } else {
+    qual <- "LOCAL"
+  }
+  sprintf("%s [%s]", data$version, qual)
+}
