@@ -134,3 +134,12 @@ hostname <- function() {
 process_id <- function() {
   Sys.getpid()
 }
+
+## Potentially useful for a monitor thing:
+## x <- sample(letters[1:4], 40, replace=TRUE)
+## cols <- c(a="red", b="blue", c="green", d="purple")
+## pretty_blocks(x, cols)
+pretty_blocks <- function(x, cols) {
+  sq <- vcapply(cols, function(x) crayon::make_style(x)("\u2588"))
+  paste(sq[x], collapse="")
+}
