@@ -1,3 +1,4 @@
 ^notes\.md$
 ^tmp\.R$
 ^Makefile$
+^\.travis\.yml$
