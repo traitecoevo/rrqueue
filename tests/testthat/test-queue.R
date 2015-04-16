@@ -52,8 +52,8 @@ test_that("queue", {
 
   t <- obj$tasks_times()
   expect_that(t, is_a("data.frame"))
-  expect_that(all(t$submitted < Sys.time()), is_true())
-  expect_that(all(t$waiting > 0.0), is_true())
+  expect_that(all(t$submitted =< Sys.time()), is_true())
+  expect_that(all(t$waiting >= 0.0), is_true())
   expect_that(all(is.na(t$started)), is_true())
   expect_that(t$started, is_a("POSIXct"))
   expect_that(names(t), equals(c("submitted", "started", "finished",
