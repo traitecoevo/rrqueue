@@ -27,5 +27,4 @@ notifications:
   email:
     on_success: change
     on_failure: change
-  slack:
-    secure: n9tUe5APG2KTy6KRz6GA6YSCte8tc77TuOKo2sSnnKhdYFFl9wPQ9heuS2JPldpNMB0dmgCsqDuPIiKh8yuKnKQWqSOWiIlkz0vdNthWE
+  slack: bdkd:hY2eBCaH3bbsvNwlWwOfFdfr

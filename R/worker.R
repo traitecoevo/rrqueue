@@ -345,16 +345,28 @@ workers_status_time <- function(con, keys, worker_ids=NULL) {
   if (is.null(worker_ids)) {
     worker_ids <- workers_list(con, keys)
   }
-  h <- rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)
-  m <- as.numeric(vcapply(h, con$GET))
-  t <- unname(vnapply(h, con$PTTL)) / 1000
-  a <- as.numeric(redis_time(con)) -
-    workers_log_tail(con, keys, worker_ids, 1)$time
+  f_expire_max <- function(key) {
+    t <- con$GET(key)
+    if (is.null(t)) NA_real_ else as.numeric(t)
+  }
+
+  key <- rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)
+  expire_max <- vnapply(key, f_expire_max, USE.NAMES=FALSE)
+
+  ## Current time left to expire:
+  t_expire <- unname(vnapply(key, con$PTTL))
+  t_expire[t_expire > 0] <- t_expire[t_expire > 0] / 1000
+
+  log <- workers_log_tail(con, keys, worker_ids, 1)
+  t_last <- log$time[match(worker_ids, log$worker_id)]
+  t_curr <- as.numeric(redis_time(con))
+
   data.frame(worker_id=worker_ids,
-             expire_max=m,
-             expire=t,
-             last_seen=m - t,
-             last_action=a)
+             expire_max=expire_max,
+             expire=t_expire,
+             last_seen=expire_max - t_expire,
+             last_action=t_curr - t_last,
+             stringsAsFactors=FALSE)
 }
 
 worker_log_tail <- function(con, keys, worker_id, n=1) {
@@ -362,12 +374,14 @@ worker_log_tail <- function(con, keys, worker_id, n=1) {
   parse_worker_log(as.character(con$LRANGE(log_key, -n, -1)))
 }
 
+## TODO: get the id in here!
 workers_log_tail <- function(con, keys, worker_ids=NULL, n=1) {
   if (is.null(worker_ids)) {
     worker_ids <- workers_list(con, keys)
   }
   tmp <- lapply(worker_ids, function(i) worker_log_tail(con, keys, i, n))
-  do.call("rbind", tmp, quote=TRUE)
+  n <- viapply(tmp, nrow)
+  cbind(worker_id=rep(worker_ids, n), do.call("rbind", tmp, quote=TRUE))
 }
 
 workers_task_id <- function(con, keys, worker_id) {
