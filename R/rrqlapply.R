@@ -52,6 +52,7 @@ rrqlapply_submit <- function(X, FUN, rrq) {
 }
 
 ##' @export
+##' @param obj result of \code{rrqlapply_submit}
 ##' @rdname rrqlapply
 rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE) {
   rrq <- obj$rrq

@@ -24,6 +24,8 @@ list.  \emph{this will change!}.}
 responsive the function is to quiting, mostly.}
 
 \item{delete_tasks}{Delete tasks on successful finish?}
+
+\item{obj}{result of \code{rrqlapply_submit}}
 }
 \description{
 Parallel version of lapply using Redis queuing
