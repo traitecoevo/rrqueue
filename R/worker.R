@@ -159,12 +159,12 @@ WORKER_LOST <- "LOST"
 
     ## TODO: Store time since last task.
     main=function() {
-      ## TODO: should not use BLPOP here but instead use BRPOPLPUSH
-      ## see http://redis.io/commands/{blpop,rpoplpush,brpoplpush}
       con <- self$con
       key_queue_tasks <- self$keys$tasks_id
       key_queue_msg  <- self$keys$message
-      key_queue <- c(key_queue_tasks, key_queue_msg)
+      ## Read from the message queue *first* as that allows a STOP
+      ## command to prevent the worker continuing with job.
+      key_queue <- c(key_queue_msg, key_queue_tasks)
 
       ## TODO: should be possible to send SIGHUP or something to
       ## trigger stopping current task but keep listening.
