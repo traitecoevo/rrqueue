@@ -143,3 +143,12 @@ pretty_blocks <- function(x, cols) {
   sq <- vcapply(cols, function(x) crayon::make_style(x)("\u2588"))
   paste(sq[x], collapse="")
 }
+
+## Simple wrapper around making a progress bar
+progress <- function(..., show=TRUE) {
+  if (show && require("progress", quietly=TRUE)) {
+    progress::progress_bar$new(...)$tick
+  } else {
+    function(...) {}
+  }
+}

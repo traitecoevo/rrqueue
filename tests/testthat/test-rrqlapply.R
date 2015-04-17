@@ -22,17 +22,17 @@ test_that("Basic use", {
   expect_that(obj$tasks_status(tasks),
               equals(setNames(rep(TASK_COMPLETE, length(x)), tasks)))
 
-  res <- rrqlapply_results(rrql)
+  res <- rrqlapply_results(rrql, progress_bar=FALSE)
   cmp <- lapply(x, sin)
   expect_that(res, equals(cmp, tolerance=1e-15))
 
-  res <- rrqlapply_results(rrql, delete_tasks=TRUE)
+  res <- rrqlapply_results(rrql, delete_tasks=TRUE, progress_bar=FALSE)
 
   ## Cleanup has happened
   expect_that(obj$tasks_status(tasks),
               equals(setNames(rep(TASK_MISSING, length(x)), tasks)))
 
-  res <- rrqlapply(x, "sin", obj)
+  res <- rrqlapply(x, "sin", obj, progress_bar=FALSE)
   expect_that(res, equals(cmp, tolerance=1e-15))
 
   obj$send_message("STOP")

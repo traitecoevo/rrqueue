@@ -7,10 +7,12 @@
 ##' @param period Period to poll for completed tasks.  Affects how
 ##' responsive the function is to quiting, mostly.
 ##' @param delete_tasks Delete tasks on successful finish?
+##' @param progress_bar Display a progress bar?
 ##' @export
-rrqlapply <- function(X, FUN, rrq, period=1, delete_tasks=FALSE) {
+rrqlapply <- function(X, FUN, rrq, period=1, delete_tasks=FALSE,
+                      progress_bar=TRUE) {
   obj <- rrqlapply_submit(X, FUN, rrq)
-  tryCatch(rrqlapply_results(obj, period, delete_tasks),
+  tryCatch(rrqlapply_results(obj, period, delete_tasks, progress_bar),
            interrupt=function(e) obj)
 }
 
@@ -54,7 +56,8 @@ rrqlapply_submit <- function(X, FUN, rrq) {
 ##' @export
 ##' @param obj result of \code{rrqlapply_submit}
 ##' @rdname rrqlapply
-rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE) {
+rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
+                              progress_bar=TRUE) {
   rrq <- obj$rrq
   key_complete <- obj$key_complete
   tasks <- obj$tasks
@@ -87,16 +90,16 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE) {
     }
   }
 
-  ## TODO: use Gabor's new progress bars here? (gaborcsardi/progress)
+  p <- progress(total=n, show=progress_bar)
+
   while (!all(done)) {
     res <- rrq$con$BLPOP(key_complete, period)
-    if (is.null(res)) {
-      message(".", appendLF=FALSE)
-    } else {
+    if (!is.null(res)) {
       ## TODO: this needs result_sane() too...
       task_id <- res[[2]]
       output[[task_id]] <- tasks[[task_id]]$result()
       done[[task_id]] <- TRUE
+      p()
     }
   }
   names(output) <- obj$names
