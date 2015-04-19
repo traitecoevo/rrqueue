@@ -152,3 +152,14 @@ progress <- function(..., show=TRUE) {
     function(...) {}
   }
 }
+
+## Short-circuit apply; returns the index of the first element of x
+## for which cond(x[[i]]) holds true.
+scapply <- function(x, cond, no_match=NA_integer_) {
+  for (i in seq_along(x)) {
+    if (isTRUE(cond(x[[i]]))) {
+      return(i)
+    }
+  }
+  no_match
+}
