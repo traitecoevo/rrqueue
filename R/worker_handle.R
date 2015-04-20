@@ -8,6 +8,9 @@
     keys=NULL,
 
     initialize=function(con, queue_name, id) {
+      assert_inherits(con, "redis_api")
+      assert_scalar_character(id)
+      assert_scalar_character(queue_name)
       self$con <- con
       self$queue_name <- queue_name
       self$id <- id
@@ -16,8 +19,8 @@
     status=function() {
       workers_status(self$con, self$keys, self$id)
     },
-    status_time=function() {
-      workers_status_time(self$con, self$keys, self$id)
+    times=function() {
+      workers_times(self$con, self$keys, self$id)
     },
     task_id=function() {
       worker_task_id(self$con, self$keys, self$id)

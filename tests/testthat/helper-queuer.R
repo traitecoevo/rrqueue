@@ -9,19 +9,9 @@ empty_named_character <- function() {
   structure(character(0), names = character(0))
 }
 
-## TODO: This will move into the package.
-## TODO: should be done with a cursor.
-rrqueue_cleanup <- function(con, name) {
-  del <- as.character(con$KEYS(paste0(name, "*")))
-  if (length(del) > 0L) {
-    con$DEL(del)
-  }
-  con$SREM("rrqueue:queues", name)
-}
-
 test_cleanup <- function() {
-  rrqueue_cleanup(redis_connection(NULL), "tmpjobs")
-  rrqueue_cleanup(redis_connection(NULL), "testq:heartbeat")
+  queue_clean(redis_connection(NULL), "tmpjobs", TRUE)
+  queue_clean(redis_connection(NULL), "testq:heartbeat", TRUE)
 }
 
 skip_if_no_heartbeat <- function() {

@@ -83,8 +83,8 @@
     workers_status=function(worker_ids=NULL) {
       workers_status(self$con, self$keys, worker_ids)
     },
-    workers_status_time=function(worker_ids=NULL) {
-      workers_status_time(self$con, self$keys, worker_ids)
+    workers_times=function(worker_ids=NULL) {
+      workers_times(self$con, self$keys, worker_ids)
     },
     worker_log_tail=function(worker_id, n=1) {
       worker_log_tail(self$con, self$keys, worker_id, n)

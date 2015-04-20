@@ -29,29 +29,7 @@
     },
 
     clean=function() {
-      self$con$SREM(self$keys$rrqueue_queues, self$queue_name)
-
-      ## TODO: This one here seems daft.  If there are workers they
-      ## might still be around, and they might be working on tasks.
-      ## Might be best not to get too involved with modifying the
-      ## worker queue, aside from messaging, really; leave deleting
-      ## worker queues to a standalone function?
-      ##
-      ##   self$con$DEL(self$keys$workers_name)
-      ##   self$con$DEL(self$keys$workers_status)
-      ##   self$con$DEL(self$keys$workers_task)
-
-      self$con$DEL(self$keys$tasks_counter)
-      self$con$DEL(self$keys$tasks_id)
-      self$con$DEL(self$keys$tasks_expr)
-      self$con$DEL(self$keys$tasks_status)
-      self$con$DEL(self$keys$tasks_result)
-      self$con$DEL(self$keys$tasks_envir)
-      self$con$DEL(self$keys$tasks_time_sub)
-      self$con$DEL(self$keys$tasks_time_beg)
-      self$con$DEL(self$keys$tasks_time_end)
-
-      self$con$DEL(self$keys$envirs_contents)
+      queue_clean(self$con, self$queue_name)
     },
 
     ## TODO: facility for named environnents?
@@ -188,12 +166,43 @@
 ##' @param sources Character vector of files to source
 ##' @param redis_host Redis hostname
 ##' @param redis_port Redis port number
-##' @param clean Delete any rements of existing queues on startup
-##' (this can cause things to go haywire if processes are still live
-##' working on jobs as they'll clobber your queue).
 ##' @export
 queue <- function(queue_name, packages=NULL, sources=NULL,
-                  redis_host="127.0.0.1", redis_port=6379,
-                  clean=FALSE) {
+                  redis_host="127.0.0.1", redis_port=6379) {
   .R6_queue$new(queue_name, packages, sources, redis_host, redis_port)
+}
+
+queue_clean <- function(con, queue_name, purge=FALSE) {
+  keys <- rrqueue_keys(queue_name)
+  con$SREM(keys$rrqueue_queues, keys$queue_name)
+
+  if (purge) {
+    del <- as.character(con$KEYS(paste0(queue_name, "*")))
+    if (length(del) > 0L) {
+      con$DEL(del)
+    }
+  } else {
+
+    ## TODO: This one here seems daft.  If there are workers they
+    ## might still be around, and they might be working on tasks.
+    ## Might be best not to get too involved with modifying the
+    ## worker queue, aside from messaging, really; leave deleting
+    ## worker queues to a standalone function?
+    ##
+    ##   con$DEL(keys$workers_name)
+    ##   con$DEL(keys$workers_status)
+    ##   con$DEL(keys$workers_task)
+
+    con$DEL(keys$tasks_counter)
+    con$DEL(keys$tasks_id)
+    con$DEL(keys$tasks_expr)
+    con$DEL(keys$tasks_status)
+    con$DEL(keys$tasks_result)
+    con$DEL(keys$tasks_envir)
+    con$DEL(keys$tasks_time_sub)
+    con$DEL(keys$tasks_time_beg)
+    con$DEL(keys$tasks_time_end)
+
+    con$DEL(keys$envirs_contents)
+  }
 }
