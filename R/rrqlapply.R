@@ -9,9 +9,10 @@
 ##' @param delete_tasks Delete tasks on successful finish?
 ##' @param progress_bar Display a progress bar?
 ##' @export
-rrqlapply <- function(X, FUN, rrq, period=1, delete_tasks=FALSE,
-                      progress_bar=TRUE) {
-  obj <- rrqlapply_submit(X, FUN, rrq)
+rrqlapply <- function(X, FUN, rrq, ...,
+                      period=1, delete_tasks=FALSE,
+                      progress_bar=TRUE, env=parent.frame()) {
+  obj <- rrqlapply_submit(X, FUN, rrq, ..., env=env)
   tryCatch(rrqlapply_results(obj, period, delete_tasks, progress_bar),
            interrupt=function(e) obj)
 }
@@ -94,10 +95,13 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
   }
 
   p <- progress(total=n, show=progress_bar)
+  p(0) # force display of the bar
 
   while (!all(done)) {
     res <- rrq$con$BLPOP(key_complete, period)
-    if (!is.null(res)) {
+    if (is.null(res)) {
+      p(0)
+    } else {
       ## TODO: this needs result_sane() too...
       task_id <- res[[2]]
       output[[task_id]] <- tasks[[task_id]]$result()

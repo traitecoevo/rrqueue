@@ -144,10 +144,26 @@ pretty_blocks <- function(x, cols) {
   paste(sq[x], collapse="")
 }
 
-## Simple wrapper around making a progress bar
-progress <- function(..., show=TRUE) {
+## Alternatives:
+## http://stackoverflow.com/a/2685827
+spin_symbols <- function() {
+  sym <- c("-", "\\", "|", "/")
+  i <- 0L
+  n <- length(sym)
+  function() {
+    sym[[i <<- if (i >= n) 1L else i + 1L]]
+  }
+}
+
+progress <- function(total, ..., show=TRUE) {
   if (show && require("progress", quietly=TRUE)) {
-    progress::progress_bar$new(...)$tick
+    pb <- progress::progress_bar$new(
+      "[:bar] :percent :spin",
+      total=total)
+    ws <- spin_symbols()
+    function(len=1) {
+      invisible(pb$tick(len, list(spin=ws())))
+    }
   } else {
     function(...) {}
   }
