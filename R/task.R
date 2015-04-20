@@ -165,7 +165,7 @@ tasks_times <- function(con, keys, task_ids=NULL, unit_elapsed="secs") {
   ret <- data.frame(submitted = f(keys$tasks_time_sub),
                     started   = f(keys$tasks_time_beg),
                     finished  = f(keys$tasks_time_end))
-  now <- Sys.time()
+  now <- redis_time_to_r(redis_time(con))
   started2  <- ret$started
   finished2 <- ret$finished
   finished2[is.na(finished2)] <- started2[is.na(started2)] <- now

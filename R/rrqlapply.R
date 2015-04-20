@@ -18,14 +18,15 @@ rrqlapply <- function(X, FUN, rrq, period=1, delete_tasks=FALSE,
 
 ##' @export
 ##' @rdname rrqlapply
-rrqlapply_submit <- function(X, FUN, rrq) {
-  ## There's some crazy logic needed here; will be sorted once we get
-  ## environments correct; work towards this will appear in
-  ## R/functions.R - in general we should look in the environment and
-  ## see if we can find the correct function.
-  if (!is.character(FUN)) {
-    stop("currently need name of function, sorry")
+rrqlapply_submit <- function(X, FUN, rrq, ..., env=parent.frame()) {
+  ## This is hopefully going to be enough:
+  dat <- match_fun_rrqueue(FUN, env, rrq$envir)
+  if (dat[[1]] == "") {
+    fun <- as.name(dat[[2]])
+  } else {
+    fun <- call("::", as.name(dat[[1]]), as.name(dat[[2]]))
   }
+  DOTS <- list(...)
 
   i <- rrq$con$GET(rrq$keys$tasks_counter)
   i <- if (is.null(i)) 1L else (as.integer(i) + 1L)
@@ -34,7 +35,7 @@ rrqlapply_submit <- function(X, FUN, rrq) {
   tasks <- vector("list", length(X))
   e <- environment()
   for (i in seq_along(X)) {
-    expr <- call(FUN, X[[i]])
+    expr <- as.call(c(list(fun, X[[i]]), DOTS))
     tasks[[i]] <- rrq$enqueue_(expr, e, key_complete=key_complete)
   }
 
@@ -47,10 +48,12 @@ rrqlapply_submit <- function(X, FUN, rrq) {
   ## TODO: To make re-attaching to this easy we need to have another
   ## bit of data: "rrqlapply jobs" so that we can say "attach me to
   ## whatever is going please".
-  list(rrq=rrq,
-       key_complete=key_complete,
-       tasks=tasks,
-       names=names(X))
+  ret <- list(rrq=rrq,
+              key_complete=key_complete,
+              tasks=tasks,
+              names=names(X))
+  class(ret) <- "rrqlapply_tasks"
+  ret
 }
 
 ##' @export

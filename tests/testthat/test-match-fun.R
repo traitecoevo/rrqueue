@@ -106,3 +106,28 @@ test_that("match_fun", {
   expect_that(match_fun(get("worker", env), env), equals(cmp))
   expect_that(match_fun(fun, env), equals(cmp))
 })
+
+test_that("match_fun_rrqueue", {
+  env1 <- new.env(parent=parent.env(.GlobalEnv))
+  env2 <- new.env(parent=parent.env(.GlobalEnv))
+  env3 <- new.env(parent=parent.env(.GlobalEnv))
+  source("myfuns.R", env1)
+  env3$slowdouble <- function(x) x * 2
+
+  fun <- env1$slowdouble
+  cmp <- structure(c("", "slowdouble"), envir=env1)
+
+  expect_that(match_fun_rrqueue("slowdouble", env1, env1),
+              equals(cmp))
+  expect_that(match_fun_rrqueue("slowdouble", env1, env2),
+              throws_error("Function not found in rrqueue environment"))
+  expect_that(match_fun_rrqueue("slowdouble", env1, env3),
+              throws_error("Function found in given and rrqueue"))
+
+  expect_that(match_fun_rrqueue(fun, env1, env1),
+              equals(cmp))
+  expect_that(match_fun_rrqueue(fun, env1, env2),
+              throws_error("Function not found in rrqueue environment"))
+  expect_that(match_fun_rrqueue(fun, env1, env3),
+              throws_error("Function found in given and rrqueue"))
+})

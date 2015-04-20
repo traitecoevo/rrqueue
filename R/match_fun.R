@@ -104,7 +104,15 @@ match_fun_value <- function(fun, envir) {
 ## that we can do some further faffing?
 match_fun_sanitise <- function(name, fun_envir) {
   ns <- environmentName(fun_envir)
-  ret <- c(sub("^package:", "", ns), name)
+  ## Don't treat the global environment specially here:
+  if (identical(ns, "R_GlobalEnv")) {
+    ns <- ""
+  } else {
+    ## Might be best here to treat all environments as non-namespace
+    ## unless we get a 'package:' name?
+    ns <- sub("^package:", "", ns)
+  }
+  ret <- c(ns, name)
   if (ns == "") {
     attr(ret, "envir") <- fun_envir
   }
@@ -132,3 +140,27 @@ match_fun <- function(fun, envir) {
     stop("Invalid input")
   }
 }
+
+match_fun_rrqueue <- function(fun, envir, envir_rrqueue) {
+  dat <- match_fun(fun, envir)
+  if (dat[[1]] == "") {
+    ## Now, try to find the function in rrqueue's environment:
+    ## TODO: This might not really work; we want to look in the right
+    ## environment here...
+    if (exists_function_here(dat[[2]], envir_rrqueue)) {
+      name <- dat[[2]]
+      ok <- identical(deparse(envir[[name]]), deparse(envir_rrqueue[[name]]))
+      if (!ok) {
+        stop("Function found in given and rrqueue environment do not match")
+      }
+    } else {
+      stop("Function not found in rrqueue environment")
+    }
+  }
+  dat
+}
+
+## TODO: For functions that are not found, we can try and serialise
+## them I think.  That's going to work best for things like
+## `function(x) bar(x, a, b)` but it might be hard to pick up all the
+## locals without doing some serious messing around.
