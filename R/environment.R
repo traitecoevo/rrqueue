@@ -1,5 +1,5 @@
 create_environment <- function(packages, sources,
-                               env=new.env(parent=baseenv())) {
+                               env=new.env(parent=.GlobalEnv)) {
   load_packages(packages)
   for (file in sources) {
     do_source(file, env, chdir=TRUE, keep.source=FALSE)
