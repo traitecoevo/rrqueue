@@ -34,7 +34,7 @@ WorkerEnvironmentFailed <- function(worker, task_id, e) {
               call=e$call, class="WorkerEnvironmentFailed")
 }
 
-UnfetchableJob <- function(task_id, task_status) {
+UnfetchableTask <- function(task_id, task_status) {
   structure(list(task_id=task_id,
                  task_status=task_status),
             class=c(class, "WorkerError", "error", "condition"))

@@ -30,8 +30,8 @@
     tasks_len=function() {
       tasks_len(self$con, self$keys)
     },
-    tasks_status=function(task_ids=NULL) {
-      tasks_status(self$con, self$keys, task_ids)
+    tasks_status=function(task_ids=NULL, follow_redirect=FALSE) {
+      tasks_status(self$con, self$keys, task_ids, follow_redirect)
     },
     tasks_overview=function() {
       tasks_overview(self$con, self$keys)
@@ -49,14 +49,15 @@
     task_expr=function(task_id, locals=FALSE) {
       task_expr(self$con, self$keys, task_id, if (locals) self$objects)
     },
-    task_result=function(task_id) {
-      task_result(self$con, self$keys, task_id)
+    task_result=function(task_id, follow_redirect=FALSE, sanitise=FALSE) {
+      task_result(self$con, self$keys, task_id, follow_redirect, sanitise)
     },
     tasks_expr=function(task_ids, ...) {
       tasks_expr(self$con, self$keys, task_ids, ...)
     },
-    tasks_result=function(task_ids) {
-      setNames(lapply(task_ids, self$task_result), task_ids)
+    tasks_result=function(task_ids, follow_redirect=FALSE, sanitise=FALSE) {
+      setNames(lapply(task_ids, self$task_result, follow_redirect, sanitise),
+               task_ids)
     },
 
     ## 2: environments

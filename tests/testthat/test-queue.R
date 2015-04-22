@@ -106,8 +106,8 @@ test_that("queue", {
 
   expect_that(task1$status(), equals(TASK_PENDING))
   expect_that(task2$status(), equals(TASK_PENDING))
-  expect_that(task1$result(), throws_error("incomplete"))
-  expect_that(task2$result(), throws_error("incomplete"))
+  expect_that(task1$result(), throws_error("unfetchable: PENDING"))
+  expect_that(task2$result(), throws_error("unfetchable: PENDING"))
   expect_that(task1$key_complete,
               equals(rrqueue_key_task_complete(obj$queue_name, ids[[1]])))
   expect_that(task2$key_complete,

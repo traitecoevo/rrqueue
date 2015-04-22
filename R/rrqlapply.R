@@ -70,28 +70,19 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
 
   output <- setNames(vector("list", n), task_ids)
 
-  status <- rrq$tasks_status(task_ids)
-  ## TODO: This doesn't deal with redirect yet; should have a
-  ## tasks_status() function that follows redirects I guess?
-  done <- !(status == TASK_PENDING | status == TASK_RUNNING)
-
-  ## This is going to do weird things for *some* errors;
-  ##   TASK_ORPHAN
-  ##   TASK_REDIRECT
-  ##   TASK_MISSING
-  ##   TASK_ENVIR_ERROR
-  ## really, we can only fetch TASK_COMPLETE and TASK_ERROR here.
-  ## TODO: need a status function that does redirect I think.
+  ## TODO: It's really not that clear what to do here in terms of
+  ## redirecting things.  I think that this is going to work, but
+  ## testing it is going to be really hard.
+  ##
+  ## However, because the collecting function is designed to called
+  ## multiple times without problem, we can detect orphaned tasks,
+  ## requeue them, and then re-collect.
+  status <- rrq$tasks_status(task_ids, follow_redirect=TRUE)
+  done <- !(status == TASK_PENDING | status == TASK_RUNNING |
+              status == TASK_ORPHAN)
   if (any(done)) {
-    ok <- status == TASK_COMPLETE | status == TASK_ERROR
-    nok <- done & !ok
-    if (any(ok)) {
-      output[ok] <- rrq$tasks_result(task_ids[ok])
-    }
-    if (any(nok)) {
-      ## TODO: would be nice to wrap this into tasks_result_sane()
-      output[nok] <- mapply(UnfetchableJob, task_ids[nok], status[nok])
-    }
+    output[done] <-
+      rrq$tasks_result(task_ids[done], follow_redirect=TRUE, sanitise=TRUE)
   }
 
   p <- progress(total=n, show=progress_bar)
@@ -102,9 +93,9 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
     if (is.null(res)) {
       p(0)
     } else {
-      ## TODO: this needs result_sane() too...
       task_id <- res[[2]]
-      output[[task_id]] <- tasks[[task_id]]$result()
+      output[[task_id]] <-
+        tasks[[task_id]]$result(follow_redirect=TRUE, sanitise=TRUE)
       done[[task_id]] <- TRUE
       p()
     }

@@ -66,6 +66,9 @@ test_that("heartbeat", {
                                            "2"=TASK_REDIRECT,
                                            "3"=TASK_PENDING)))
 
+  expect_that(obj$tasks_status(c("1", "2"), follow_redirect=TRUE),
+              equals(c("1"=TASK_COMPLETE, "2"=TASK_PENDING)))
+
   logfile2 <- sub("\\.log$", "2.log", logfile)
   wid2 <- rrqueue_worker_spawn(obj$queue_name, logfile2)
   ##   w <- rrqueue::worker("testq:heartbeat")
@@ -79,12 +82,13 @@ test_that("heartbeat", {
                                            "2"=TASK_REDIRECT,
                                            "3"=TASK_COMPLETE)))
 
-  ## TODO: use status_times()
-  t0 <- as.numeric(obj$con$HGET(obj$keys$tasks_time_beg, t2$id))
-  t1 <- as.numeric(obj$con$HGET(obj$keys$tasks_time_end, t2$id))
-  ## TODO: First one here is surprising to me...
-  expect_that(t1 - t0, is_more_than(t_double - 1))
-  expect_that(t1 - t0, is_less_than(t_double + 1))
+  expect_that(obj$tasks_status(c("1", "2"), follow_redirect=TRUE),
+              equals(c("1"=TASK_COMPLETE, "2"=TASK_COMPLETE)))
+
+  tt <- obj$tasks_times(t2$id)
+  expect_that(tt, is_a("data.frame"))
+  expect_that(tt$running, is_more_than(t_double - 1))
+  expect_that(tt$running, is_less_than(t_double + 1))
 
   obj$send_message("STOP")
 })

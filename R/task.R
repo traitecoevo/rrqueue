@@ -53,12 +53,12 @@ TASK_MISSING  <- "MISSING"
 
     ## TODO: These could be active bindings, but that might require a
     ## new R6 to CRAN to work nicely.
-    status=function() {
-      task_status(self$con, self$keys, self$id)
+    status=function(follow_redirect=FALSE) {
+      unname(tasks_status(self$con, self$keys, self$id, follow_redirect))
     },
 
-    result=function() {
-      task_result(self$con, self$keys, self$id)
+    result=function(follow_redirect=FALSE, sanitise=FALSE) {
+      task_result(self$con, self$keys, self$id, follow_redirect, sanitise)
     },
 
     ## TODO: Better handling of locals?
@@ -79,22 +79,24 @@ task <- function(con, queue_name, id, key_complete) {
   .R6_task$new(con, queue_name, id, key_complete)
 }
 
-## Free functions for working with tasks
-task_status <- function(con, keys, task_id) {
-  ret <- con$HGET(keys$tasks_status, task_id)
-  if (is.null(ret)) TASK_MISSING else ret
-}
+## TODO: This is going to hit status too many times.  Don't worry
+## about this for now, but if speed becomes important this is a
+## reasonable place to look.
+task_result <- function(con, keys, task_id,
+                        follow_redirect=FALSE, sanitise=FALSE) {
+  status <- tasks_status(con, keys, task_id, follow_redirect=FALSE)
 
-task_result <- function(con, keys, task_id) {
-  status <- task_status(con, keys, task_id)
-  if (status == TASK_MISSING) {
-    stop("task does not exist")
-  } else if (status == TASK_REDIRECT) {
-    task_result(task_redirect_target(con, keys, task_id))
-  } else if (status == TASK_COMPLETE) {
+  if (follow_redirect && status == TASK_REDIRECT) {
+    task_id <- task_redirect_target(con, keys, task_id)
+    status <- tasks_status(con, keys, task_id, follow_redirect=FALSE)
+  }
+
+  if (status == TASK_COMPLETE || status == TASK_ERROR) {
     string_to_object(con$HGET(keys$tasks_result, task_id))
+  } else if (sanitise) {
+    UnfetchableTask(task_id, status)
   } else {
-    stop("task is incomplete")
+    stop(sprintf("task %s is unfetchable: %s", task_id, status))
   }
 }
 
@@ -103,7 +105,7 @@ task_redirect_target <- function(con, keys, task_id) {
   if (is.null(to)) {
     task_id
   } else {
-    task_redirect_target(to)
+    task_redirect_target(con, keys, to)
   }
 }
 
@@ -137,9 +139,19 @@ tasks_len <- function(con, keys) {
   con$HLEN(keys$tasks_status)
 }
 
-tasks_status <- function(con, keys, task_ids=NULL) {
-  from_redis_hash(con, keys$tasks_status, task_ids,
-                  as.character, TASK_MISSING)
+tasks_status <- function(con, keys, task_ids=NULL, follow_redirect=FALSE) {
+  ret <- from_redis_hash(con, keys$tasks_status, task_ids,
+                         as.character, TASK_MISSING)
+  if (follow_redirect) {
+    task_ids <- names(ret)
+    i <- ret == TASK_REDIRECT
+    if (any(i)) {
+      task2_id <- vcapply(task_ids[i],
+                          function(t) task_redirect_target(con, keys, t))
+      ret[i] <- unname(tasks_status(con, keys, task2_id, FALSE))
+    }
+  }
+  ret
 }
 
 tasks_overview <- function(con, keys) {
