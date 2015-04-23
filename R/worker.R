@@ -108,14 +108,13 @@ WORKER_LOST <- "LOST"
       e <- self$envir[[id]]
       if (is.null(e)) {
         self$log("ENVIR", id)
-        keys <- self$keys
         dat_str <- self$con$HGET(self$keys$envirs_contents, id)
         dat <- string_to_object(dat_str)
 
         ## Check the hashes of the files
         hash_expected <- dat$source_files
         if (length(hash_expected) > 0L) {
-          hash_recieved <- hash_file(names(hash_expected))
+          hash_recieved <- hash_files(names(hash_expected))
           if (!identical(hash_expected, hash_recieved)) {
             stop("Files are not the same")
           }

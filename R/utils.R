@@ -4,7 +4,11 @@ hash_string <- function(x) {
 }
 
 hash_file <- function(x) {
-  setNames(digest::digest(file=x), x)
+  digest::digest(file=x)
+}
+
+hash_files <- function(x) {
+  setNames(vcapply(x, hash_file), x)
 }
 
 is_error <- function(x) {
@@ -72,7 +76,10 @@ sys_source <- function(...) {
         ##
         ## If we *do* do this, then the create_environment function
         ## needs to take care of that bookkeeping.
-        dat <<- c(dat, hash_file(file))
+        ##
+        ## NOTE: using hash_files(), not hash_file(), as the latter
+        ## adds names.
+        dat <<- c(dat, hash_files(file))
       } else {
         warning("non-file source detected")
       }
