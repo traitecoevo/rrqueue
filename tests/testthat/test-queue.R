@@ -27,7 +27,7 @@ test_that("queue", {
   dat <- string_to_object(con$HGET(keys$envirs_contents, obj$envir_id))
   expect_that(dat$packages, equals(NULL))
   expect_that(dat$sources, equals("myfuns.R"))
-  expect_that(dat$source_files, equals(hash_file("myfuns.R")))
+  expect_that(dat$source_files, equals(hash_files("myfuns.R")))
 
   ## Queue two tasks:
   task1 <- obj$enqueue(sin(1))
