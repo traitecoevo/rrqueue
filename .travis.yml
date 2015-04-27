@@ -18,6 +18,7 @@ install:
   - ./travis-tool.sh github_package gaborcsardi/progress
   - ./travis-tool.sh github_package ropensci/RedisAPI
   - ./travis-tool.sh github_package richfitz/RedisHeartbeat
+  - ./travis-tool.sh github_package richfitz/storr
 
 script: ./travis-tool.sh run_tests
 
