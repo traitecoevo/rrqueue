@@ -17,7 +17,7 @@ R packages:
 
 ```
 install.packages(c("RcppRedis", "R6", "digest", "docopt"))
-devtools::install_github(c("gaborcsardi/crayon", "ropensci/RedisAPI", "richfitz/RedisHeartbeat"))
+devtools::install_github(c("gaborcsardi/crayon", "ropensci/RedisAPI", "richfitz/RedisHeartbeat", "richfitz/storr"))
 devtools::install_git("https://github.com/traitecoevo/rrqueue")
 ```
 

@@ -13,6 +13,8 @@ test_that("queue", {
   expect_that(obj$con, is_a("redis_api"))
   expect_that(obj$queue_name, equals("tmpjobs"))
 
+  expect_that(length(obj$envirs_list()), equals(1))
+
   expect_that(setdiff(queues(), existing), equals("tmpjobs"))
 
   con <- obj$con
@@ -77,7 +79,6 @@ test_that("queue", {
   expect_that(ids, equals(list("1", "2")))
   ids <- as.character(ids) # unlist
 
-  ## TODO: simplify this:
   expect_that(obj$task_expr(task1$id), equals(quote(sin(1))))
 
   tmp <- obj$task_expr(task2$id, locals=TRUE)

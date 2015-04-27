@@ -186,3 +186,7 @@ scapply <- function(x, cond, no_match=NA_integer_) {
   }
   no_match
 }
+
+invert_names <- function(x) {
+  setNames(names(x), x)
+}

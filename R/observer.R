@@ -20,7 +20,7 @@
       self$queue_name <- queue_name
       self$con <- redis_connection(redis_host, redis_port)
       self$keys <- rrqueue_keys(self$queue_name)
-      self$objects <- object_cache(self$con, self$keys$objects)
+      self$objects <- object_cache(self$keys$objects, self$con)
     },
 
     ## 1. Tasks:
@@ -62,7 +62,7 @@
 
     ## 2: environments
     envirs_list=function() {
-      envir_list(self$con, self$keys)
+      envirs_list(self$con, self$keys)
     },
     envirs_contents=function(envir_ids=NULL) {
       envirs_contents(self$con, self$keys)

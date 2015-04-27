@@ -122,7 +122,7 @@ task_expr <- function(con, keys, task_id, object_cache=NULL) {
     attr(expr, "envir") <- e
     expr
   } else {
-    restore_expression_simple(task_expr)
+    restore_expression(task_expr, NULL, NULL)
   }
 }
 

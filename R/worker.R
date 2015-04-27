@@ -100,7 +100,7 @@ WORKER_LOST <- "LOST"
         ## queue, and worker_spawn does a BLPOP to
         self$con$RPUSH(self$keys$workers_new,   self$name)
       })
-      self$objects <- object_cache(self$con, self$keys$objects)
+      self$objects <- object_cache(self$keys$objects, self$con)
     },
 
     ## This gets called at the beginning of a job.
@@ -214,6 +214,8 @@ WORKER_LOST <- "LOST"
         con$HSET(keys$tasks_status,   id,        TASK_RUNNING)
         con$HSET(keys$tasks_time_beg, id,        time)
       })
+
+      self$log("EXPR", deparse(context$expr), push=FALSE)
 
       ## NOTE: if the underlying process *wants* to return an error
       ## this is going to be a false alarm, but there's not really a

@@ -39,7 +39,7 @@ rrqueue_keys_queue <- function(queue) {
        envirs_contents = sprintf("%s:envirs:contents", queue),
 
        ## Objects:
-       objects         = sprintf("%s:objects",         queue))
+       objects         = sprintf("%s:objects:",        queue))
 }
 
 rrqueue_keys_worker <- function(queue, worker) {
@@ -98,13 +98,10 @@ save_expression <- function(dat, task_id, envir, object_cache) {
       stop("not all objects found: ",
            paste(object_names[!ok], collapse=", "))
     }
-    object_names_to <- paste0(task_object_prefix(task_id), object_names)
-    for (i in seq_along(object_names)) {
-      object_cache$set(object_names_to[[i]],
-                       get(object_names[[i]], envir, inherits=FALSE),
-                       store_in_envir=FALSE)
-    }
-    names(dat$object_names) <- object_names_to
+    names(object_names) <- paste0(task_object_prefix(task_id), object_names)
+    dat$object_names <- object_names
+
+    object_cache$import(envir, object_names)
   }
 
   object_to_string(dat)
@@ -112,20 +109,9 @@ save_expression <- function(dat, task_id, envir, object_cache) {
 
 restore_expression <- function(dat, envir, object_cache) {
   dat <- string_to_object(dat)
-  object_names <- dat$object_names
-  if (length(object_names) > 0L) {
-    object_names_to <- names(object_names)
-    for (i in seq_along(dat$object_names)) {
-      assign(object_names[[i]],
-             object_cache$get(object_names_to[[i]]),
-             envir=envir)
-    }
+  if (!is.null(object_cache) && length(dat$object_names) > 0L) {
+    object_cache$export(envir, invert_names(dat$object_names))
   }
-  dat$expr
-}
-
-restore_expression_simple <- function(dat) {
-  dat <- string_to_object(dat)
   dat$expr
 }
 
