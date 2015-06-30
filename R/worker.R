@@ -220,7 +220,8 @@ WORKER_LOST <- "LOST"
         con$HSET(keys$tasks_time_beg, id,        time)
       })
 
-      self$log("EXPR", deparse(context$expr, control="all"), push=FALSE)
+      expr_str <- capture.output(print(context$expr))
+      self$log("EXPR", expr_str, push=FALSE)
 
       ## NOTE: if the underlying process *wants* to return an error
       ## this is going to be a false alarm, but there's not really a
