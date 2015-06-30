@@ -146,9 +146,14 @@ WORKER_LOST <- "LOST"
         msg_log <- sprintf("%d %s", ti, label)
         msg_scr <- sprintf("[%s] %s", ts, self$styles$key(label))
       } else {
-        msg_log <- sprintf("%d %s %s", ti, label, message)
-        msg_scr <- sprintf("[%s] %s %s", ts, self$styles$key(label),
-                           self$styles$value(message))
+        msg_log <- sprintf("%d %s %s", ti, label, paste(message, collapse="\n"))
+        ## Try and make nicely printing logs for the case where the
+        ## message length is longer than 1:
+        lab <- c(label, rep_len(blank(nchar(label)), length(message) - 1L))
+        msg_scr <- paste(sprintf("[%s] %s %s", ts,
+                                 self$styles$key(lab),
+                                 self$styles$value(message)),
+                         collapse="\n")
       }
       message(msg_scr)
       if (push) {
@@ -215,7 +220,7 @@ WORKER_LOST <- "LOST"
         con$HSET(keys$tasks_time_beg, id,        time)
       })
 
-      self$log("EXPR", deparse(context$expr), push=FALSE)
+      self$log("EXPR", deparse(context$expr, control="all"), push=FALSE)
 
       ## NOTE: if the underlying process *wants* to return an error
       ## this is going to be a false alarm, but there's not really a

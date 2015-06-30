@@ -190,3 +190,7 @@ scapply <- function(x, cond, no_match=NA_integer_) {
 invert_names <- function(x) {
   setNames(names(x), x)
 }
+
+blank <- function(n) {
+  paste(rep_len(" ", n), collapse="")
+}
