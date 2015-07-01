@@ -195,3 +195,11 @@ invert_names <- function(x) {
 blank <- function(n) {
   paste(rep_len(" ", n), collapse="")
 }
+
+## Possibly could be done faster.
+df_to_list <- function(x) {
+  keep <- c("names", "class", "row.names")
+  at <- attributes(x)
+  attributes(x) <- at[intersect(names(at), keep)]
+  unname(lapply(split(x, seq_len(nrow(x))), as.list))
+}

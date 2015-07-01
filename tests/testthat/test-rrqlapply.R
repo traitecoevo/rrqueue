@@ -37,3 +37,24 @@ test_that("Basic use", {
 
   obj$send_message("STOP")
 })
+
+test_that("bulk", {
+  x <- expand.grid(a=1:4, b=runif(3))
+  source("myfuns.R")
+
+  obj <- queue("tmpjobs", sources="myfuns.R")
+
+  ## Serial versions:
+  cmp_sum  <- lapply(df_to_list(x), suml)
+  cmp_prod <- lapply(df_to_list(x), function(el) prod2(el$a, el$b))
+
+  wid <- rrqueue_worker_spawn(obj$queue_name, "rrqlapply.log")
+
+  res <- enqueue_bulk(x, suml, obj)
+  expect_that(res, equals(cmp_sum))
+
+  res <- enqueue_bulk(x, prod2, obj, do.call=TRUE)
+  expect_that(res, equals(cmp_prod))
+
+  obj$send_message("STOP")
+})

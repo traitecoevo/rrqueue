@@ -20,35 +20,26 @@ rrqlapply <- function(X, FUN, rrq, ...,
 ##' @export
 ##' @rdname rrqlapply
 rrqlapply_submit <- function(X, FUN, rrq, ..., env=parent.frame()) {
-  ## This is hopefully going to be enough:
-  dat <- match_fun_rrqueue(FUN, env, rrq$envir)
-  if (dat[[1]] == "") {
-    fun <- as.name(dat[[2]])
-  } else {
-    fun <- call("::", as.name(dat[[1]]), as.name(dat[[2]]))
-  }
+  fun <- find_fun(FUN, env, rrq)
   DOTS <- list(...)
 
-  i <- rrq$con$GET(rrq$keys$tasks_counter)
-  i <- if (is.null(i)) 1L else (as.integer(i) + 1L)
-  key_complete <- rrqueue_key_task_complete(rrq$queue_name, i)
-
+  ## NOTE: the key_complete treatment here avoids possible race
+  ## condition/implementation depenence by giving all tasks the same
+  ## key_complete and making that shared with whatever the first gets
+  ## (which is done via INCR).
   tasks <- vector("list", length(X))
   e <- environment()
+  key_complete <- NULL
   for (i in seq_along(X)) {
     expr <- as.call(c(list(fun, X[[i]]), DOTS))
     tasks[[i]] <- rrq$enqueue_(expr, e, key_complete=key_complete)
+    if (is.null(key_complete)) {
+      key_complete <- tasks[[i]]$key_complete
+    }
   }
 
   names(tasks) <- vcapply(tasks, "[[", "id")
 
-  ## Should return something slightly more classy than this so that it
-  ## can be used directly as a proxy and can be indexed with JIT
-  ## lookup of data.
-
-  ## TODO: To make re-attaching to this easy we need to have another
-  ## bit of data: "rrqlapply jobs" so that we can say "attach me to
-  ## whatever is going please".
   ret <- list(rrq=rrq,
               key_complete=key_complete,
               tasks=tasks,
@@ -88,6 +79,9 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
   p <- progress(total=n, show=progress_bar)
   p(0) # force display of the bar
 
+  ## NOTE: because of using BLPOP here there's no real reason why we
+  ## can't use a vector for key_complete.  But at the same time, no
+  ## real reason to do this.
   while (!all(done)) {
     res <- rrq$con$BLPOP(key_complete, period)
     if (is.null(res)) {
@@ -111,4 +105,14 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
   }
 
   output
+}
+
+## This is hopefully going to be enough:
+find_fun <- function(FUN, env, rrq) {
+  dat <- match_fun_rrqueue(FUN, env, rrq$envir)
+  if (dat[[1]] == "") {
+    as.name(dat[[2]])
+  } else {
+    call("::", as.name(dat[[1]]), as.name(dat[[2]]))
+  }
 }

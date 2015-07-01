@@ -1,6 +1,7 @@
 context("heartbeat")
 
 test_that("heartbeat", {
+  skip_if_no_heartbeat()
   test_cleanup()
   on.exit(test_cleanup())
 

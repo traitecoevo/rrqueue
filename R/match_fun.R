@@ -149,7 +149,8 @@ match_fun_rrqueue <- function(fun, envir, envir_rrqueue) {
     ## environment here...
     if (exists_function_here(dat[[2]], envir_rrqueue)) {
       name <- dat[[2]]
-      ok <- identical(deparse(envir[[name]]), deparse(envir_rrqueue[[name]]))
+      ok <- identical(deparse(attr(dat, "envir")[[name]]),
+                      deparse(envir_rrqueue[[name]]))
       if (!ok) {
         stop("Function found in given and rrqueue environment do not match")
       }
