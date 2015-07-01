@@ -9,7 +9,8 @@
     envir=NULL,
     envir_id=NULL,
 
-    initialize=function(queue_name, packages, sources, redis_host, redis_port) {
+    initialize=function(queue_name, packages, sources, redis_host,
+                        redis_port, global) {
       super$initialize(queue_name, redis_host, redis_port)
       existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$queue_name)
       if (existing == 1) {
@@ -25,7 +26,7 @@
       }
 
       self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
-      self$initialize_environment(packages, sources, TRUE)
+      self$initialize_environment(packages, sources, TRUE, global)
     },
 
     clean=function() {
@@ -34,13 +35,15 @@
 
     ## TODO: facility for named environnents?
     ## TODO: facility for deleting environments?
-    initialize_environment=function(packages, sources, set_default=FALSE) {
+    ## TODO: What on earth was set_default meant to be used for?
+    initialize_environment=function(packages, sources,
+                                    set_default=FALSE, global=TRUE) {
       if (!is.null(self$envir)) {
         stop("objects environments are immutable(-ish)")
       }
       ## First, we need to load this environment ourselves.
       envir <- new.env(parent=baseenv())
-      source_files <- create_environment2(packages, sources, envir)
+      source_files <- create_environment2(packages, sources, envir, global)
 
       dat <- list(packages=packages,
                   sources=sources,
@@ -166,10 +169,13 @@
 ##' @param sources Character vector of files to source
 ##' @param redis_host Redis hostname
 ##' @param redis_port Redis port number
+##' @param global Source files into the global environment?  This is a
+##'   good idea for working with the "user friendly" functions.  See
+##'   issue 2 on github.
 ##' @export
 queue <- function(queue_name, packages=NULL, sources=NULL,
-                  redis_host="127.0.0.1", redis_port=6379) {
-  .R6_queue$new(queue_name, packages, sources, redis_host, redis_port)
+                  redis_host="127.0.0.1", redis_port=6379, global=TRUE) {
+  .R6_queue$new(queue_name, packages, sources, redis_host, redis_port, global)
 }
 
 queue_clean <- function(con, queue_name, purge=FALSE) {

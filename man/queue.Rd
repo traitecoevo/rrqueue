@@ -5,7 +5,7 @@
 \title{Create an rrqueue queue}
 \usage{
 queue(queue_name, packages = NULL, sources = NULL,
-  redis_host = "127.0.0.1", redis_port = 6379)
+  redis_host = "127.0.0.1", redis_port = 6379, global = TRUE)
 }
 \arguments{
 \item{queue_name}{Queue name}
@@ -17,6 +17,10 @@ queue(queue_name, packages = NULL, sources = NULL,
 \item{redis_host}{Redis hostname}
 
 \item{redis_port}{Redis port number}
+
+\item{global}{Source files into the global environment?  This is a
+good idea for working with the "user friendly" functions.  See
+issue 2 on github.}
 }
 \description{
 Create an rrqueue queue

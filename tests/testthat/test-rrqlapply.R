@@ -40,7 +40,6 @@ test_that("Basic use", {
 
 test_that("bulk", {
   x <- expand.grid(a=1:4, b=runif(3))
-  source("myfuns.R")
 
   obj <- queue("tmpjobs", sources="myfuns.R")
 

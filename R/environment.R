@@ -13,7 +13,7 @@ create_environment <- function(packages, sources,
 ## determine the state of the system.  I don't think that there's much
 ## we can do about that though.  For cases where we're running locally
 ## it'll be fine.
-create_environment2 <- function(packages, sources, env) {
+create_environment2 <- function(packages, sources, env, global) {
   load_packages(packages)
   source_files <- character(0)
   for (file in sources) {
@@ -21,6 +21,10 @@ create_environment2 <- function(packages, sources, env) {
       source_files,
       do_source(file, env, chdir=TRUE, keep.source=FALSE,
                 source_fun=sys_source))
+    if (global) {
+      do_source(file, .GlobalEnv, chdir=TRUE, keep.source=FALSE,
+                source_fun=sys_source)
+    }
   }
   source_files
 }
