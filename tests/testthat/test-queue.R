@@ -127,7 +127,7 @@ test_that("queue", {
   logfile <- "worker.log"
   ## See: https://github.com/hadley/testthat/issues/144
   Sys.setenv("R_TESTS" = "")
-  wid <- rrqueue_worker_spawn(obj$queue_name, logfile)
+  wid <- worker_spawn(obj$queue_name, logfile)
   ## or!
   ##   w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 

@@ -15,7 +15,7 @@ test_that("Basic use", {
   expect_that(obj$tasks_status(tasks),
               equals(setNames(rep(TASK_PENDING, length(x)), tasks)))
 
-  wid <- rrqueue_worker_spawn(obj$queue_name, "rrqlapply.log")
+  wid <- worker_spawn(obj$queue_name, "rrqlapply.log")
 
   ## TODO:
   Sys.sleep(1.0)
@@ -47,7 +47,7 @@ test_that("bulk", {
   cmp_sum  <- lapply(df_to_list(x), suml)
   cmp_prod <- lapply(df_to_list(x), function(el) prod2(el$a, el$b))
 
-  wid <- rrqueue_worker_spawn(obj$queue_name, "rrqlapply.log")
+  wid <- worker_spawn(obj$queue_name, "rrqlapply.log")
 
   res <- enqueue_bulk(x, suml, obj)
   expect_that(res, equals(cmp_sum))

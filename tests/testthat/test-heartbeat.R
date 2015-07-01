@@ -14,7 +14,7 @@ test_that("heartbeat", {
 
   logfile <- "worker_heartbeat.log"
   Sys.setenv("R_TESTS" = "")
-  wid <- rrqueue_worker_spawn(obj$queue_name, logfile,
+  wid <- worker_spawn(obj$queue_name, logfile,
                               heartbeat_period=1, heartbeat_expire=3)
   ## w <- rrqueue::worker("testq:heartbeat")
   expect_that(obj$workers_len(), equals(1))
@@ -71,7 +71,7 @@ test_that("heartbeat", {
               equals(c("1"=TASK_COMPLETE, "2"=TASK_PENDING)))
 
   logfile2 <- sub("\\.log$", "2.log", logfile)
-  wid2 <- rrqueue_worker_spawn(obj$queue_name, logfile2)
+  wid2 <- worker_spawn(obj$queue_name, logfile2)
   ##   w <- rrqueue::worker("testq:heartbeat")
 
   Sys.sleep(0.5)

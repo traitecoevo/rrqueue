@@ -28,7 +28,7 @@
       ## TODO: cleanup if anything fails here.
       id <- character(n)
       for (i in seq_len(n)) {
-        id[[i]] <- rrqueue_worker_spawn(queue_name, logfile[[i]])
+        id[[i]] <- worker_spawn(queue_name, logfile[[i]])
       }
 
       self$workers <- id

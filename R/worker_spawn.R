@@ -2,7 +2,7 @@
 ## complicated.
 ##
 ## 1. manually using worker(...)
-## 2. from R using rrqueue_worker_spawn(...)
+## 2. from R using worker_spawn(...)
 ## 3. from the command line using rrqueue_worker
 ## 4. from the command line using rrqueue_worker_tee
 
@@ -35,18 +35,23 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
          heartbeat_expire=opts$heartbeat_expire)
 }
 
-## Should provide a controller here perhaps?
-##
-## TODO: more work needed if the connection is nontrivial; the worker
-## will be spawned to look at a trivial connection, until I fix the
-## docopt script to allow other options (host/port/pw).  I don't think
-## I can get that easily from RcppRedis::Redis though.
-rrqueue_worker_spawn <- function(queue_name, logfile,
-                                 redis_host="127.0.0.1",
-                                 redis_port=6379,
-                                 timeout=20, time_poll=3,
-                                 heartbeat_period=NULL,
-                                 heartbeat_expire=NULL) {
+##' Spawn a worker in the background
+##' @title Spawn a worker
+##' @param queue_name Name of the queue to connect to
+##' @param logfile Name of a log file to write to (consider \code{tempfile()})
+##' @param redis_host Host name/IP for the Redis server
+##' @param redis_port Port for the Redis server
+##' @param timeout Time to wait for the worker to appear
+##' @param time_poll Period to poll for the worker
+##' @param heartbeat_period Period between heartbeat pulses
+##' @param heartbeat_expire Time that heartbeat pulses will persist
+##' @export
+worker_spawn <- function(queue_name, logfile,
+                         redis_host="127.0.0.1",
+                         redis_port=6379,
+                         timeout=20, time_poll=3,
+                         heartbeat_period=NULL,
+                         heartbeat_expire=NULL) {
   rrqueue_worker <- find_script("rrqueue_worker")
   env <- paste0("RLIBS=", paste(.libPaths(), collapse=":"),
                 'R_TESTS=""')
