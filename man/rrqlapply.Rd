@@ -22,12 +22,16 @@ list.  \emph{this will change!}.}
 
 \item{rrq}{An rrq object}
 
+\item{...}{Additional arguments passed to \code{FUN}}
+
 \item{period}{Period to poll for completed tasks.  Affects how
 responsive the function is to quiting, mostly.}
 
 \item{delete_tasks}{Delete tasks on successful finish?}
 
 \item{progress_bar}{Display a progress bar?}
+
+\item{env}{Environment to look in.}
 
 \item{obj}{result of \code{rrqlapply_submit}}
 }

@@ -4,10 +4,12 @@
 ##' @param FUN The name of a function to apply to each element of the
 ##' list.  \emph{this will change!}.
 ##' @param rrq An rrq object
+##' @param ... Additional arguments passed to \code{FUN}
 ##' @param period Period to poll for completed tasks.  Affects how
 ##' responsive the function is to quiting, mostly.
 ##' @param delete_tasks Delete tasks on successful finish?
 ##' @param progress_bar Display a progress bar?
+##' @param env Environment to look in.
 ##' @export
 rrqlapply <- function(X, FUN, rrq, ...,
                       period=1, delete_tasks=FALSE,

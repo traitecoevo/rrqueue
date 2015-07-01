@@ -6,7 +6,7 @@
 \alias{enqueue_bulk_submit}
 \title{Bulk queuing}
 \usage{
-enqueue_bulk(FUN, X, rrq, ..., do.call = FALSE, period = 1,
+enqueue_bulk(FUN, X, rrq, do.call = FALSE, period = 1,
   delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
 
 enqueue_bulk_submit(FUN, X, rrq, do.call = FALSE, env = parent.frame())

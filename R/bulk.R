@@ -43,7 +43,7 @@
 ##' @param env Environment to look in
 ##'
 ##' @export
-enqueue_bulk <- function(FUN, X, rrq, ...,
+enqueue_bulk <- function(FUN, X, rrq,
                          do.call=FALSE,
                          period=1, delete_tasks=FALSE,
                          progress_bar=TRUE, env=parent.frame()) {
