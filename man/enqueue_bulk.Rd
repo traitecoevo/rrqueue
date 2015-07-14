@@ -6,23 +6,23 @@
 \alias{enqueue_bulk_submit}
 \title{Bulk queuing}
 \usage{
-enqueue_bulk(FUN, X, rrq, do.call = FALSE, period = 1,
+enqueue_bulk(X, FUN, rrq, do.call = FALSE, period = 1,
   delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
 
-enqueue_bulk_submit(FUN, X, rrq, do.call = FALSE, env = parent.frame())
+enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, env = parent.frame())
 
 enqueue_bulk_results(obj, period = 1, delete_tasks = FALSE,
   progress_bar = TRUE)
 }
 \arguments{
-\item{FUN}{A function.  Will be found in the same way as
-  \code{FUN} within \code{\link{rrqlapply}}.}
-
 \item{X}{An object to loop over.  If a list, we'll loop over the
   elements of the list, duplicating the behaviour of
   \code{\link{rrqlapply}} except for not handling dots.  If a
   \code{data.frame} we'll loop over the \emph{rows}.  Matrices are
   not supported.}
+
+\item{FUN}{A function.  Will be found in the same way as
+  \code{FUN} within \code{\link{rrqlapply}}.}
 
 \item{rrq}{An rrq object}
 

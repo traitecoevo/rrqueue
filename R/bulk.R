@@ -18,14 +18,14 @@
 ##' probably.  You have been warned.
 ##'
 ##' @title Bulk queuing
-##' @param FUN A function.  Will be found in the same way as
-##'   \code{FUN} within \code{\link{rrqlapply}}.
-##'
 ##' @param X An object to loop over.  If a list, we'll loop over the
 ##'   elements of the list, duplicating the behaviour of
 ##'   \code{\link{rrqlapply}} except for not handling dots.  If a
 ##'   \code{data.frame} we'll loop over the \emph{rows}.  Matrices are
 ##'   not supported.
+##'
+##' @param FUN A function.  Will be found in the same way as
+##'   \code{FUN} within \code{\link{rrqlapply}}.
 ##'
 ##' @param rrq An rrq object
 ##'
@@ -43,7 +43,7 @@
 ##' @param env Environment to look in
 ##'
 ##' @export
-enqueue_bulk <- function(FUN, X, rrq,
+enqueue_bulk <- function(X, FUN, rrq,
                          do.call=FALSE,
                          period=1, delete_tasks=FALSE,
                          progress_bar=TRUE, env=parent.frame()) {
@@ -62,7 +62,7 @@ enqueue_bulk <- function(FUN, X, rrq,
 
 ##' @export
 ##' @rdname enqueue_bulk
-enqueue_bulk_submit <- function(FUN, X, rrq, do.call=FALSE,
+enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
                                 env=parent.frame()) {
   if (is.data.frame(X)) {
     X <- df_to_list(X)
