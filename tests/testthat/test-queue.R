@@ -195,6 +195,10 @@ test_that("queue", {
   expect_that(obj$workers_len(), equals(0))
   expect_that(obj$workers_list(), equals(character(0)))
 
+  expect_that(obj$workers_list_exited(), equals(wid))
+  expect_that(obj$workers_log_tail(wid)[["command"]], equals("STOP"))
+  expect_that(obj$workers_status(wid), equals(setNames(NA_character_, wid)))
+
   dlog <- obj$workers_log_tail(w, n=0)
   expect_that(dlog, is_a("data.frame"))
 
