@@ -78,6 +78,9 @@
     workers_list=function() {
       workers_list(self$con, self$keys)
     },
+    workers_list_exited=function() {
+      workers_list_exited(self$con, self$keys)
+    },
     worker_get=function(worker_id) {
       worker_handle(self$con, self$queue_name, worker_id)
     },

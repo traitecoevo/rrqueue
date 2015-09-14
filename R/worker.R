@@ -305,7 +305,6 @@ WORKER_LOST <- "LOST"
       message(paste(ret, collapse="\n"))
     },
 
-    ## TODO: organise doing this on finalisation:
     shutdown=function(status="OK") {
       self$heartbeat$stop()
       self$con$DEL(self$keys$heartbeat)
@@ -342,6 +341,14 @@ workers_len <- function(con, keys) {
 
 workers_list <- function(con, keys) {
   as.character(con$SMEMBERS(keys$workers_name))
+}
+
+workers_list_exited <- function(con, keys) {
+  active <- workers_list(con, keys)
+  fmt <- "%s:workers:%s:log"
+  all <- RedisAPI::scan_find(con, sprintf(fmt, keys$queue_name, "*"))
+  ids <- sub(sprintf(fmt, keys$queue_name, "(.*)"), "\\1", all)
+  setdiff(ids, active)
 }
 
 workers_status <- function(con, keys, worker_ids=NULL) {

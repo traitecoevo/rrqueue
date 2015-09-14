@@ -25,7 +25,7 @@ redis_multi <- function(con, code) {
 }
 
 from_redis_hash <- function(con, name, keys=NULL, f=as.character,
-                            missing=NA) {
+                            missing=NA_character_) {
   if (is.null(keys)) {
     x <- con$HGETALL(name)
     dim(x) <- c(2, length(x) / 2)
