@@ -10,3 +10,9 @@ suml <- function(x) {
 prod2 <- function(a, b) {
   a * b
 }
+
+## Simulate a function called for side effects, but without sideeffects...
+ret_null <- function(...) {
+  Sys.sleep(0.02)
+  NULL
+}

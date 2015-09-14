@@ -74,8 +74,8 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
   done <- !(status == TASK_PENDING | status == TASK_RUNNING |
               status == TASK_ORPHAN)
   if (any(done)) {
-    output[done] <-
-      rrq$tasks_result(task_ids[done], follow_redirect=TRUE, sanitise=TRUE)
+    output[done] <- rrq$tasks_result(task_ids[done],
+                                     follow_redirect=TRUE, sanitise=TRUE)
   }
 
   p <- progress(total=n, show=progress_bar)
@@ -90,8 +90,12 @@ rrqlapply_results <- function(obj, period=1, delete_tasks=FALSE,
       p(0)
     } else {
       task_id <- res[[2]]
-      output[[task_id]] <-
-        tasks[[task_id]]$result(follow_redirect=TRUE, sanitise=TRUE)
+      tmp <- tasks[[task_id]]$result(follow_redirect=TRUE, sanitise=TRUE)
+      if (!is.null(tmp)) {
+        ## This conditional is needed to avoid deleting the element in
+        ## output if we get a NULL output.
+        output[[task_id]] <- tmp
+      }
       done[[task_id]] <- TRUE
       p()
     }
