@@ -163,11 +163,10 @@ spin_symbols <- function() {
 }
 
 ##' @importFrom progress progress_bar
-progress <- function(total, ..., show=TRUE) {
+progress <- function(total, ..., show=TRUE, prefix="") {
   if (show) {
-    pb <- progress::progress_bar$new(
-      "[:bar] :percent :spin",
-      total=total)
+    fmt <- paste0(prefix, "[:bar] :percent :spin")
+    pb <- progress::progress_bar$new(fmt, total=total)
     ws <- spin_symbols()
     function(len=1) {
       invisible(pb$tick(len, list(spin=ws())))

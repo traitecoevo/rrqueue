@@ -9,7 +9,8 @@
 rrqlapply(X, FUN, rrq, ..., period = 1, delete_tasks = FALSE,
   progress_bar = TRUE, env = parent.frame())
 
-rrqlapply_submit(X, FUN, rrq, ..., env = parent.frame())
+rrqlapply_submit(X, FUN, rrq, ..., progress_bar = TRUE,
+  env = parent.frame())
 
 rrqlapply_results(obj, period = 1, delete_tasks = FALSE,
   progress_bar = TRUE)

@@ -47,7 +47,7 @@ enqueue_bulk <- function(X, FUN, rrq,
                          do.call=FALSE,
                          period=1, delete_tasks=FALSE,
                          progress_bar=TRUE, env=parent.frame()) {
-  obj <- enqueue_bulk_submit(X, FUN, rrq, do.call, env)
+  obj <- enqueue_bulk_submit(X, FUN, rrq, do.call, progress_bar, env)
   tryCatch(enqueue_bulk_results(obj, period, delete_tasks, progress_bar),
            interrupt=function(e) obj)
 }
@@ -63,7 +63,7 @@ enqueue_bulk <- function(X, FUN, rrq,
 ##' @export
 ##' @rdname enqueue_bulk
 enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
-                                env=parent.frame()) {
+                                progress_bar=TRUE, env=parent.frame()) {
   if (is.data.frame(X)) {
     X <- df_to_list(X)
   } else if (!is.list(X)) {
@@ -71,6 +71,7 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
   }
 
   fun <- find_fun(FUN, env, rrq)
+  n <- length(X)
 
   ## See rrqlapply_submit for treatment of key_complete.  The rest of
   ## this is a bit more complicated than rrqlapply because we allow
@@ -78,7 +79,8 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
   tasks <- vector("list", length(X))
   e <- environment()
   key_complete <- NULL
-  for (i in seq_along(X)) {
+  p <- progress(total=n, show=progress_bar, prefix="submitting: ")
+  for (i in seq_len(n)) {
     if (do.call) {
       expr <- as.call(c(list(fun), X[[i]]))
     } else {
@@ -88,6 +90,7 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
     if (is.null(key_complete)) {
       key_complete <- tasks[[i]]$key_complete
     }
+    p()
   }
 
   names(tasks) <- vcapply(tasks, "[[", "id")

@@ -9,7 +9,8 @@
 enqueue_bulk(X, FUN, rrq, do.call = FALSE, period = 1,
   delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
 
-enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, env = parent.frame())
+enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, progress_bar = TRUE,
+  env = parent.frame())
 
 enqueue_bulk_results(obj, period = 1, delete_tasks = FALSE,
   progress_bar = TRUE)

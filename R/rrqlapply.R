@@ -14,30 +14,40 @@
 rrqlapply <- function(X, FUN, rrq, ...,
                       period=1, delete_tasks=FALSE,
                       progress_bar=TRUE, env=parent.frame()) {
-  obj <- rrqlapply_submit(X, FUN, rrq, ..., env=env)
+  ## TODO: I've set progress_bar to be true on both submitting and
+  ## retrieving, but the submit phase *should* be fast enough that
+  ## it's not necessary.  That's not true if we're running Redis over
+  ## a slow connection though (which we do with the clusterous
+  ## approach).  This adds some overhead but I think it'll do for now.
+  obj <- rrqlapply_submit(X, FUN, rrq, ..., progress_bar=progress_bar, env=env)
   tryCatch(rrqlapply_results(obj, period, delete_tasks, progress_bar),
            interrupt=function(e) obj)
 }
 
 ##' @export
 ##' @rdname rrqlapply
-rrqlapply_submit <- function(X, FUN, rrq, ..., env=parent.frame()) {
+rrqlapply_submit <- function(X, FUN, rrq, ...,
+                             progress_bar=TRUE, env=parent.frame()) {
   fun <- find_fun(FUN, env, rrq)
   DOTS <- list(...)
+
+  n <- length(X)
 
   ## NOTE: the key_complete treatment here avoids possible race
   ## condition/implementation depenence by giving all tasks the same
   ## key_complete and making that shared with whatever the first gets
   ## (which is done via INCR).
-  tasks <- vector("list", length(X))
+  tasks <- vector("list", n)
   e <- environment()
   key_complete <- NULL
-  for (i in seq_along(X)) {
+  p <- progress(total=n, show=progress_bar, prefix="submitting: ")
+  for (i in seq_len(n)) {
     expr <- as.call(c(list(fun, X[[i]]), DOTS))
     tasks[[i]] <- rrq$enqueue_(expr, e, key_complete=key_complete)
     if (is.null(key_complete)) {
       key_complete <- tasks[[i]]$key_complete
     }
+    p()
   }
 
   names(tasks) <- vcapply(tasks, "[[", "id")
