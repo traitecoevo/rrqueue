@@ -31,7 +31,7 @@ test_that("queue", {
   expect_that(dat$sources, equals("myfuns.R"))
   expect_that(dat$source_files, equals(hash_files("myfuns.R")))
 
-  expect_that(task_groups(con, keys), equals(character(0)))
+  expect_that(obj$tasks_groups(), equals(character(0)))
 
   ## Queue two tasks:
   grp <- "mygroup"
@@ -112,9 +112,9 @@ test_that("queue", {
   expect_that(obj$con$HGET(keys$tasks_group, ids[[1]]), is_null())
   expect_that(obj$con$HGET(keys$tasks_group, ids[[2]]), equals(grp))
 
-  expect_that(task_groups(con, keys), equals(grp))
-  expect_that(tasks_in_group(con, keys, grp), equals(ids[[2]]))
-  expect_that(tasks_in_group(con, keys, "xxx"), equals(character(0)))
+  expect_that(obj$tasks_groups(), equals(grp))
+  expect_that(obj$tasks_in_group(grp), equals(ids[[2]]))
+  expect_that(obj$tasks_in_group("xxx"), equals(character(0)))
 
   expect_that(con$GET(keys$tasks_counter), equals("2"))
 

@@ -194,7 +194,7 @@ tasks_times <- function(con, keys, task_ids=NULL, unit_elapsed="secs") {
 
 ## Lookup functions.
 ## First, find the names of extant groups:
-task_groups <- function(con, keys) {
+tasks_groups <- function(con, keys) {
   unique(as.character(con$HVALS(keys$tasks_group)))
 }
 
