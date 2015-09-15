@@ -51,7 +51,7 @@ enqueue_bulk <- function(X, FUN, rrq,
                          period=1, delete_tasks=FALSE,
                          progress_bar=TRUE, env=parent.frame()) {
   obj <- enqueue_bulk_submit(X, FUN, rrq, do.call, group, progress_bar, env)
-  tryCatch(enqueue_bulk_results(obj, period, delete_tasks, progress_bar),
+  tryCatch(obj$wait(period, progress_bar),
            interrupt=function(e) obj)
 }
 
@@ -97,21 +97,5 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE, group=NULL,
     p()
   }
 
-  names(tasks) <- vcapply(tasks, "[[", "id")
-
-  ret <- list(rrq=rrq,
-              key_complete=key_complete,
-              group=group,
-              tasks=tasks,
-              names=names(X))
-  class(ret) <- "enqueue_bulk_tasks"
-  ret
-}
-
-##' @export
-##' @param obj result of \code{enqueue_bulk_submit}
-##' @rdname enqueue_bulk
-enqueue_bulk_results <- function(obj, period=1, delete_tasks=FALSE,
-                                 progress_bar=TRUE) {
-  rrqlapply_results(obj, period, delete_tasks, progress_bar)
+  task_bundle(rrq, tasks, key_complete, group, names(X))
 }

@@ -10,36 +10,53 @@ test_that("Basic use", {
   expect_that(obj$tasks_groups(), equals(character(0)))
   x <- sample(1:10, 20, replace=TRUE)
   rrql <- rrqlapply_submit(x, "sin", obj)
+  expect_that(rrql, is_a("task_bundle"))
 
   grp <- obj$tasks_groups()
   expect_that(length(grp), equals(1L))
 
-  expect_that(grp, equals(rrql$group))
-  expect_that(obj$tasks_in_group(grp),
-              equals(names(rrql$tasks)))
+  expect_that(grp, equals(rrql$groups))
+  expect_that(obj$tasks_in_groups(grp),
+              equals(rrql$task_ids))
+  expect_that(rrql$names, equals(names(x)))
 
+  tmp <- task_bundle_get(obj, groups=grp)
+  expect_that(tmp, is_a("task_bundle"))
+  expect_that(tmp$groups, equals(grp))
+  expect_that(tmp$names, equals(NULL))
+  expect_that(tmp$key_complete, equals(rrql$key_complete))
+
+  expect_that(rrql$fetch1(0), is_null())
+  expect_that(tmp$wait(progress_bar=FALSE, maxit=1),
+              throws_error("Exceeded maximum number of iterations"))
+
+  ## TODO: This would be nice to do filtering by jobs in the bundle...
   monitor_status(obj)
 
-  tasks <- names(rrql$tasks)
-  expect_that(obj$tasks_status(tasks),
-              equals(setNames(rep(TASK_PENDING, length(x)), tasks)))
+  task_ids <- rrql$task_ids
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_PENDING, length(x)), task_ids)))
 
   wid <- worker_spawn(obj$queue_name, "rrqlapply.log")
+  ## w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 
   ## TODO:
   Sys.sleep(1.0)
-  expect_that(obj$tasks_status(tasks),
-              equals(setNames(rep(TASK_COMPLETE, length(x)), tasks)))
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_COMPLETE, length(x)), task_ids)))
 
-  res <- rrqlapply_results(rrql, progress_bar=FALSE)
+  res <- rrql$wait()
   cmp <- lapply(x, sin)
   expect_that(res, equals(cmp, tolerance=1e-15))
 
-  res <- rrqlapply_results(rrql, delete_tasks=TRUE, progress_bar=FALSE)
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_COMPLETE, length(x)), task_ids)))
+
+  rrql$delete_tasks()
 
   ## Cleanup has happened
-  expect_that(obj$tasks_status(tasks),
-              equals(setNames(rep(TASK_MISSING, length(x)), tasks)))
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_MISSING, length(x)), task_ids)))
 
   res <- rrqlapply(x, "sin", obj, progress_bar=FALSE)
   expect_that(res, equals(cmp, tolerance=1e-15))
@@ -56,27 +73,29 @@ test_that("null return", {
   rrql <- rrqlapply_submit(x, "ret_null", obj)
   monitor_status(obj)
 
-  tasks <- names(rrql$tasks)
-  expect_that(obj$tasks_status(tasks),
-              equals(setNames(rep(TASK_PENDING, length(x)), tasks)))
+  task_ids <- rrql$task_ids
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_PENDING, length(x)), task_ids)))
 
   wid <- worker_spawn(obj$queue_name, "rrqlapply.log")
+  ## w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 
   ## TODO:
   Sys.sleep(1.0)
-  expect_that(obj$tasks_status(tasks),
-              equals(setNames(rep(TASK_COMPLETE, length(x)), tasks)))
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_COMPLETE, length(x)), task_ids)))
 
-  res <- rrqlapply_results(rrql, progress_bar=FALSE)
+  res <- rrql$wait(progress_bar=FALSE)
   cmp <- rep(list(NULL), length(x))
   expect_that(res, equals(cmp))
 
   ## And again:
-  res <- rrqlapply_results(rrql, delete_tasks=TRUE, progress_bar=FALSE)
+  expect_that(rrql$wait(progress_bar=FALSE), equals(cmp))
+  rrql$delete_tasks()
 
   ## Cleanup has happened
-  expect_that(obj$tasks_status(tasks),
-              equals(setNames(rep(TASK_MISSING, length(x)), tasks)))
+  expect_that(obj$tasks_status(task_ids),
+              equals(setNames(rep(TASK_MISSING, length(x)), task_ids)))
 
   res <- rrqlapply(x, "ret_null", obj, progress_bar=FALSE)
   expect_that(res, equals(cmp))

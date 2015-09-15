@@ -2,7 +2,6 @@
 % Please edit documentation in R/rrqlapply.R
 \name{rrqlapply}
 \alias{rrqlapply}
-\alias{rrqlapply_results}
 \alias{rrqlapply_submit}
 \title{Parallel version of lapply using Redis queuing}
 \usage{
@@ -11,9 +10,6 @@ rrqlapply(X, FUN, rrq, ..., group = NULL, period = 1,
 
 rrqlapply_submit(X, FUN, rrq, ..., group = NULL, progress_bar = TRUE,
   env = parent.frame())
-
-rrqlapply_results(obj, period = 1, delete_tasks = FALSE,
-  progress_bar = TRUE)
 }
 \arguments{
 \item{X}{A vector}
@@ -36,8 +32,6 @@ responsive the function is to quiting, mostly.}
 \item{progress_bar}{Display a progress bar?}
 
 \item{env}{Environment to look in.}
-
-\item{obj}{result of \code{rrqlapply_submit}}
 }
 \description{
 Parallel version of lapply using Redis queuing

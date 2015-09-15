@@ -199,12 +199,18 @@ tasks_groups <- function(con, keys) {
 }
 
 ## Then, the tasks associated with a given group:
-tasks_in_group <- function(con, keys, group) {
-  assert_scalar_character(group)
+tasks_in_groups <- function(con, keys, groups) {
   ## TODO: This should be done with HSCAN do do it "properly", but
   ## that should probably move into the RedisAPI before I try.
+  groups_hash <- from_redis_hash(con, keys$tasks_group)
+  names(groups_hash)[groups_hash %in% groups]
+}
+
+tasks_lookup_group <- function(con, keys, task_ids) {
   groups <- from_redis_hash(con, keys$tasks_group)
-  names(groups)[groups == group]
+  ret <- groups[tasks_ids]
+  names(ret) <- tasks_ids
+  ret
 }
 
 tasks_set_group <- function(con, keys, task_ids, group,

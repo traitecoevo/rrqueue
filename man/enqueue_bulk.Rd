@@ -2,7 +2,6 @@
 % Please edit documentation in R/bulk.R
 \name{enqueue_bulk}
 \alias{enqueue_bulk}
-\alias{enqueue_bulk_results}
 \alias{enqueue_bulk_submit}
 \title{Bulk queuing}
 \usage{
@@ -11,9 +10,6 @@ enqueue_bulk(X, FUN, rrq, do.call = FALSE, group = NULL, period = 1,
 
 enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, group = NULL,
   progress_bar = TRUE, env = parent.frame())
-
-enqueue_bulk_results(obj, period = 1, delete_tasks = FALSE,
-  progress_bar = TRUE)
 }
 \arguments{
 \item{X}{An object to loop over.  If a list, we'll loop over the
@@ -42,8 +38,6 @@ enqueue_bulk_results(obj, period = 1, delete_tasks = FALSE,
 \item{progress_bar}{Display a progress bar?}
 
 \item{env}{Environment to look in}
-
-\item{obj}{result of \code{enqueue_bulk_submit}}
 }
 \description{
 Bulk queuing.  Similar in some respects to things like

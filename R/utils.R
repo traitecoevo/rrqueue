@@ -211,3 +211,14 @@ match_value <- function(arg, choices, name=deparse(substitute(arg))) {
   }
   arg
 }
+
+##' @importFrom ids aa
+create_group <- function(group, verbose) {
+  if (is.null(group)) {
+    group <- ids::aa(1)()
+    if (verbose) {
+      message(sprintf("Creating group: '%s'", group))
+    }
+  }
+  group
+}

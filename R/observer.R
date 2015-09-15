@@ -48,8 +48,11 @@
     tasks_groups=function() {
       tasks_groups(self$con, self$keys)
     },
-    tasks_in_group=function(group) {
-      tasks_in_group(self$con, self$keys, group)
+    tasks_in_groups=function(groups) {
+      tasks_in_groups(self$con, self$keys, groups)
+    },
+    tasks_lookup_group=function(task_ids) {
+      tasks_lookup_group(self$con, self$keys, task_ids)
     },
     task_get=function(task_id) {
       task_get(self$con, self$keys, task_id)
@@ -66,6 +69,9 @@
     tasks_result=function(task_ids, follow_redirect=FALSE, sanitise=FALSE) {
       setNames(lapply(task_ids, self$task_result, follow_redirect, sanitise),
                task_ids)
+    },
+
+    tasks_bundle_get=function(groups=NULL, task_ids=NULL) {
     },
 
     ## 2: environments
