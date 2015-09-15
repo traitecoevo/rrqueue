@@ -33,6 +33,9 @@
 ##'   given an element \code{el}, rather than run \code{FUN(el)} run
 ##'   \code{FUN(el[[1]], el[[2]], ...)}.
 ##'
+##' @param group Name of a group for generated task ids.  If not
+##'   included, an ID will be generated.
+##'
 ##' @param period Period to poll for completed tasks.  Affects how
 ##'   responsive the function is to quiting, mostly.
 ##'
@@ -44,10 +47,10 @@
 ##'
 ##' @export
 enqueue_bulk <- function(X, FUN, rrq,
-                         do.call=FALSE,
+                         do.call=FALSE, group=NULL,
                          period=1, delete_tasks=FALSE,
                          progress_bar=TRUE, env=parent.frame()) {
-  obj <- enqueue_bulk_submit(X, FUN, rrq, do.call, progress_bar, env)
+  obj <- enqueue_bulk_submit(X, FUN, rrq, do.call, group, progress_bar, env)
   tryCatch(enqueue_bulk_results(obj, period, delete_tasks, progress_bar),
            interrupt=function(e) obj)
 }
@@ -62,7 +65,7 @@ enqueue_bulk <- function(X, FUN, rrq,
 
 ##' @export
 ##' @rdname enqueue_bulk
-enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
+enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE, group=NULL,
                                 progress_bar=TRUE, env=parent.frame()) {
   if (is.data.frame(X)) {
     X <- df_to_list(X)
@@ -79,6 +82,7 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
   tasks <- vector("list", length(X))
   e <- environment()
   key_complete <- NULL
+  group <- create_group(group, progress_bar)
   p <- progress(total=n, show=progress_bar, prefix="submitting: ")
   for (i in seq_len(n)) {
     if (do.call) {
@@ -97,6 +101,7 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE,
 
   ret <- list(rrq=rrq,
               key_complete=key_complete,
+              group=group,
               tasks=tasks,
               names=names(X))
   class(ret) <- "enqueue_bulk_tasks"

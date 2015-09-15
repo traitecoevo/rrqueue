@@ -6,10 +6,10 @@
 \alias{rrqlapply_submit}
 \title{Parallel version of lapply using Redis queuing}
 \usage{
-rrqlapply(X, FUN, rrq, ..., period = 1, delete_tasks = FALSE,
-  progress_bar = TRUE, env = parent.frame())
+rrqlapply(X, FUN, rrq, ..., group = NULL, period = 1,
+  delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
 
-rrqlapply_submit(X, FUN, rrq, ..., progress_bar = TRUE,
+rrqlapply_submit(X, FUN, rrq, ..., group = NULL, progress_bar = TRUE,
   env = parent.frame())
 
 rrqlapply_results(obj, period = 1, delete_tasks = FALSE,
@@ -24,6 +24,9 @@ list.  \emph{this will change!}.}
 \item{rrq}{An rrq object}
 
 \item{...}{Additional arguments passed to \code{FUN}}
+
+\item{group}{Name of a group for generated task ids.  If not
+included, an ID will be generated.}
 
 \item{period}{Period to poll for completed tasks.  Affects how
 responsive the function is to quiting, mostly.}

@@ -6,11 +6,11 @@
 \alias{enqueue_bulk_submit}
 \title{Bulk queuing}
 \usage{
-enqueue_bulk(X, FUN, rrq, do.call = FALSE, period = 1,
+enqueue_bulk(X, FUN, rrq, do.call = FALSE, group = NULL, period = 1,
   delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
 
-enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, progress_bar = TRUE,
-  env = parent.frame())
+enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, group = NULL,
+  progress_bar = TRUE, env = parent.frame())
 
 enqueue_bulk_results(obj, period = 1, delete_tasks = FALSE,
   progress_bar = TRUE)
@@ -30,6 +30,9 @@ enqueue_bulk_results(obj, period = 1, delete_tasks = FALSE,
 \item{do.call}{Behave like (but not via) \code{\link{do.call}};
   given an element \code{el}, rather than run \code{FUN(el)} run
   \code{FUN(el[[1]], el[[2]], ...)}.}
+
+\item{group}{Name of a group for generated task ids.  If not
+  included, an ID will be generated.}
 
 \item{period}{Period to poll for completed tasks.  Affects how
   responsive the function is to quiting, mostly.}

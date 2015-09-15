@@ -5,13 +5,15 @@
 ##' list.  \emph{this will change!}.
 ##' @param rrq An rrq object
 ##' @param ... Additional arguments passed to \code{FUN}
+##' @param group Name of a group for generated task ids.  If not
+##' included, an ID will be generated.
 ##' @param period Period to poll for completed tasks.  Affects how
 ##' responsive the function is to quiting, mostly.
 ##' @param delete_tasks Delete tasks on successful finish?
 ##' @param progress_bar Display a progress bar?
 ##' @param env Environment to look in.
 ##' @export
-rrqlapply <- function(X, FUN, rrq, ...,
+rrqlapply <- function(X, FUN, rrq, ..., group=NULL,
                       period=1, delete_tasks=FALSE,
                       progress_bar=TRUE, env=parent.frame()) {
   ## TODO: I've set progress_bar to be true on both submitting and
@@ -19,14 +21,15 @@ rrqlapply <- function(X, FUN, rrq, ...,
   ## it's not necessary.  That's not true if we're running Redis over
   ## a slow connection though (which we do with the clusterous
   ## approach).  This adds some overhead but I think it'll do for now.
-  obj <- rrqlapply_submit(X, FUN, rrq, ..., progress_bar=progress_bar, env=env)
+  obj <- rrqlapply_submit(X, FUN, rrq, ..., group=group,
+                          progress_bar=progress_bar, env=env)
   tryCatch(rrqlapply_results(obj, period, delete_tasks, progress_bar),
            interrupt=function(e) obj)
 }
 
 ##' @export
 ##' @rdname rrqlapply
-rrqlapply_submit <- function(X, FUN, rrq, ...,
+rrqlapply_submit <- function(X, FUN, rrq, ..., group=NULL,
                              progress_bar=TRUE, env=parent.frame()) {
   fun <- find_fun(FUN, env, rrq)
   DOTS <- list(...)
@@ -40,10 +43,11 @@ rrqlapply_submit <- function(X, FUN, rrq, ...,
   tasks <- vector("list", n)
   e <- environment()
   key_complete <- NULL
+  group <- create_group(group, progress_bar)
   p <- progress(total=n, show=progress_bar, prefix="submitting: ")
   for (i in seq_len(n)) {
     expr <- as.call(c(list(fun, X[[i]]), DOTS))
-    tasks[[i]] <- rrq$enqueue_(expr, e, key_complete=key_complete)
+    tasks[[i]] <- rrq$enqueue_(expr, e, key_complete=key_complete, group=group)
     if (is.null(key_complete)) {
       key_complete <- tasks[[i]]$key_complete
     }
@@ -54,6 +58,7 @@ rrqlapply_submit <- function(X, FUN, rrq, ...,
 
   ret <- list(rrq=rrq,
               key_complete=key_complete,
+              group=group,
               tasks=tasks,
               names=names(X))
   class(ret) <- "rrqlapply_tasks"
@@ -131,4 +136,15 @@ find_fun <- function(FUN, env, rrq) {
   } else {
     call("::", as.name(dat[[1]]), as.name(dat[[2]]))
   }
+}
+
+##' @importFrom ids aa
+create_group <- function(group, verbose) {
+  if (is.null(group)) {
+    group <- ids::aa(1)()
+    if (verbose) {
+      message(sprintf("Creating group: '%s'", group))
+    }
+  }
+  group
 }
