@@ -202,3 +202,12 @@ df_to_list <- function(x) {
   attributes(x) <- at[intersect(names(at), keep)]
   unname(lapply(split(x, seq_len(nrow(x))), as.list))
 }
+
+match_value <- function(arg, choices, name=deparse(substitute(arg))) {
+  assert_scalar_character(arg)
+  if (!(arg %in% choices)) {
+    stop(sprintf("%s must be one of %s",
+                 name, paste(dQuote(choices), collapse=", ")))
+  }
+  arg
+}

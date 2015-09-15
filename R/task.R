@@ -206,3 +206,37 @@ tasks_in_group <- function(con, keys, group) {
   groups <- from_redis_hash(con, keys$tasks_group)
   names(groups)[groups == group]
 }
+
+tasks_set_group <- function(con, keys, task_ids, group,
+                            exists_action="stop") {
+  ## Alternatively we could recycle?
+  if (!is.null(group)) {
+    assert_scalar_character(group)
+  }
+  exists_action <- match_value(exists_action,
+                               c("stop", "warn", "pass", "overwrite"))
+  ## should check that the ids are valid I think.
+  ## This is pretty nasty:
+  if (!is.null(group) && exists_action != "overwrite") {
+    cur <- from_redis_hash(con, keys$tasks_group, task_ids)
+    ok <- is.na(cur) | cur == group
+    if (!all(ok)) {
+      if (exists_action != "pass") {
+        msg <- paste0("Groups already exist for tasks: ",
+                      paste(task_ids[!ok], collapse=", "))
+        if (exists_action == "stop") {
+          stop(msg)
+        } else {
+          warning(msg, immediate.=TRUE)
+        }
+      }
+      task_ids <- task_ids[ok]
+    }
+  }
+  if (is.null(group)) {
+    con$HDEL(keys$tasks_group, task_ids)
+  } else {
+    con$HMSET(keys$tasks_group, task_ids, group)
+  }
+  invisible(NULL)
+}

@@ -137,6 +137,7 @@
       }
     },
 
+    ## TODO: should the argument be 'task_ids'?
     tasks_drop=function(id) {
       con <- self$con
       keys <- self$keys
@@ -163,6 +164,10 @@
       })
 
       ret
+    },
+
+    tasks_set_group=function(task_ids, group, exists_action="stop") {
+      tasks_set_group(self$con, self$keys, task_ids, group, exists_action)
     }
   ))
 

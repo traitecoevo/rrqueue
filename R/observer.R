@@ -8,6 +8,8 @@
 ## Other things can either inherit from this or compose with it.
 ##
 ## TODO: probably need something like this across queues?
+##
+## NOTE: There are no methods here that modify the queue.
 .R6_observer <- R6::R6Class(
   "observer",
   public=list(
