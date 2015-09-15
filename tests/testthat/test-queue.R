@@ -31,9 +31,12 @@ test_that("queue", {
   expect_that(dat$sources, equals("myfuns.R"))
   expect_that(dat$source_files, equals(hash_files("myfuns.R")))
 
+  expect_that(task_groups(con, keys), equals(character(0)))
+
   ## Queue two tasks:
+  grp <- "mygroup"
   task1 <- obj$enqueue(sin(1))
-  task2 <- obj$enqueue(sin(2))
+  task2 <- obj$enqueue(sin(2), group=grp)
 
   expect_that(task1, is_a("task"))
 
@@ -45,9 +48,9 @@ test_that("queue", {
               equals(c("1"=TASK_PENDING, "2"=TASK_PENDING)))
   expect_that(obj$task_expr(task1$id), equals(quote(sin(1))))
 
-  ## This is hard to check because tables are weird.
-  ## expect_that(obj$tasks_overview(),
-  ##             equals(c(PENDING=2, RUNNING=0, COMPLETE=0, ERROR=0)))
+  ## as.list because 'table' objects are weird.
+  expect_that(as.list(obj$tasks_overview()),
+              equals(list(PENDING=2, RUNNING=0, COMPLETE=0, ERROR=0)))
 
   expect_that(obj$tasks_envir(),
               equals(c("1"=obj$envir_id, "2"=obj$envir_id)))
@@ -63,8 +66,10 @@ test_that("queue", {
 
   keys_tasks <- c(keys$tasks_expr, keys$tasks_counter, keys$tasks_id,
                   keys$tasks_status, keys$tasks_envir,
-                  keys$tasks_complete, keys$tasks_time_sub)
-  expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
+                  keys$tasks_complete, keys$tasks_group,
+                  keys$tasks_time_sub)
+
+  expect_that(sort(as.character(RedisAPI::scan_find(con, "tmpjobs*"))),
               equals(sort(c(keys_startup, keys_tasks))))
 
   expect_that(con$TYPE(keys$tasks_id),       equals("list"))
@@ -72,6 +77,7 @@ test_that("queue", {
   expect_that(con$TYPE(keys$tasks_counter),  equals("string"))
   expect_that(con$TYPE(keys$tasks_status),   equals("hash"))
   expect_that(con$TYPE(keys$tasks_complete), equals("hash"))
+  expect_that(con$TYPE(keys$tasks_group),    equals("hash"))
   expect_that(con$TYPE(keys$tasks_envir),    equals("hash"))
   expect_that(con$TYPE(keys$tasks_time_sub), equals("hash"))
 
@@ -102,6 +108,13 @@ test_that("queue", {
               equals(rrqueue_key_task_complete(obj$queue_name, ids[[1]])))
   expect_that(obj$con$HGET(keys$tasks_complete, ids[[2]]),
               equals(rrqueue_key_task_complete(obj$queue_name, ids[[2]])))
+
+  expect_that(obj$con$HGET(keys$tasks_group, ids[[1]]), is_null())
+  expect_that(obj$con$HGET(keys$tasks_group, ids[[2]]), equals(grp))
+
+  expect_that(task_groups(con, keys), equals(grp))
+  expect_that(tasks_in_group(con, keys, grp), equals(ids[[2]]))
+  expect_that(tasks_in_group(con, keys, "xxx"), equals(character(0)))
 
   expect_that(con$GET(keys$tasks_counter), equals("2"))
 

@@ -61,11 +61,11 @@
     ## TODO: allow setting a "group" or "name" for more easily
     ## recalling jobs?
     ## TODO: envir should be parent.frame?
-    enqueue=function(expr, envir=.GlobalEnv, key_complete=NULL) {
-      self$enqueue_(substitute(expr), envir, key_complete)
+    enqueue=function(expr, envir=.GlobalEnv, key_complete=NULL, group=NULL) {
+      self$enqueue_(substitute(expr), envir, key_complete, group=group)
     },
 
-    enqueue_=function(expr, envir=.GlobalEnv, key_complete=NULL) {
+    enqueue_=function(expr, envir=.GlobalEnv, key_complete=NULL, group=NULL) {
       dat <- prepare_expression(expr)
       task_id <- as.character(self$con$INCR(self$keys$tasks_counter))
       expr_str <- save_expression(dat, task_id, envir, self$objects)
@@ -81,6 +81,9 @@
         self$con$HSET(self$keys$tasks_status,   task_id, TASK_PENDING)
         self$con$HSET(self$keys$tasks_time_sub, task_id, time)
         self$con$RPUSH(self$keys$tasks_id,      task_id)
+        if (!is.null(group)) {
+          self$con$HSET(self$keys$tasks_group, task_id, group)
+        }
       })
       invisible(task(self$con, self$queue_name, task_id, key_complete))
     },
@@ -155,6 +158,7 @@
         con$HDEL(keys$tasks_status,   id)
         con$HDEL(keys$tasks_envir,    id)
         con$HDEL(keys$tasks_complete, id)
+        con$HDEL(keys$tasks_group,    id)
         con$HDEL(keys$tasks_result,   id)
       })
 

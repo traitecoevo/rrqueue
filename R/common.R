@@ -35,6 +35,7 @@ rrqueue_keys_queue <- function(queue) {
        tasks_envir     = sprintf("%s:tasks:envir",     queue),
        tasks_complete  = sprintf("%s:tasks:complete",  queue),
        tasks_redirect  = sprintf("%s:tasks:redirect",  queue),
+       tasks_group     = sprintf("%s:tasks:group",     queue),
 
        envirs_contents = sprintf("%s:envirs:contents", queue),
 

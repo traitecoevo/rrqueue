@@ -191,3 +191,18 @@ tasks_times <- function(con, keys, task_ids=NULL, unit_elapsed="secs") {
   ret$idle    <- as.numeric(now       - ret$finished,  unit_elapsed)
   ret
 }
+
+## Lookup functions.
+## First, find the names of extant groups:
+task_groups <- function(con, keys) {
+  unique(as.character(con$HVALS(keys$tasks_group)))
+}
+
+## Then, the tasks associated with a given group:
+tasks_in_group <- function(con, keys, group) {
+  assert_scalar_character(group)
+  ## TODO: This should be done with HSCAN do do it "properly", but
+  ## that should probably move into the RedisAPI before I try.
+  groups <- from_redis_hash(con, keys$tasks_group)
+  names(groups)[groups == group]
+}
