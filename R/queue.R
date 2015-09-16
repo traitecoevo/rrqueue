@@ -8,10 +8,12 @@
   public=list(
     envir=NULL,
     envir_id=NULL,
+    scripts=NULL,
 
     initialize=function(queue_name, packages, sources, redis_host,
                         redis_port, global) {
       super$initialize(queue_name, redis_host, redis_port)
+      self$scripts <- rrqueue_scripts(self$con)
       existing <- self$con$SISMEMBER(self$keys$rrqueue_queues, self$queue_name)
       if (existing == 1) {
         message("reattaching to existing queue")
@@ -67,24 +69,26 @@
 
     enqueue_=function(expr, envir=.GlobalEnv, key_complete=NULL, group=NULL) {
       dat <- prepare_expression(expr)
-      task_id <- as.character(self$con$INCR(self$keys$tasks_counter))
-      expr_str <- save_expression(dat, task_id, envir, self$objects)
 
+      tmp <- self$scripts("job_incr", self$keys$tasks_counter, character(0))
+      task_id <- as.character(tmp[[1]])
+      time <- format_redis_time(tmp[[2]])
+
+      expr_str <- save_expression(dat, task_id, envir, self$objects)
       if (is.null(key_complete)) {
         key_complete <- rrqueue_key_task_complete(self$queue_name, task_id)
       }
-      time <- redis_time(self$con)
-      redis_multi(self$con, {
-        self$con$HSET(self$keys$tasks_expr,     task_id, expr_str)
-        self$con$HSET(self$keys$tasks_envir,    task_id, self$envir_id)
-        self$con$HSET(self$keys$tasks_complete, task_id, key_complete)
-        self$con$HSET(self$keys$tasks_status,   task_id, TASK_PENDING)
-        self$con$HSET(self$keys$tasks_time_sub, task_id, time)
-        self$con$RPUSH(self$keys$tasks_id,      task_id)
-        if (!is.null(group)) {
-          self$con$HSET(self$keys$tasks_group, task_id, group)
-        }
-      })
+      keys <- c(self$keys$tasks_expr,
+                self$keys$tasks_envir,
+                self$keys$tasks_complete,
+                self$keys$tasks_status,
+                self$keys$tasks_time_sub,
+                if (!is.null(group)) self$keys$tasks_group)
+      vals <- c(expr_str, self$envir_id, key_complete, TASK_PENDING, time,
+                group)
+      self$scripts("job_submit",
+                   c(self$keys$tasks_id, keys),
+                   c(task_id,            vals))
       invisible(task(self$con, self$queue_name, task_id, key_complete))
     },
 

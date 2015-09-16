@@ -39,7 +39,11 @@ from_redis_hash <- function(con, name, keys=NULL, f=as.character,
 }
 
 redis_time <- function(con) {
-  paste(as.character(con$TIME()), collapse=".")
+  format_redis_time(con$TIME())
+}
+
+format_redis_time <- function(x) {
+  paste(as.character(x), collapse=".")
 }
 
 redis_time_to_r <- function(x) {

@@ -163,3 +163,27 @@ version_string <- function() {
   }
   sprintf("%s [%s]", data$version, qual)
 }
+
+rrqueue_scripts <- function(con) {
+  set_hashes <- 'local id = ARGV[table.getn(ARGV)]
+for i, k in ipairs(KEYS) do
+redis.call("HSET", k, id, ARGV[i])
+end'
+
+  ## Assume that ARGV[1] is the task id and KEYS[1] is the queue.  Then
+  ## ARGV[2..] and KEYS[2..] are the key / value pairs
+  job_submit <- '
+local task_id = ARGV[1]
+for i, k in ipairs(KEYS) do
+  if i > 1 then
+    redis.call("HSET", k, task_id, ARGV[i])
+  end
+end
+redis.call("RPUSH", KEYS[1], task_id)'
+
+  job_incr <- 'return {redis.call("INCR", KEYS[1]), redis.call("TIME")}'
+  RedisAPI::redis_scripts(con,
+                          scripts=list(set_hashes=set_hashes,
+                                       job_incr=job_incr,
+                                       job_submit=job_submit))
+}

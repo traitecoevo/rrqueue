@@ -40,8 +40,11 @@ test_that("queue", {
 
   expect_that(task1, is_a("task"))
 
+  ## For some reason this is not resetting properly; am I incrementing
+  ## the correct thing?
   expect_that(task1$id, equals("1"))
   expect_that(task2$id, equals("2"))
+  expect_that(con$GET(keys$tasks_counter), equals("2"))
 
   expect_that(obj$tasks_len(), equals(2))
   expect_that(obj$tasks_status(),
@@ -141,8 +144,6 @@ test_that("queue", {
   ## Delete the groups:
   obj$tasks_set_group(ids, NULL)
   expect_that(sort(obj$tasks_groups()), equals(character(0)))
-
-  expect_that(con$GET(keys$tasks_counter), equals("2"))
 
   expect_that(task1$status(), equals(TASK_PENDING))
   expect_that(task2$status(), equals(TASK_PENDING))
@@ -249,4 +250,5 @@ test_that("queue", {
                                      "STOP", "OK")))
 
   ## TODO: cleanup properly.
+  test_cleanup()
 })
