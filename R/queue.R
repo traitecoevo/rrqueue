@@ -139,21 +139,77 @@
     ## These messages are *broadcast* commands.  No data will be
     ## returned by the worker.  If the worker is omitted, all workers
     ## get the message.
-    send_message=function(content, worker=NULL) {
-      ## TODO: worker -> worker_id?
-
-      ## TODO: refuse to send message to nonexistent queue by using
-      ## RPUSHX and checking for a 0 return.
-      if (is.null(worker)) {
-        worker <- self$workers_list()
+    send_message=function(command, args=NULL, worker_ids=NULL) {
+      if (is.null(worker_ids)) {
+        worker_ids <- self$workers_list()
       }
       ## TODO: check if the worker exists before pushing anything onto
       ## its message queue.
-      key <- rrqueue_key_worker_message(self$queue_name, worker)
+
+      ## In theory, this could be done with RPUSHX and checking for a
+      ## 0 return.  But that's not quite right because I'd want to
+      ## check for the worker elsewhere (the message queue will be
+      ## empty at *some* point).  Worse, this could leave messages
+      ## pushed for only some of the workers.
+      key <- rrqueue_key_worker_message(self$queue_name, worker_ids)
+      message_id <- redis_time(self$con)
+      content <- message_prepare(message_id, command, args)
       for (k in key) {
         self$con$RPUSH(k, content)
       }
+      invisible(message_id)
     },
+
+    has_responses=function(message_id, worker_ids=NULL) {
+      if (is.null(worker_ids)) {
+        worker_ids <- self$workers_list()
+      }
+      res <- vnapply(rrqueue_key_worker_response(self$queue_name, worker_ids),
+                     self$con$HEXISTS, message_id)
+      setNames(as.logical(res), worker_ids)
+    },
+
+    get_responses=function(message_id, worker_ids=NULL, delete=FALSE) {
+      if (is.null(worker_ids)) {
+        worker_ids <- self$workers_list()
+      }
+
+      response_keys <- rrqueue_key_worker_response(self$queue_name, worker_ids)
+      res <- lapply(response_keys, self$con$HGET, message_id)
+      names(res) <- worker_ids
+
+      msg <- vlapply(res, is.null)
+      if (any(msg)) {
+        message <- paste0("Response missing for workers: ",
+                          paste(worker_ids[msg], collapse=", "))
+        stop(message)
+      }
+      if (delete) {
+        for (k in response_keys) {
+          self$con$HDEL(k, message_id)
+        }
+      }
+      ## NOTE: if missing_action is pass and a result is really
+      ## missing, then it will be impossible to detect which elements
+      ## are missing based on the output of this.
+      res <- lapply(res, function(x) string_to_object(x)$result)
+      res
+    },
+
+    get_response=function(message_id, worker_id, delete=FALSE) {
+      self$get_responses(message_id, worker_id, delete)[[1]]
+    },
+
+    response_ids=function(worker_id) {
+      response_keys <- rrqueue_key_worker_response(self$queue_name, worker_id)
+      ids <- as.character(self$con$HKEYS(response_keys))
+      ids[order(as.numeric(ids))]
+    },
+
+    ## This one is tricky.  Responses will go into one list per
+    ## worker, and matching up with the id requires fetching the whole
+    ## thing.  So let's change the response queue to be a hash on ID.
+    ## fetch_response=function
 
     ## TODO: should the argument be 'task_ids'?
     tasks_drop=function(id) {

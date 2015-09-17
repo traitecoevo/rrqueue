@@ -232,18 +232,37 @@ WORKER_LOST <- "LOST"
     },
 
     run_message=function(msg) {
-      self$log("MESSAGE", msg)
-      re <- "^([^\\s]+)\\s*(.*)$"
-      cmd <- sub(re, "\\1", msg, perl=TRUE)
-      args <- sub(re, "\\2", msg, perl=TRUE)
+      content <- string_to_object(msg)
+      id <- content$id
+      cmd <- content$command
+      args <- content$args
+
+      ## NOTE: This is a departure from previous because we no longer
+      ## print the *arguments* to args.  That could be modified into
+      ## here pretty easily by appending args iff they are a scalar
+      ## character.  Better might be to serialise to json here, but
+      ## that's going to be more work and not work for everything, not
+      ## necessarily transitive without assumptions and YAGNI.
+      self$log("MESSAGE", cmd)
+
       ## TODO: purge object cache (save on memory)
-      switch(cmd,
-             PING=message("PONG"),
-             ECHO=message(args),
-             EVAL=run_message_EVAL(args),
-             STOP=run_message_STOP(self, args),
-             INFO=self$print_info(),
-             message(sprintf("Recieved unknown message: [%s] [%s]", cmd, args)))
+      ## TODO: file(s) get, put (debugging, deployment)
+      ## TODO: environment load, purge, etc.
+      ## TODO: worker restart?  Possible?
+      res <- switch(cmd,
+                    PING=run_message_PING(),
+                    ECHO=run_message_ECHO(args),
+                    EVAL=run_message_EVAL(args),
+                    STOP=run_message_STOP(self, id, args), # noreturn
+                    INFO=self$print_info(),
+                    run_message_unknown(cmd, args))
+
+      self$send_response(id, cmd, res)
+    },
+
+    send_response=function(id, cmd, result) {
+      self$con$HSET(self$keys$response, id,
+                    response_prepare(id, cmd, result))
     },
 
     task_retrieve=function(id) {
@@ -283,26 +302,9 @@ WORKER_LOST <- "LOST"
       })
     },
 
+    ## TODO: check who calls this?
     print_info=function() {
-      message(crayon::make_style(random_colour())(worker_banner_text()))
-      dat <- list(version=version_string(),
-                  hostname=Sys.info()[["nodename"]],
-                  pid=Sys.getpid(),
-                  redis_host=self$con$host,
-                  redis_port=self$con$port,
-                  worker=self$name,
-                  queue_name=self$queue_name,
-                  heartbeat_period=self$heartbeat_period,
-                  heartbeat_expire=self$heartbeat_expire,
-                  message=self$keys$message,
-                  log=self$keys$log)
-
-      n <- nchar(names(dat))
-      pad <- vcapply(max(n) - n, strrep, str=" ")
-      ret <- sprintf("    %s:%s %s",
-                     self$styles$key(names(dat)), pad,
-                     self$styles$value(as.character(dat)))
-      message(paste(ret, collapse="\n"))
+      print(worker_info(self), banner=TRUE, styles=self$styles)
     },
 
     shutdown=function(status="OK") {
@@ -423,19 +425,30 @@ worker_overview <- function(con, keys) {
   table(factor(status, lvls))
 }
 
+run_message_PING <- function() {
+  message("PONG")
+  "PONG"
+}
 
-## The message passing is really simple minded; it doesn't do
-## bidirectional messaging at all yet because that's hard to get right
-## from the controller.
-##
-## Eventually that would be something that would be useful, but it'll
-## get another name I think.
-run_message_STOP <- function(worker, args) {
-  stop(WorkerStop(worker, args))
+run_message_ECHO <- function(msg) {
+  message(msg)
+  "OK"
 }
 
 run_message_EVAL <- function(args) {
   print(try(eval(parse(text=args), .GlobalEnv)))
+}
+
+run_message_STOP <- function(worker, id, args) {
+  worker$send_response(id, "STOP", "BYE")
+  stop(WorkerStop(worker, args))
+}
+
+run_message_unknown <- function(cmd, args) {
+  msg <- sprintf("Recieved unknown message: [%s] [%s]", cmd, args)
+  message(msg)
+  structure(list(message=msg, cmd=cmd, args=args),
+            class=c("condition"))
 }
 
 ##' @importFrom crayon make_style
@@ -458,4 +471,35 @@ worker_banner_text <- function() {
     "/_____/                   /_/                              /_____/"
     ) -> txt
   paste(txt, collapse="\n")
+}
+
+worker_info <- function(worker) {
+  dat <- list(version=version_string(),
+              hostname=Sys.info()[["nodename"]],
+              pid=Sys.getpid(),
+              redis_host=worker$con$host,
+              redis_port=worker$con$port,
+              worker=worker$name,
+              queue_name=worker$queue_name,
+              heartbeat_period=worker$heartbeat_period,
+              heartbeat_expire=worker$heartbeat_expire,
+              message=worker$keys$message,
+              response=worker$keys$response,
+              log=worker$keys$log)
+  class(dat) <- "worker_info"
+  dat
+}
+
+##' @export
+print.worker_info <- function(x, banner=FALSE, styles=worker_styles(), ...) {
+  n <- nchar(names(x))
+  pad <- vcapply(max(n) - n, strrep, str=" ")
+  ret <- sprintf("    %s:%s %s",
+                 styles$key(names(x)), pad,
+                 styles$value(as.character(x)))
+  if (banner) {
+    message(crayon::make_style(random_colour())(worker_banner_text()))
+  }
+  message(paste(ret, collapse="\n"))
+  invisible(x)
 }

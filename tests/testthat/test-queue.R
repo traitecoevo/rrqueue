@@ -260,3 +260,63 @@ test_that("queue", {
   ## TODO: cleanup properly.
   test_cleanup()
 })
+
+test_that("worker responses", {
+  test_cleanup()
+  on.exit(test_cleanup())
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  con <- obj$con
+
+  wid <- worker_spawn(obj$queue_name, "worker.log")
+  ## or!
+  ##   w <- rrqueue::worker("tmpjobs")
+
+  wid <- obj$workers_list()
+  response <- rrqueue_key_worker_response(obj$queue_name, wid)
+  expect_that(con$HLEN(response), equals(0L))
+
+  ## First, PING:
+  id <- obj$send_message("PING")
+  ## sending messages returns the set of workers that the message was
+  ## sent to.  That makes it easier to retrieve messages from their
+  ## queue.
+  Sys.sleep(.2)
+
+  expect_that(obj$has_responses(id),
+              equals(setNames(TRUE, wid)))
+  expect_that(obj$response_ids(wid), equals(id))
+
+  res <- obj$get_responses(id)
+  expect_that(res, equals(setNames(list("PONG"), wid)))
+  res <- obj$get_responses(id, delete=TRUE)
+  expect_that(res, equals(setNames(list("PONG"), wid)))
+  expect_that(obj$get_responses(id, delete=TRUE),
+              throws_error("Response missing for workers"))
+
+  expect_that(obj$has_responses(id), equals(setNames(FALSE, wid)))
+  expect_that(obj$response_ids(wid), equals(character(0)))
+
+  id <- obj$send_message("ECHO", "hello")
+  Sys.sleep(.2)
+  res <- obj$get_response(id, wid, delete=TRUE)
+  expect_that(res, equals("OK"))
+  expect_that(obj$get_response(id, wid, delete=TRUE),
+              throws_error("Response missing for workers"))
+
+  id <- obj$send_message("EVAL", "1 + 1")
+  Sys.sleep(.2)
+  res <- obj$get_response(id, wid, delete=TRUE)
+  expect_that(res, equals(2))
+
+  id <- obj$send_message("INFO")
+  Sys.sleep(.2)
+  res <- obj$get_response(id, wid, delete=TRUE)
+  expect_that(res, is_a("worker_info"))
+  expect_that(res$worker, equals(wid))
+
+  ## I think I'm not getting the ids correct here.
+  id <- obj$send_message("STOP")
+  Sys.sleep(.2)
+  res <- obj$get_response(id, wid, delete=TRUE)
+  expect_that(res, equals("BYE"))
+})

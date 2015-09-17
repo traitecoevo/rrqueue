@@ -45,6 +45,7 @@ rrqueue_keys_queue <- function(queue) {
 
 rrqueue_keys_worker <- function(queue, worker) {
   list(message   = rrqueue_key_worker_message(queue, worker),
+       response  = rrqueue_key_worker_response(queue, worker),
        log       = rrqueue_key_worker_log(queue, worker),
        heartbeat = rrqueue_key_worker_heartbeat(queue, worker))
 }
@@ -52,6 +53,9 @@ rrqueue_keys_worker <- function(queue, worker) {
 ## Special key for worker-specific commands to be published to.
 rrqueue_key_worker_message <- function(queue, worker) {
   sprintf("%s:workers:%s:message", queue, worker)
+}
+rrqueue_key_worker_response <- function(queue, worker) {
+  sprintf("%s:workers:%s:response", queue, worker)
 }
 rrqueue_key_worker_log <- function(queue, worker) {
   sprintf("%s:workers:%s:log", queue, worker)
@@ -186,4 +190,11 @@ redis.call("RPUSH", KEYS[1], task_id)'
                           scripts=list(set_hashes=set_hashes,
                                        job_incr=job_incr,
                                        job_submit=job_submit))
+}
+
+message_prepare <- function(id, command, args) {
+  object_to_string(list(id=id, command=command, args=args))
+}
+response_prepare <- function(id, command, result) {
+  object_to_string(list(id=id, command=command, result=result))
 }
