@@ -7,12 +7,12 @@ test_that("Basic use", {
   on.exit(test_cleanup())
 
   obj <- queue("tmpjobs", sources="myfuns.R")
-  expect_that(obj$tasks_groups(), equals(character(0)))
+  expect_that(obj$tasks_groups_list(), equals(character(0)))
   x <- sample(1:10, 20, replace=TRUE)
   rrql <- rrqlapply_submit(x, "sin", obj)
   expect_that(rrql, is_a("task_bundle"))
 
-  grp <- obj$tasks_groups()
+  grp <- obj$tasks_groups_list()
   expect_that(length(grp), equals(1L))
 
   expect_that(grp, equals(rrql$groups))

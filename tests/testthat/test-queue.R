@@ -41,7 +41,7 @@ test_that("queue", {
   expect_that(obj$envirs_contents(rep(obj$envir_id, 2)),
               equals(rep(setNames(list(dat), obj$envir_id), 2)))
 
-  expect_that(obj$tasks_groups(), equals(character(0)))
+  expect_that(obj$tasks_groups_list(), equals(character(0)))
 
   ## Queue two tasks:
   grp <- "mygroup"
@@ -123,14 +123,14 @@ test_that("queue", {
   expect_that(obj$con$HGET(keys$tasks_group, ids[[1]]), is_null())
   expect_that(obj$con$HGET(keys$tasks_group, ids[[2]]), equals(grp))
 
-  expect_that(obj$tasks_groups(), equals(grp))
+  expect_that(obj$tasks_groups_list(), equals(grp))
   expect_that(obj$tasks_in_groups(grp), equals(ids[[2]]))
   expect_that(obj$tasks_in_groups("xxx"), equals(character(0)))
 
   grp2 <- create_group(NULL, FALSE)
   grp3 <- create_group(NULL, FALSE)
   obj$tasks_set_group(ids[[1]], grp2)
-  expect_that(sort(obj$tasks_groups()), equals(sort(c(grp, grp2))))
+  expect_that(sort(obj$tasks_groups_list()), equals(sort(c(grp, grp2))))
   expect_that(obj$tasks_in_groups(grp2), equals(ids[[1]]))
 
   ## No error when setting a group to the same thing:
@@ -151,7 +151,7 @@ test_that("queue", {
 
   ## Delete the groups:
   obj$tasks_set_group(ids, NULL)
-  expect_that(sort(obj$tasks_groups()), equals(character(0)))
+  expect_that(sort(obj$tasks_groups_list()), equals(character(0)))
 
   expect_that(task1$status(), equals(TASK_PENDING))
   expect_that(task2$status(), equals(TASK_PENDING))

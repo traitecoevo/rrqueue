@@ -45,8 +45,8 @@
       ## TODO: tasks_env(self$con, self$keys, task_ids)
       from_redis_hash(self$con, self$keys$tasks_envir, task_ids)
     },
-    tasks_groups=function() {
-      tasks_groups(self$con, self$keys)
+    tasks_groups_list=function() {
+      tasks_groups_list(self$con, self$keys)
     },
     tasks_in_groups=function(groups) {
       tasks_in_groups(self$con, self$keys, groups)
