@@ -22,24 +22,17 @@ TASK_MISSING  <- "MISSING"
 
   public=list(
     con=NULL,
-    queue_name=NULL,
     id=NULL,
     keys=NULL,
     key_complete=NULL,
 
-    ## TODO: rather than taking {con, queue_name} we could take the
-    ## queue object, from which we can get {con, queue_name, keys}
-    ## directly.  So long as this is only driven by the controller
-    ## we're free to make that change without breaking anything.
-    ##
-    ## TODO: why pass in queue_name here and not keys?
-    initialize=function(con, queue_name, id, key_complete=NULL) {
-      self$con <- con
-      self$queue_name <- queue_name
+    initialize=function(obj, id, key_complete=NULL) {
+      self$con <- obj$con
+      self$keys <- obj$keys
+
       self$id  <- as.character(id)
-      self$keys <- rrqueue_keys(queue_name)
       if (is.null(key_complete)) {
-        key_complete <- con$HGET(self$keys$tasks_complete, id)
+        key_complete <- self$con$HGET(self$keys$tasks_complete, id)
       }
       self$key_complete <- key_complete
     },
@@ -75,8 +68,8 @@ TASK_MISSING  <- "MISSING"
     }
   ))
 
-task <- function(con, queue_name, id, key_complete) {
-  .R6_task$new(con, queue_name, id, key_complete)
+task <- function(obj, id, key_complete=NULL) {
+  .R6_task$new(obj, id, key_complete)
 }
 
 ## TODO: This is going to hit status too many times.  Don't worry
@@ -112,11 +105,6 @@ task_redirect_target <- function(con, keys, task_id) {
   } else {
     task_redirect_target(con, keys, to)
   }
-}
-
-task_get <- function(con, keys, task_id) {
-  key_complete <- con$HGET(keys$tasks_complete, task_id)
-  task(con, keys$queue_name, task_id, key_complete)
 }
 
 task_expr <- function(con, keys, task_id, object_cache=NULL) {

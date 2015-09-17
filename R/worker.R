@@ -417,11 +417,6 @@ workers_task_id <- function(con, keys, worker_id) {
   from_redis_hash(con, keys$workers_task, worker_id)
 }
 
-worker_task_get <- function(con, keys, worker_id) {
-  task_id <- workers_task_id(con, keys, worker_id)
-  task(con, keys$queue_name, task_id)
-}
-
 worker_overview <- function(con, keys) {
   lvls <- c(WORKER_IDLE, WORKER_BUSY, WORKER_LOST)
   status <- workers_status(con, keys)

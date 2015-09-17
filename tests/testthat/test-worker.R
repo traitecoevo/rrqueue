@@ -36,27 +36,3 @@ test_that("workers_times - no workers", {
                                      message=character(0),
                                      stringsAsFactors=FALSE)))
 })
-
-test_that("worker_handle - invalid creation", {
-  obs <- observer("tmpjobs")
-
-  expect_that(obs$worker_get(character(0)),
-              throws_error("id must be a scalar"))
-  expect_that(obs$worker_get(c("1", "2")),
-              throws_error("id must be a scalar"))
-  expect_that(obs$worker_get(1L),
-              throws_error("id must be character"))
-
-  con <- obs$con
-  expect_that(worker_handle(con, character(0), "1"),
-              throws_error("queue_name must be a scalar"))
-  expect_that(worker_handle(con, c("1", "2"), "1"),
-              throws_error("queue_name must be a scalar"))
-  expect_that(worker_handle(con, 1L, "1"),
-              throws_error("queue_name must be character"))
-
-  expect_that(worker_handle(NULL, "queue", "1"),
-              throws_error("con must be a redis_api"))
-  expect_that(worker_handle(obs, "queue", "1"),
-              throws_error("con must be a redis_api"))
-})

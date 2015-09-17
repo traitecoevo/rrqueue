@@ -99,7 +99,7 @@
       self$scripts("job_submit",
                    c(self$keys$tasks_id, keys),
                    c(task_id,            vals))
-      invisible(task(self$con, self$queue_name, task_id, key_complete))
+      invisible(task(self, task_id, key_complete))
     },
 
     requeue=function(task_id) {
@@ -133,7 +133,7 @@
         con$HSET(keys$tasks_time_sub, task2_id, time)
         con$RPUSH(keys$tasks_id,      task2_id)
       })
-      task(con, self$queue_name, task2_id, key_complete)
+      task(self, task2_id, key_complete)
     },
 
     ## These messages are *broadcast* commands.  No data will be

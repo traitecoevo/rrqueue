@@ -55,7 +55,7 @@
       tasks_lookup_group(self$con, self$keys, task_ids)
     },
     task_get=function(task_id) {
-      task_get(self$con, self$keys, task_id)
+      task(self, task_id)
     },
     task_expr=function(task_id, locals=FALSE) {
       task_expr(self$con, self$keys, task_id, if (locals) self$objects)
@@ -92,9 +92,6 @@
     },
     workers_list_exited=function() {
       workers_list_exited(self$con, self$keys)
-    },
-    worker_get=function(worker_id) {
-      worker_handle(self$con, self$queue_name, worker_id)
     },
     workers_status=function(worker_ids=NULL) {
       workers_status(self$con, self$keys, worker_ids)
