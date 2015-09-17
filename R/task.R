@@ -32,10 +32,6 @@ TASK_MISSING  <- "MISSING"
     ## directly.  So long as this is only driven by the controller
     ## we're free to make that change without breaking anything.
     ##
-    ## TODO: could have key_complete be NULL by default in which case
-    ## we can get it with
-    ##   con$HGET(keys$tasks_complete, id)
-    ##
     ## TODO: why pass in queue_name here and not keys?
     initialize=function(con, queue_name, id, key_complete=NULL) {
       self$con <- con
@@ -57,6 +53,10 @@ TASK_MISSING  <- "MISSING"
       unname(tasks_status(self$con, self$keys, self$id, follow_redirect))
     },
 
+    ## NOTE: sanitise is used here for the case where we want to
+    ## collect results from a lot of tasks, some might have been
+    ## dropped, but we don't want things to stop.  It's used in the
+    ## rrqlapply and enqueue_bulk interfaces.
     result=function(follow_redirect=FALSE, sanitise=FALSE) {
       task_result(self$con, self$keys, self$id, follow_redirect, sanitise)
     },
@@ -82,6 +82,11 @@ task <- function(con, queue_name, id, key_complete) {
 ## TODO: This is going to hit status too many times.  Don't worry
 ## about this for now, but if speed becomes important this is a
 ## reasonable place to look.
+##
+## TODO: Scripting this is a little tricky because of the redirect
+## loop; do do that in Lua requires implementing most of the work in
+## tasks_status in Lua; that's going to be more work than is worth it
+## right now, IMO.
 task_result <- function(con, keys, task_id,
                         follow_redirect=FALSE, sanitise=FALSE) {
   status <- tasks_status(con, keys, task_id, follow_redirect=FALSE)

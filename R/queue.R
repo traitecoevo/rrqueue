@@ -21,7 +21,17 @@
         message("creating new queue")
         self$clean()
       }
-      ## NOTE: this is not very accurate...
+      ## NOTE: this is not very accurate because it includes stale
+      ## worker keys.
+      ##
+      ## TODO: A better way of doing this might be to git the message
+      ## queue and have the workers respond.  *However* that really
+      ## needs to be done on the heartbeat queue perhaps because it
+      ## would miss the ones that are currently working on jobs.
+      ##
+      ## Alternatively, and more simply, we could check for hearbeat
+      ## keys (that would be much simpler if a heartbeat was
+      ## compulsary).
       nw <- self$workers_len()
       if (nw > 0L) {
         message(sprintf("%d workers available", nw))
@@ -130,6 +140,10 @@
     ## returned by the worker.  If the worker is omitted, all workers
     ## get the message.
     send_message=function(content, worker=NULL) {
+      ## TODO: worker -> worker_id?
+
+      ## TODO: refuse to send message to nonexistent queue by using
+      ## RPUSHX and checking for a 0 return.
       if (is.null(worker)) {
         worker <- self$workers_list()
       }
@@ -196,6 +210,7 @@ queue_clean <- function(con, queue_name, purge=FALSE) {
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
   if (purge) {
+    ## TODO: replace with scan_find
     del <- as.character(con$KEYS(paste0(queue_name, "*")))
     if (length(del) > 0L) {
       con$DEL(del)

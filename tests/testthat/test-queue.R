@@ -50,8 +50,6 @@ test_that("queue", {
 
   expect_that(task1, is_a("task"))
 
-  ## For some reason this is not resetting properly; am I incrementing
-  ## the correct thing?
   expect_that(task1$id, equals("1"))
   expect_that(task2$id, equals("2"))
   expect_that(con$GET(keys$tasks_counter), equals("2"))

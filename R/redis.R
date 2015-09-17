@@ -11,11 +11,15 @@ redis_connection <- function(con, port=6379) {
   }
 }
 
+## Much of this file wants to move into RedisAPI I think.  It's all
+## internal so is very easy to move *so long* was I Import all of
+## RedisAPI.  It really wants testing anyway so that's for the best.
 redis_version <- function(con) {
   RedisAPI::parse_info(con$INFO())$redis_version
 }
 
 redis_multi <- function(con, code) {
+  ## TODO: This is better done with tryCatch / finally
   con$MULTI()
   on.exit(con$EXEC())
   code
