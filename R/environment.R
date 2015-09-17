@@ -51,6 +51,11 @@ envirs_list <- function(con, keys) {
 
 envirs_contents <- function(con, keys, envir_ids=NULL) {
   dat <- from_redis_hash(con, keys$envirs_contents, envir_ids)
+  nok <- vlapply(dat, is.na)
+  if (any(nok)) {
+    stop(sprintf("Environment %s not found",
+                 paste(sprintf("'%s'", envir_ids[nok]), collapse=", ")))
+  }
   lapply(dat, string_to_object)
 }
 

@@ -71,18 +71,16 @@
                task_ids)
     },
 
-    tasks_bundle_get=function(groups=NULL, task_ids=NULL) {
-    },
-
     ## 2: environments
     envirs_list=function() {
       envirs_list(self$con, self$keys)
     },
     envirs_contents=function(envir_ids=NULL) {
-      envirs_contents(self$con, self$keys)
+      envirs_contents(self$con, self$keys, envir_ids)
     },
+    ## NOTE: this is not yet used anywhere!
     envirs_tasks=function(envir_ids=NULL) {
-      envirs_tasks(self$con, self$keys)
+      envirs_tasks(self$con, self$keys, envir_ids)
     },
 
     ## 3: workers

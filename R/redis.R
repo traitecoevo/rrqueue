@@ -33,7 +33,13 @@ from_redis_hash <- function(con, name, keys=NULL, f=as.character,
              as.character(x[1, ]))
   } else {
     x <- con$HMGET(name, keys)
-    x[vlapply(x, is.null)] <- missing
+    ## NOTE: This is needed for the case where missing=NULL, otherwise
+    ## it will *delete* the elements.  However, if missing is NULL,
+    ## then f should really be a list-returning function otherwise
+    ## NULL -> "NULL.
+    if (!is.null(missing)) {
+      x[vlapply(x, is.null)] <- missing
+    }
     setNames(f(x), as.character(keys))
   }
 }

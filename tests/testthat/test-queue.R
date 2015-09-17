@@ -26,10 +26,20 @@ test_that("queue", {
   expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
               equals(sort(keys_startup)))
 
-  dat <- string_to_object(con$HGET(keys$envirs_contents, obj$envir_id))
+  dat <- obj$envirs_contents()[[obj$envir_id]]
   expect_that(dat$packages, equals(NULL))
   expect_that(dat$sources, equals("myfuns.R"))
   expect_that(dat$source_files, equals(hash_files("myfuns.R")))
+
+  expect_that(obj$envirs_contents(obj$envir_id),
+              equals(setNames(list(dat), obj$envir_id)))
+
+  expect_that(obj$envirs_contents("xxx"),
+              throws_error("Environment 'xxx' not found"))
+  expect_that(obj$envirs_contents(c(obj$envir_id, "xxx")),
+              throws_error("Environment 'xxx' not found"))
+  expect_that(obj$envirs_contents(rep(obj$envir_id, 2)),
+              equals(rep(setNames(list(dat), obj$envir_id), 2)))
 
   expect_that(obj$tasks_groups(), equals(character(0)))
 
