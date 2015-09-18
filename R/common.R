@@ -22,6 +22,7 @@ rrqueue_keys_queue <- function(queue) {
        workers_status  = sprintf("%s:workers:status",  queue),
        workers_task    = sprintf("%s:workers:task",    queue),
        workers_new     = sprintf("%s:workers:new",     queue),
+       workers_info    = sprintf("%s:workers:info",    queue),
 
        tasks_counter   = sprintf("%s:tasks:counter",   queue),
        tasks_id        = sprintf("%s:tasks:id",        queue),

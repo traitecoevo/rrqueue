@@ -191,7 +191,7 @@ test_that("queue", {
   ww <- parse_worker_name(w)
   expect_that(ww$host, equals(Sys.info()[["nodename"]]))
 
-  expect_that(from_redis_hash(con, keys$workers_status),
+  expect_that(obj$workers_status(),
               equals(structure(as.character(WORKER_IDLE),
                                names=w[[1]])))
 
@@ -319,4 +319,29 @@ test_that("worker responses", {
   Sys.sleep(.2)
   res <- obj$get_response(id, wid, delete=TRUE)
   expect_that(res, equals("BYE"))
+})
+
+test_that("cleanup", {
+  test_cleanup()
+  queues()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  obj$enqueue(Sys.sleep(1000))
+  wid <- worker_spawn(obj$queue_name, "worker.log")
+  ## or!
+  ##   w <- rrqueue::worker("tmpjobs")
+
+  info <- obj$workers_info()
+  pid <- info[[1]]$pid
+  expect_that(pid_exists(pid), is_true())
+
+  ## Better; poll for a change in the status...
+  Sys.sleep(.5)
+  expect_that(obj$workers_status(), equals(setNames("BUSY", wid)))
+
+  queue_clean(obj$con, "tmpjobs",
+              stop_workers=TRUE, kill_local_workers=TRUE, wait_stop=0.1)
+  Sys.sleep(.5)
+
+  expect_that(pid_exists(pid), is_false())
+  test_cleanup()
 })

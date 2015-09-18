@@ -10,8 +10,13 @@ empty_named_character <- function() {
 }
 
 test_cleanup <- function() {
-  queue_clean(redis_connection(NULL), "tmpjobs", TRUE)
-  queue_clean(redis_connection(NULL), "testq:heartbeat", TRUE)
+  test_queue_clean("tmpjobs")
+  test_queue_clean("testq:heartbeat")
+}
+
+test_queue_clean <- function(name) {
+  queue_clean(redis_connection(NULL), name, purge=TRUE,
+              stop_workers=TRUE, kill_local_workers=TRUE, wait_stop=0.05)
 }
 
 skip_if_no_heartbeat <- function() {
@@ -19,4 +24,10 @@ skip_if_no_heartbeat <- function() {
     return()
   }
   skip("RedisHeartbeat is not available")
+}
+
+## Looks like a bug to me, relative to the docs:
+PSKILL_SUCCESS <- tools::pskill(Sys.getpid(), 0)
+pid_exists <- function(pid) {
+  tools::pskill(pid, 0) == PSKILL_SUCCESS
 }

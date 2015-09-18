@@ -101,6 +101,9 @@
     },
     workers_log_tail=function(worker_ids=NULL, n=1) {
       workers_log_tail(self$con, self$keys, worker_ids, n)
+    },
+    workers_info=function(worker_ids=NULL) {
+      workers_info(self$con, self$keys, worker_ids)
     }
     ))
 

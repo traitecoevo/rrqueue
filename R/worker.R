@@ -84,7 +84,7 @@ WORKER_LOST <- "LOST"
     ## This is in its own function so that error handling can be done
     ## gracefully; it's only called by initialize()
     initialize_worker=function() {
-      self$print_info()
+      info <- object_to_string(self$print_info())
 
       self$heartbeat <- heartbeat(self$con, self$keys$heartbeat,
                                   self$heartbeat_period,
@@ -95,6 +95,7 @@ WORKER_LOST <- "LOST"
         self$con$HSET(self$keys$workers_status, self$name, WORKER_IDLE)
         self$con$HDEL(self$keys$workers_task,   self$name)
         self$con$DEL(self$keys$log)
+        self$con$HSET(self$keys$workers_info,   self$name, info)
         self$log("ALIVE")
         ## This announces that we're up; things may monitor this
         ## queue, and worker_spawn does a BLPOP to
@@ -302,16 +303,13 @@ WORKER_LOST <- "LOST"
       })
     },
 
-    ## TODO: check who calls this?
     print_info=function() {
       print(worker_info(self), banner=TRUE, styles=self$styles)
     },
 
     shutdown=function(status="OK") {
       self$heartbeat$stop()
-      self$con$DEL(self$keys$heartbeat)
-      self$con$SREM(self$keys$workers_name,   self$name)
-      self$con$HDEL(self$keys$workers_status, self$name)
+      worker_cleanup(self$con, self$keys, self$name)
       self$log("STOP", status)
     }))
 
@@ -502,4 +500,15 @@ print.worker_info <- function(x, banner=FALSE, styles=worker_styles(), ...) {
   }
   message(paste(ret, collapse="\n"))
   invisible(x)
+}
+
+worker_cleanup <- function(con, keys, worker_name) {
+  con$DEL(rrqueue_key_worker_heartbeat(keys$queue_name, worker_name))
+  con$SREM(keys$workers_name,   worker_name)
+  con$HDEL(keys$workers_status, worker_name)
+}
+
+workers_info <- function(con, keys, worker_ids=NULL) {
+  from_redis_hash(con, keys$workers_info, worker_ids,
+                  f=Vectorize(string_to_object, SIMPLIFY=FALSE))
 }

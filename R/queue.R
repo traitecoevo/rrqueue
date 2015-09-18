@@ -19,7 +19,9 @@
         message("reattaching to existing queue")
       } else {
         message("creating new queue")
-        self$clean()
+        ## This cleans up any leftover bits from a previous queue.
+        ## It's potentially dangerous.
+        queue_clean(self$con, self$keys$queue_name)
       }
       ## NOTE: this is not very accurate because it includes stale
       ## worker keys.
@@ -39,10 +41,6 @@
 
       self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
       self$initialize_environment(packages, sources, global)
-    },
-
-    clean=function() {
-      queue_clean(self$con, self$queue_name)
     },
 
     ## TODO: facility for deleting environments?
@@ -132,27 +130,7 @@
     ## returned by the worker.  If the worker is omitted, all workers
     ## get the message.
     send_message=function(command, args=NULL, worker_ids=NULL) {
-      if (is.null(worker_ids)) {
-        worker_ids <- self$workers_list()
-      }
-      ## TODO: check if the worker exists before pushing anything onto
-      ## its message queue.
-      ##
-      ## In theory, this could be done with RPUSHX and checking for a
-      ## 0 return.  But that's not quite right because I'd want to
-      ## check for the worker elsewhere (the message queue will be
-      ## empty at *some* point).  Worse, this could leave messages
-      ## pushed for only some of the workers.
-      ##
-      ## On the other hand, pushing unneeded messages is not a big
-      ## problem, so I'm inclined to leave it for now.
-      key <- rrqueue_key_worker_message(self$queue_name, worker_ids)
-      message_id <- redis_time(self$con)
-      content <- message_prepare(message_id, command, args)
-      for (k in key) {
-        self$con$RPUSH(k, content)
-      }
-      invisible(message_id)
+      queue_send_message(self$con, self$keys, command, args, worker_ids)
     },
 
     has_responses=function(message_id, worker_ids=NULL) {
@@ -268,8 +246,38 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
   .R6_queue$new(queue_name, packages, sources, redis_host, redis_port, global)
 }
 
-queue_clean <- function(con, queue_name, purge=FALSE) {
+queue_clean <- function(con, queue_name, purge=FALSE,
+                        stop_workers=FALSE,
+                        kill_local_workers=FALSE,
+                        wait_stop=1) {
   keys <- rrqueue_keys(queue_name)
+  if (stop_workers) {
+    queue_send_message(con, keys, "STOP")
+  }
+
+  if (kill_local_workers) {
+    ## Get the set of workers:
+    if (stop_workers && wait_stop > 0 && length(workers_list(con, keys)) > 0) {
+      ## Give the workers a second to cleanup
+      message("Waiting for local workers to stop themselves")
+      Sys.sleep(wait_stop)
+    }
+    worker_ids <- workers_list(con, keys)
+    if (length(worker_ids) > 0) {
+      w_info <- from_redis_hash(con, keys$workers_info, worker_ids,
+                                f=Vectorize(string_to_object, SIMPLIFY=FALSE))
+      w_local <- vcapply(w_info, "[[", "hostname") == hostname()
+      if (any(w_local)) {
+        w_local_pid <- vnapply(w_info[w_local], "[[", "pid")
+        tools::pskill(w_local_pid, tools::SIGKILL)
+        ## Some attempt at cleanup:
+        for (name in names(w_local)) {
+          worker_cleanup(con, keys, name)
+        }
+      }
+    }
+  }
+
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
   if (purge) {
@@ -297,4 +305,29 @@ queue_clean <- function(con, queue_name, purge=FALSE) {
 
     con$DEL(keys$envirs_contents)
   }
+}
+
+queue_send_message <- function(con, keys, command, args=NULL,
+                               worker_ids=NULL) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  ## TODO: check if the worker exists before pushing anything onto
+  ## its message queue.
+  ##
+  ## In theory, this could be done with RPUSHX and checking for a
+  ## 0 return.  But that's not quite right because I'd want to
+  ## check for the worker elsewhere (the message queue will be
+  ## empty at *some* point).  Worse, this could leave messages
+  ## pushed for only some of the workers.
+  ##
+  ## On the other hand, pushing unneeded messages is not a big
+  ## problem, so I'm inclined to leave it for now.
+  key <- rrqueue_key_worker_message(keys$queue_name, worker_ids)
+  message_id <- redis_time(con)
+  content <- message_prepare(message_id, command, args)
+  for (k in key) {
+    con$RPUSH(k, content)
+  }
+  invisible(message_id)
 }
