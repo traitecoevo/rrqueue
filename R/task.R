@@ -199,10 +199,11 @@ tasks_in_groups <- function(con, keys, groups) {
   names(groups_hash)[groups_hash %in% groups]
 }
 
+## TODO: not tested anywhere yet.
 tasks_lookup_group <- function(con, keys, task_ids) {
   groups <- from_redis_hash(con, keys$tasks_group)
-  ret <- groups[tasks_ids]
-  names(ret) <- tasks_ids
+  ret <- groups[task_ids]
+  names(ret) <- task_ids
   ret
 }
 
