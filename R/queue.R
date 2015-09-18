@@ -24,7 +24,7 @@
       ## NOTE: this is not very accurate because it includes stale
       ## worker keys.
       ##
-      ## TODO: A better way of doing this might be to git the message
+      ## TODO: A better way of doing this might be to get the message
       ## queue and have the workers respond.  *However* that really
       ## needs to be done on the heartbeat queue perhaps because it
       ## would miss the ones that are currently working on jobs.
@@ -38,18 +38,15 @@
       }
 
       self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
-      self$initialize_environment(packages, sources, TRUE, global)
+      self$initialize_environment(packages, sources, global)
     },
 
     clean=function() {
       queue_clean(self$con, self$queue_name)
     },
 
-    ## TODO: facility for named environnents?
     ## TODO: facility for deleting environments?
-    ## TODO: What on earth was set_default meant to be used for?
-    initialize_environment=function(packages, sources,
-                                    set_default=FALSE, global=TRUE) {
+    initialize_environment=function(packages, sources, global=TRUE) {
       if (!is.null(self$envir)) {
         stop("objects environments are immutable(-ish)")
       }
@@ -67,11 +64,6 @@
       self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str)
     },
 
-    ## TODO: clean up queues on startup, or attach to existing queue?
-    ## TODO: spin up workers?
-    ## TODO: pending, completed, etc.
-    ## TODO: allow setting a "group" or "name" for more easily
-    ## recalling jobs?
     ## TODO: envir should be parent.frame?
     enqueue=function(expr, envir=.GlobalEnv, key_complete=NULL, group=NULL) {
       self$enqueue_(substitute(expr), envir, key_complete, group=group)
@@ -145,12 +137,15 @@
       }
       ## TODO: check if the worker exists before pushing anything onto
       ## its message queue.
-
+      ##
       ## In theory, this could be done with RPUSHX and checking for a
       ## 0 return.  But that's not quite right because I'd want to
       ## check for the worker elsewhere (the message queue will be
       ## empty at *some* point).  Worse, this could leave messages
       ## pushed for only some of the workers.
+      ##
+      ## On the other hand, pushing unneeded messages is not a big
+      ## problem, so I'm inclined to leave it for now.
       key <- rrqueue_key_worker_message(self$queue_name, worker_ids)
       message_id <- redis_time(self$con)
       content <- message_prepare(message_id, command, args)
@@ -210,31 +205,43 @@
     ## worker, and matching up with the id requires fetching the whole
     ## thing.  So let's change the response queue to be a hash on ID.
     ## fetch_response=function
-
-    ## TODO: should the argument be 'task_ids'?
-    tasks_drop=function(id) {
+    tasks_drop=function(task_ids) {
       con <- self$con
       keys <- self$keys
 
-      status <- self$tasks_status(id)
-
+      status <- self$tasks_status(task_ids)
       if (any(status == TASK_RUNNING)) {
         stop("One of the tasks is running -- not clear how to deal")
       }
 
-      ret <- logical(length(id))
-      names(ret) <- id
+      ret <- logical(length(task_ids))
+      names(ret) <- task_ids
 
+      ## TODO: Total race condition here because the queue status
+      ## might have switched between these calls.  This needs to be
+      ## done in Lua to get it right I think, or we'll risk losing
+      ## tasks (and potentially quite a few because of the way that
+      ## this works).
+      ##
+      ## Alternatively, we can run WATCH first, but that does not seem
+      ## to work reliably.
+      ##
+      ## TODO: also remove redirects or deal with the case when this
+      ## needs redirect.  Basically this is not very robust.
       redis_multi(con, {
-        for (i in id[status == TASK_PENDING]) {
+        for (i in task_ids[status == TASK_PENDING]) {
           ret[[i]] <- self$con$LREM(keys$tasks_id, 0, i) > 0L
         }
-        con$HDEL(keys$tasks_expr,     id)
-        con$HDEL(keys$tasks_status,   id)
-        con$HDEL(keys$tasks_envir,    id)
-        con$HDEL(keys$tasks_complete, id)
-        con$HDEL(keys$tasks_group,    id)
-        con$HDEL(keys$tasks_result,   id)
+        con$HDEL(keys$tasks_expr,     task_ids)
+        con$HDEL(keys$tasks_status,   task_ids)
+        con$HDEL(keys$tasks_envir,    task_ids)
+        con$HDEL(keys$tasks_complete, task_ids)
+        con$HDEL(keys$tasks_group,    task_ids)
+        con$HDEL(keys$tasks_result,   task_ids)
+        con$HDEL(keys$tasks_time_sub, task_ids)
+        con$HDEL(keys$tasks_time_beg, task_ids)
+        con$HDEL(keys$tasks_time_end, task_ids)
+        con$HDEL(keys$tasks_worker,   task_ids)
       })
 
       ret
@@ -266,13 +273,8 @@ queue_clean <- function(con, queue_name, purge=FALSE) {
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
   if (purge) {
-    ## TODO: replace with scan_find
-    del <- as.character(con$KEYS(paste0(queue_name, "*")))
-    if (length(del) > 0L) {
-      con$DEL(del)
-    }
+    scan_del(con, paste0(queue_name, "*"))
   } else {
-
     ## TODO: This one here seems daft.  If there are workers they
     ## might still be around, and they might be working on tasks.
     ## Might be best not to get too involved with modifying the

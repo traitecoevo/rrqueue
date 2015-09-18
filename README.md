@@ -84,3 +84,7 @@ devtools::install_git("https://github.com/traitecoevo/rrqueue")
 ```
 
 (*optional*) to see what is going on, in a terminal, run `redis-cli monitor` which will print all the Redis chatter, though it will impact on redis performance.
+
+# Performance
+
+So far, I've done relatively little performance tuning.  In particular, the *workers* make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use `rrqueue` where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, `rrqueue` uses lua scripting to reduce the number of instruction round trips.

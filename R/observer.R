@@ -7,8 +7,6 @@
 ##
 ## Other things can either inherit from this or compose with it.
 ##
-## TODO: probably need something like this across queues?
-##
 ## NOTE: There are no methods here that modify the queue.
 .R6_observer <- R6::R6Class(
   "observer",
@@ -42,8 +40,7 @@
       tasks_times(self$con, self$keys, task_ids, unit_elapsed)
     },
     tasks_envir=function(task_ids=NULL) {
-      ## TODO: tasks_env(self$con, self$keys, task_ids)
-      from_redis_hash(self$con, self$keys$tasks_envir, task_ids)
+      tasks_envir(self$con, self$keys, task_ids)
     },
     tasks_groups_list=function() {
       tasks_groups_list(self$con, self$keys)
