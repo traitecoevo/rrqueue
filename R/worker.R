@@ -150,14 +150,15 @@ WORKER_LOST <- "LOST"
           paste(x, collapse=" ")
         }
       }
-      self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
-      self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
 
       ## Read from the message queue *first* as that allows a STOP
       ## command to prevent the worker continuing with job.
       self$key_queue <- c(self$keys$message,
                           rrqueue_key_queue(self$queue_name, names(self$envir)))
+      self$con$SADD(self$keys$envir, envir_id)
 
+      self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
+      self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
     },
 
     get_environment=function(envir_id) {
@@ -221,27 +222,27 @@ WORKER_LOST <- "LOST"
       }
     },
 
-    run_task=function(id) {
+    run_task=function(task_id) {
       keys <- self$keys
       con <- self$con
-      self$log("TASK_START", id)
+      self$log("TASK_START", task_id)
 
-      expr <- self$task_retrieve(id)
+      expr <- self$task_retrieve(task_id)
 
       ## TODO: Strip out this because it's not going to happen any longer.
       context <- withCallingHandlers(
-        self$task_prepare(id, expr),
-        error=function(e) stop(WorkerEnvironmentFailed(self, id, e)))
+        self$task_prepare(task_id, expr),
+        error=function(e) stop(WorkerEnvironmentFailed(self, task_id, e)))
 
       ## Here, we get time from the Redis server, not R; that means
       ## that all ideas of time are centralised.
       time <- redis_time(con)
       redis_multi(con, {
         con$HSET(keys$workers_status, self$name, WORKER_BUSY)
-        con$HSET(keys$workers_task,   self$name, id)
-        con$HSET(keys$tasks_worker,   id,        self$name)
-        con$HSET(keys$tasks_status,   id,        TASK_RUNNING)
-        con$HSET(keys$tasks_time_beg, id,        time)
+        con$HSET(keys$workers_task,   self$name, task_id)
+        con$HSET(keys$tasks_worker,   task_id,   self$name)
+        con$HSET(keys$tasks_status,   task_id,   TASK_RUNNING)
+        con$HSET(keys$tasks_time_beg, task_id,   time)
       })
 
       expr_str <- capture.output(print(context$expr))
@@ -252,12 +253,12 @@ WORKER_LOST <- "LOST"
       ## good way of detecting that.
       res <- try(eval(context$expr, context$envir))
       status <- if (is_error(res)) TASK_ERROR else TASK_COMPLETE
-      self$task_cleanup(res, id, status)
+      self$task_cleanup(res, task_id, status)
     },
 
     run_message=function(msg) {
       content <- string_to_object(msg)
-      id <- content$id
+      message_id <- content$id
       cmd <- content$command
       args <- content$args
 
@@ -277,23 +278,23 @@ WORKER_LOST <- "LOST"
                     PING=run_message_PING(),
                     ECHO=run_message_ECHO(args),
                     EVAL=run_message_EVAL(args),
-                    STOP=run_message_STOP(self, id, args), # noreturn
-                    INFO=self$print_info(),
-                    ENVIR=run_message_ENVIR(args),
+                    STOP=run_message_STOP(self, message_id, args), # noreturn
+                    INFO=run_message_INFO(self),
+                    ENVIR=run_message_ENVIR(self, args),
                     run_message_unknown(cmd, args))
 
-      self$send_response(id, cmd, res)
+      self$send_response(message_id, cmd, res)
     },
 
-    send_response=function(id, cmd, result) {
-      self$con$HSET(self$keys$response, id,
-                    response_prepare(id, cmd, result))
+    send_response=function(message_id, cmd, result) {
+      self$con$HSET(self$keys$response, message_id,
+                    response_prepare(message_id, cmd, result))
     },
 
-    task_retrieve=function(id) {
-      expr_stored <- self$con$HGET(self$keys$tasks_expr, id)
+    task_retrieve=function(task_id) {
+      expr_stored <- self$con$HGET(self$keys$tasks_expr, task_id)
       if (is.null(expr_stored)) {
-        stop(WorkerTaskMissing(self, id))
+        stop(WorkerTaskMissing(self, task_id))
       }
       expr_stored
     },
@@ -442,6 +443,11 @@ worker_overview <- function(con, keys) {
   table(factor(status, lvls))
 }
 
+worker_envir <- function(con, keys, worker_id) {
+  key <- rrqueue_key_worker_envir(keys$queue_name, worker_id)
+  as.character(con$SMEMBERS(key))
+}
+
 run_message_PING <- function() {
   message("PONG")
   "PONG"
@@ -456,15 +462,21 @@ run_message_EVAL <- function(args) {
   print(try(eval(parse(text=args), .GlobalEnv)))
 }
 
-run_message_STOP <- function(worker, id, args) {
-  worker$send_response(id, "STOP", "BYE")
+run_message_STOP <- function(worker, message_id, args) {
+  worker$send_response(message_id, "STOP", "BYE")
   stop(WorkerStop(worker, args))
 }
 
-run_message_ENVIR <- function(args) {
-  message("run_message_ENVIR")
-  browser()
-  stop("stop here please")
+run_message_INFO <- function(worker) {
+  info <- worker$print_info()
+  worker$con$HSET(worker$keys$workers_info, worker$name,
+                  object_to_string(info))
+  info
+}
+
+run_message_ENVIR <- function(worker, args) {
+  worker$initialize_environment(args)
+  "OK"
 }
 
 run_message_unknown <- function(cmd, args) {
@@ -508,6 +520,7 @@ worker_info <- function(worker) {
               heartbeat_expire=worker$heartbeat_expire,
               message=worker$keys$message,
               response=worker$keys$response,
+              envir=as.character(worker$con$SMEMBERS(worker$keys$envir)),
               log=worker$keys$log)
   class(dat) <- "worker_info"
   dat
@@ -515,11 +528,13 @@ worker_info <- function(worker) {
 
 ##' @export
 print.worker_info <- function(x, banner=FALSE, styles=worker_styles(), ...) {
-  n <- nchar(names(x))
+  xx <- x
+  xx$envir <- sprintf("{%s}", paste(x$envir, collapse=", "))
+  n <- nchar(names(xx))
   pad <- vcapply(max(n) - n, strrep, str=" ")
   ret <- sprintf("    %s:%s %s",
-                 styles$key(names(x)), pad,
-                 styles$value(as.character(x)))
+                 styles$key(names(xx)), pad,
+                 styles$value(as.character(xx)))
   if (banner) {
     message(crayon::make_style(random_colour())(worker_banner_text()))
   }
@@ -536,4 +551,15 @@ worker_cleanup <- function(con, keys, worker_name) {
 workers_info <- function(con, keys, worker_ids=NULL) {
   from_redis_hash(con, keys$workers_info, worker_ids,
                   f=Vectorize(string_to_object, SIMPLIFY=FALSE))
+}
+
+envir_workers <- function(con, keys, envir_id, worker_ids=NULL) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  keys <- rrqueue_key_worker_envir(keys$queue_name, worker_ids)
+  ret <- vnapply(keys, con$SISMEMBER, envir_id)
+  storage.mode(ret) <- "logical"
+  names(ret) <- worker_ids
+  ret
 }

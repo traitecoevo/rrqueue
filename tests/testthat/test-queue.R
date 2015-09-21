@@ -346,3 +346,46 @@ test_that("cleanup", {
   expect_that(pid_exists(pid), is_false())
   test_cleanup()
 })
+
+test_that("worker-first startup", {
+  test_cleanup()
+
+  wid <- worker_spawn("tmpjobs", "worker.log")
+  ## or!
+  ##   w <- rrqueue::worker("tmpjobs")
+
+  obs <- observer("tmpjobs")
+  expect_that(obs$workers_list(), equals(wid))
+  ## No environments:
+  expect_that(obs$workers_info()[[wid]]$envir, equals(character(0)))
+  expect_that(obs$worker_envir(wid), equals(character(0)))
+
+  ## startup a queue:
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  envir_id <- obj$envir_id
+
+  ## This is not updated:
+  expect_that(obs$workers_info()[[1]]$envir, equals(character(0)))
+  ## But this is (might need a little sleep here)
+  Sys.sleep(.1)
+  expect_that(obs$worker_envir(wid), equals(envir_id))
+
+  ## Ask the worker to update the environment:
+  obj$send_message("INFO")
+  Sys.sleep(.1) # Do a BLPOP on the response queue.
+  expect_that(obs$workers_info()[[1]]$envir, equals(envir_id))
+
+  expect_that(obj$envirs_list(), equals(envir_id))
+  expect_that(obj$envir_workers(envir_id),
+              equals(setNames(TRUE, wid)))
+
+  t <- obj$enqueue(sin(1))
+  Sys.sleep(.1)
+  expect_that(t$result(), equals(sin(1)))
+
+  obj$send_message("STOP")
+  Sys.sleep(.1)
+
+  expect_that(obj$envir_workers(envir_id),
+              equals(setNames(TRUE, wid)[-1]))
+})

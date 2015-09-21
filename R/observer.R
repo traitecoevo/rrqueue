@@ -79,6 +79,9 @@
     envirs_tasks=function(envir_ids=NULL) {
       envirs_tasks(self$con, self$keys, envir_ids)
     },
+    envir_workers=function(envir_id, worker_ids=NULL) {
+      envir_workers(self$con, self$keys, envir_id, worker_ids)
+    },
 
     ## 3: workers
     workers_len=function() {
@@ -102,8 +105,12 @@
     workers_log_tail=function(worker_ids=NULL, n=1) {
       workers_log_tail(self$con, self$keys, worker_ids, n)
     },
+    ## NOTE: this returns data that is not necessarily fresh:
     workers_info=function(worker_ids=NULL) {
       workers_info(self$con, self$keys, worker_ids)
+    },
+    worker_envir=function(worker_id) {
+      worker_envir(self$con, self$keys, worker_id)
     }
     ))
 

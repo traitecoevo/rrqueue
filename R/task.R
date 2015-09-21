@@ -68,8 +68,8 @@ TASK_MISSING  <- "MISSING"
     }
   ))
 
-task <- function(obj, id, key_complete=NULL) {
-  .R6_task$new(obj, id, key_complete)
+task <- function(obj, task_id, key_complete=NULL) {
+  .R6_task$new(obj, task_id, key_complete)
 }
 
 ## TODO: This is going to hit status too many times.  Don't worry
