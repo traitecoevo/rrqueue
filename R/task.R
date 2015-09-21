@@ -120,11 +120,6 @@ task_expr <- function(con, keys, task_id, object_cache=NULL) {
 }
 
 tasks_list <- function(con, keys) {
-  ## NOTE: it might be useful to have pending tasks function, too;
-  ## that'd look like
-  ##   as.character(con$LRANGE(keys$tasks_id, 0, -1))
-  ## with a len function of
-  ##   con$LLEN(keys$tasks_id)
   as.character(con$HKEYS(keys$tasks_status))
 }
 

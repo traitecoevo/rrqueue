@@ -41,9 +41,9 @@
 
       self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
       self$initialize_environment(packages, sources, global)
+      self$keys$tasks <- rrqueue_key_queue(self$queue_name, self$envir_id)
     },
 
-    ## TODO: facility for deleting environments?
     initialize_environment=function(packages, sources, global=TRUE) {
       if (!is.null(self$envir)) {
         stop("objects environments are immutable(-ish)")
@@ -59,7 +59,12 @@
       dat_str <- object_to_string(dat)
       self$envir <- envir
       self$envir_id <- hash_string(dat_str)
-      self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str)
+
+      is_new <- self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str)
+      if (is_new == 1) {
+        ## Only send message if the environment is new to the queue:
+        self$send_message("ENVIR", self$envir_id)
+      }
     },
 
     ## TODO: envir should be parent.frame?
@@ -87,8 +92,8 @@
       vals <- c(expr_str, self$envir_id, key_complete, TASK_PENDING, time,
                 group)
       self$scripts("job_submit",
-                   c(self$keys$tasks_id, keys),
-                   c(task_id,            vals))
+                   c(self$keys$tasks, keys),
+                   c(task_id,        vals))
       invisible(task(self, task_id, key_complete))
     },
 
@@ -101,7 +106,7 @@
         stop("Can only reqeueue orphaned tasks")
       }
 
-      ## TODO: The migration could happen in a lua script.
+      ## TODO: The migration should happen in a lua script.
       expr_str     <- con$HGET(keys$tasks_expr,     task_id)
       envir_id     <- con$HGET(keys$tasks_envir,    task_id)
       key_complete <- con$HGET(keys$tasks_complete, task_id)
@@ -121,7 +126,7 @@
         con$HSET(keys$tasks_complete, task2_id, key_complete)
         con$HSET(keys$tasks_status,   task2_id, TASK_PENDING)
         con$HSET(keys$tasks_time_sub, task2_id, time)
-        con$RPUSH(keys$tasks_id,      task2_id)
+        con$RPUSH(keys$tasks,         task2_id)
       })
       task(self, task2_id, key_complete)
     },
@@ -208,7 +213,7 @@
       ## needs redirect.  Basically this is not very robust.
       redis_multi(con, {
         for (i in task_ids[status == TASK_PENDING]) {
-          ret[[i]] <- self$con$LREM(keys$tasks_id, 0, i) > 0L
+          ret[[i]] <- self$con$LREM(self$keys$tasks, 0, i) > 0L
         }
         con$HDEL(keys$tasks_expr,     task_ids)
         con$HDEL(keys$tasks_status,   task_ids)
@@ -293,8 +298,8 @@ queue_clean <- function(con, queue_name, purge=FALSE,
     ##   con$DEL(keys$workers_status)
     ##   con$DEL(keys$workers_task)
 
+    con$DEL(keys$tasks)
     con$DEL(keys$tasks_counter)
-    con$DEL(keys$tasks_id)
     con$DEL(keys$tasks_expr)
     con$DEL(keys$tasks_status)
     con$DEL(keys$tasks_result)

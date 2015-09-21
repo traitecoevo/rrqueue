@@ -19,6 +19,7 @@ WORKER_LOST <- "LOST"
     con=NULL,
     queue_name=NULL,
     keys=NULL,
+    key_queue=NULL,
     envir=list(),
     heartbeat=NULL,
     heartbeat_period=NULL,
@@ -96,45 +97,71 @@ WORKER_LOST <- "LOST"
         self$con$HDEL(self$keys$workers_task,   self$name)
         self$con$DEL(self$keys$log)
         self$con$HSET(self$keys$workers_info,   self$name, info)
-        self$log("ALIVE")
-        ## This announces that we're up; things may monitor this
-        ## queue, and worker_spawn does a BLPOP to
-        self$con$RPUSH(self$keys$workers_new,   self$name)
       })
+      self$log("ALIVE")
+
       self$objects <- object_cache(self$keys$objects, self$con)
+
+      ## Always listen to the message queue, even if no environments
+      ## will be loaded (this could be merged with the loop below for
+      ## better robustness).
+      self$key_queue <- self$keys$message
+
+      ## load *existing* environments that the controller knows about.
+      envir_ids <- as.character(self$con$HKEYS(self$keys$envirs_contents))
+      for (envir_id in envir_ids) {
+        self$initialize_environment(envir_id)
+      }
+
+      ## This announces that we're up; things may monitor this
+      ## queue, and worker_spawn does a BLPOP to
+      self$con$RPUSH(self$keys$workers_new,   self$name)
     },
 
-    ## This gets called at the beginning of a job.
-    initialize_environment=function(id) {
-      e <- self$envir[[id]]
-      if (is.null(e)) {
-        self$log("ENVIR", id)
-        dat_str <- self$con$HGET(self$keys$envirs_contents, id)
-        dat <- string_to_object(dat_str)
+    initialize_environment=function(envir_id) {
+      ## TODO: for now, this assumes that all files are found in the
+      ## appropriate directory and will just go for it.  Future
+      ## versions will be more clever here and load files from Redis
+      ## into a temporary directory and source from there.  At the
+      ## same time deal with the error here; it's no longer a deal
+      ## breaker.
+      self$log("ENVIR", envir_id)
+      dat_str <- self$con$HGET(self$keys$envirs_contents, envir_id)
+      dat <- string_to_object(dat_str)
 
-        ## Check the hashes of the files
-        hash_expected <- dat$source_files
-        if (length(hash_expected) > 0L) {
-          hash_recieved <- hash_files(names(hash_expected))
-          if (!identical(hash_expected, hash_recieved)) {
-            stop("Files are not the same")
-          }
+      ## TODO: Probably refactor this into something easily testable...
+      ## TODO: avoid the failure here
+      ## Check the hashes of the files
+      hash_expected <- dat$source_files
+      if (length(hash_expected) > 0L) {
+        hash_recieved <- hash_files(names(hash_expected))
+        if (!identical(hash_expected, hash_recieved)) {
+          stop("Files are not the same")
         }
-
-        e <- create_environment(dat$packages, dat$sources)
-        self$envir[[id]] <- e
-        ## Here; can do a bit better:
-        fmt <- function(x) {
-          if (is.null(x)) {
-            "(none)"
-          } else {
-            paste(x, collapse=" ")
-          }
-        }
-        self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
-        self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
       }
-      e
+
+      e <- create_environment(dat$packages, dat$sources)
+      self$envir[[envir_id]] <- e
+      ## Here; can do a bit better:
+      fmt <- function(x) {
+        if (is.null(x)) {
+          "(none)"
+        } else {
+          paste(x, collapse=" ")
+        }
+      }
+      self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
+      self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
+
+      ## Read from the message queue *first* as that allows a STOP
+      ## command to prevent the worker continuing with job.
+      self$key_queue <- c(self$keys$message,
+                          rrqueue_key_queue(self$queue_name, names(self$envir)))
+
+    },
+
+    get_environment=function(envir_id) {
+      self$envir[[envir_id]]
     },
 
     ## TODO: if we're not running in a terminal, then we should output
@@ -165,11 +192,6 @@ WORKER_LOST <- "LOST"
     ## TODO: Store time since last task.
     main=function() {
       con <- self$con
-      key_queue_tasks <- self$keys$tasks_id
-      key_queue_msg  <- self$keys$message
-      ## Read from the message queue *first* as that allows a STOP
-      ## command to prevent the worker continuing with job.
-      key_queue <- c(key_queue_msg, key_queue_tasks)
 
       ## TODO: should be possible to send SIGHUP or something to
       ## trigger stopping current task but keep listening.
@@ -182,19 +204,19 @@ WORKER_LOST <- "LOST"
       ## real need for it to be the same as the heartbeat period but
       ## might as well make it so.
       repeat {
-        task <- con$BLPOP(key_queue, self$heartbeat_period)
+        task <- con$BLPOP(self$key_queue, self$heartbeat_period)
         if (is.null(task)) {
           self$log("WAITING", push=FALSE)
         } else {
           channel <- task[[1]]
-          if (channel == key_queue_tasks) {
+          if (channel == self$keys$message) {
+            self$run_message(task[[2]])
+          } else { # is a task
             withCallingHandlers(
               self$run_task(task[[2]]),
               WorkerError=function(e)
                 self$task_cleanup(e, e$task_id, e$task_status))
-          } else { # (channel == key_queue_msg)
-            self$run_message(task[[2]])
-          } # no else clause...
+          }
         }
       }
     },
@@ -206,6 +228,7 @@ WORKER_LOST <- "LOST"
 
       expr <- self$task_retrieve(id)
 
+      ## TODO: Strip out this because it's not going to happen any longer.
       context <- withCallingHandlers(
         self$task_prepare(id, expr),
         error=function(e) stop(WorkerEnvironmentFailed(self, id, e)))
@@ -256,6 +279,7 @@ WORKER_LOST <- "LOST"
                     EVAL=run_message_EVAL(args),
                     STOP=run_message_STOP(self, id, args), # noreturn
                     INFO=self$print_info(),
+                    ENVIR=run_message_ENVIR(args),
                     run_message_unknown(cmd, args))
 
       self$send_response(id, cmd, res)
@@ -274,32 +298,27 @@ WORKER_LOST <- "LOST"
       expr_stored
     },
 
-    task_prepare=function(id, expr_stored) {
-      con <- self$con
-      keys <- self$keys
-
-      envir_id <- con$HGET(keys$tasks_envir, id)
-      envir_parent <- self$initialize_environment(envir_id)
-
-      envir <- new.env(parent=envir_parent)
+    task_prepare=function(task_od, expr_stored) {
+      envir_id <- self$con$HGET(self$keys$tasks_envir, task_od)
+      envir <- new.env(parent=self$get_environment(envir_id))
       expr <- restore_expression(expr_stored, envir, self$objects)
       list(expr=expr, envir=envir)
     },
 
-    task_cleanup=function(data, id, task_status) {
+    task_cleanup=function(data, task_id, task_status) {
       con <- self$con
       keys <- self$keys
-      key_complete <- con$HGET(keys$tasks_complete, id)
+      key_complete <- con$HGET(keys$tasks_complete, task_id)
       time <- redis_time(con)
       redis_multi(con, {
-        con$HSET(keys$tasks_result,   id,        object_to_string(data))
-        con$HSET(keys$tasks_status,   id,        task_status)
-        con$HSET(keys$tasks_time_end, id,        time)
+        con$HSET(keys$tasks_result,   task_id,   object_to_string(data))
+        con$HSET(keys$tasks_status,   task_id,   task_status)
+        con$HSET(keys$tasks_time_end, task_id,   time)
         con$HSET(keys$workers_status, self$name, WORKER_IDLE)
         con$HDEL(keys$workers_task,   self$name)
         ## This advertises to the controller that we're done
-        con$RPUSH(key_complete, id)
-        self$log(paste0("TASK_", task_status), id)
+        con$RPUSH(key_complete, task_id)
+        self$log(paste0("TASK_", task_status), task_id)
       })
     },
 
@@ -440,6 +459,12 @@ run_message_EVAL <- function(args) {
 run_message_STOP <- function(worker, id, args) {
   worker$send_response(id, "STOP", "BYE")
   stop(WorkerStop(worker, args))
+}
+
+run_message_ENVIR <- function(args) {
+  message("run_message_ENVIR")
+  browser()
+  stop("stop here please")
 }
 
 run_message_unknown <- function(cmd, args) {

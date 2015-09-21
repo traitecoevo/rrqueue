@@ -23,9 +23,9 @@ rrqueue_keys_queue <- function(queue) {
        workers_task    = sprintf("%s:workers:task",    queue),
        workers_new     = sprintf("%s:workers:new",     queue),
        workers_info    = sprintf("%s:workers:info",    queue),
+       workers_envir   = sprintf("%s:workers:envir",   queue),
 
        tasks_counter   = sprintf("%s:tasks:counter",   queue),
-       tasks_id        = sprintf("%s:tasks:id",        queue),
        tasks_expr      = sprintf("%s:tasks:expr",      queue),
        tasks_status    = sprintf("%s:tasks:status",    queue),
        tasks_time_sub  = sprintf("%s:tasks:time:sub",  queue),
@@ -40,8 +40,13 @@ rrqueue_keys_queue <- function(queue) {
 
        envirs_contents = sprintf("%s:envirs:contents", queue),
 
-       ## Objects:
+       files           = sprintf("%s:files",           queue),
        objects         = sprintf("%s:objects:",        queue))
+}
+
+## NOTE: Or alternatively, key_tasks?
+rrqueue_key_queue <- function(queue, envir) {
+  sprintf("%s:tasks:%s:id", queue, envir)
 }
 
 rrqueue_keys_worker <- function(queue, worker) {

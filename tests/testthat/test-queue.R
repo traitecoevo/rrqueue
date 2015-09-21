@@ -75,15 +75,16 @@ test_that("queue", {
   expect_that(names(t), equals(c("submitted", "started", "finished",
                                  "waiting", "running", "idle")))
 
-  keys_tasks <- c(keys$tasks_expr, keys$tasks_counter, keys$tasks_id,
+  key_queue <- rrqueue_key_queue(obj$queue_name, obj$envir_id)
+  keys_tasks <- c(keys$tasks_expr, keys$tasks_counter,
                   keys$tasks_status, keys$tasks_envir,
                   keys$tasks_complete, keys$tasks_group,
-                  keys$tasks_time_sub)
+                  keys$tasks_time_sub, key_queue)
 
   expect_that(sort(as.character(RedisAPI::scan_find(con, "tmpjobs*"))),
               equals(sort(c(keys_startup, keys_tasks))))
 
-  expect_that(con$TYPE(keys$tasks_id),       equals("list"))
+  expect_that(con$TYPE(key_queue),           equals("list"))
   expect_that(con$TYPE(keys$tasks_expr),     equals("hash"))
   expect_that(con$TYPE(keys$tasks_counter),  equals("string"))
   expect_that(con$TYPE(keys$tasks_status),   equals("hash"))
@@ -92,7 +93,7 @@ test_that("queue", {
   expect_that(con$TYPE(keys$tasks_envir),    equals("hash"))
   expect_that(con$TYPE(keys$tasks_time_sub), equals("hash"))
 
-  ids <- con$LRANGE(keys$tasks_id, 0, -1)
+  ids <- con$LRANGE(key_queue, 0, -1)
   expect_that(ids, equals(list("1", "2")))
   ids <- as.character(ids) # unlist
 
@@ -166,7 +167,7 @@ test_that("queue", {
   expect_that(obj$tasks_drop(ids), equals(setNames(c(FALSE, FALSE), ids)))
   ## TODO:
   ## expect_that(obj$tasks(), equals(empty_named_character()))
-  expect_that(con$LRANGE(keys$tasks_id, 0, -1), equals(list()))
+  expect_that(con$LRANGE(key_queue, 0, -1), equals(list()))
 
   expect_that(task1$status(), equals(TASK_MISSING))
   expect_that(task2$status(), equals(TASK_MISSING))
@@ -250,11 +251,11 @@ test_that("queue", {
   dlog <- obj$workers_log_tail(w, n=0)
   expect_that(dlog, is_a("data.frame"))
 
-  expect_that(dlog$command, equals(c("ALIVE",
-                                     "TASK_START", "ENVIR", "TASK_COMPLETE",
+  expect_that(dlog$command, equals(c("ALIVE", "ENVIR",
+                                     "TASK_START", "TASK_COMPLETE",
                                      "TASK_START", "TASK_COMPLETE",
                                      "MESSAGE", "STOP")))
-  expect_that(dlog$message, equals(c("", "3", obj$envir_id, "3", "4", "4",
+  expect_that(dlog$message, equals(c("", obj$envir_id, "3", "3", "4", "4",
                                      "STOP", "OK")))
 
   ## TODO: cleanup properly.
