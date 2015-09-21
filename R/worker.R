@@ -135,17 +135,16 @@ WORKER_LOST <- "LOST"
       ## TODO: avoid the failure here
       ## Check the hashes of the files
       hash_expected <- dat$source_files
-      if (length(hash_expected) > 0L) {
-        hash_recieved <- hash_files(names(hash_expected))
-        if (!identical(hash_expected, hash_recieved)) {
-          ## Should probably do more here (and eventually this might
-          ## be saveable with storing files themselves.
-          self$LOG("ENVIR ERROR", envir_id)
-          return(FALSE)
-        }
+      if (compare_hash(hash_expected)) {
+        e <- create_environment(dat$packages, dat$sources)
+      } else {
+        tmp <- tempfile("rrqueue_")
+        files_unpack(self$files, hash_expected, tmp)
+        owd <- setwd(tmp)
+        e <- tryCatch(create_environment(dat$packages, dat$sources),
+                      finally=setwd(owd))
       }
 
-      e <- create_environment(dat$packages, dat$sources)
       self$envir[[envir_id]] <- e
       ## Here; can do a bit better:
       fmt <- function(x) {
@@ -494,7 +493,22 @@ run_message_PUSH <- function(worker, args) {
 }
 
 run_message_PULL <- function(worker, args) {
-  browser()
+  envir_id <- args
+  ok <- length(envir_id) == 1 &&
+               worker$con$HEXISTS(worker$keys$envirs_contents, envir_id)
+  if (ok) {
+    dat_str <- worker$con$HGET(worker$keys$envirs_contents, envir_id)
+    dat <- string_to_object(dat_str)
+    hash_expected <- dat$source_files
+    if (!compare_hash(hash_expected)) {
+      files_unpack(worker$files, hash_expected)
+    }
+    worker$log("PULL", "successful")
+    "OK"
+  } else {
+    worker$log("PULL", "failed")
+    "FAIL"
+  }
 }
 
 

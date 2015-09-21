@@ -11,6 +11,15 @@ hash_files <- function(x) {
   setNames(vcapply(x, hash_file), x)
 }
 
+compare_hash <- function(x) {
+  if (length(x) == 0L) {
+    TRUE
+  } else {
+    files <- names(x)
+    all(file.exists(files)) && identical(hash_files(files), x)
+  }
+}
+
 is_error <- function(x) {
   inherits(x, "try-error")
 }
