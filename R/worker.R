@@ -136,7 +136,10 @@ WORKER_LOST <- "LOST"
       if (length(hash_expected) > 0L) {
         hash_recieved <- hash_files(names(hash_expected))
         if (!identical(hash_expected, hash_recieved)) {
-          stop("Files are not the same")
+          ## Should probably do more here (and eventually this might
+          ## be saveable with storing files themselves.
+          self$LOG("ENVIR ERROR", envir_id)
+          return(FALSE)
         }
       }
 
@@ -159,6 +162,7 @@ WORKER_LOST <- "LOST"
 
       self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
       self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
+      TRUE
     },
 
     get_environment=function(envir_id) {
@@ -228,11 +232,7 @@ WORKER_LOST <- "LOST"
       self$log("TASK_START", task_id)
 
       expr <- self$task_retrieve(task_id)
-
-      ## TODO: Strip out this because it's not going to happen any longer.
-      context <- withCallingHandlers(
-        self$task_prepare(task_id, expr),
-        error=function(e) stop(WorkerEnvironmentFailed(self, task_id, e)))
+      context <- self$task_prepare(task_id, expr)
 
       ## Here, we get time from the Redis server, not R; that means
       ## that all ideas of time are centralised.
@@ -299,8 +299,8 @@ WORKER_LOST <- "LOST"
       expr_stored
     },
 
-    task_prepare=function(task_od, expr_stored) {
-      envir_id <- self$con$HGET(self$keys$tasks_envir, task_od)
+    task_prepare=function(task_id, expr_stored) {
+      envir_id <- self$con$HGET(self$keys$tasks_envir, task_id)
       envir <- new.env(parent=self$get_environment(envir_id))
       expr <- restore_expression(expr_stored, envir, self$objects)
       list(expr=expr, envir=envir)
@@ -475,8 +475,11 @@ run_message_INFO <- function(worker) {
 }
 
 run_message_ENVIR <- function(worker, args) {
-  worker$initialize_environment(args)
-  "OK"
+  if (worker$initialize_environment(args)) {
+    "ENVIR OK"
+  } else {
+    "ENVIR ERROR"
+  }
 }
 
 run_message_unknown <- function(cmd, args) {

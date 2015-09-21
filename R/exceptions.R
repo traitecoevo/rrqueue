@@ -24,16 +24,6 @@ WorkerTaskMissing <- function(worker, task_id) {
               class="WorkerTaskMissing")
 }
 
-WorkerEnvironmentFailed <- function(worker, task_id, e) {
-  msg <- sprintf("Environment load for %s failed:\n\t%s",
-                 task_id, e$message)
-  worker$log("ENVIR ERROR", task_id)
-  message("\t", e$message)
-  WorkerError(worker, msg,
-              task_id=task_id, task_status=TASK_ENVIR_ERROR,
-              call=e$call, class="WorkerEnvironmentFailed")
-}
-
 UnfetchableTask <- function(task_id, task_status) {
   structure(list(task_id=task_id,
                  task_status=task_status),
