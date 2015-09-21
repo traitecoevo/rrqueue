@@ -31,3 +31,15 @@ PSKILL_SUCCESS <- tools::pskill(Sys.getpid(), 0)
 pid_exists <- function(pid) {
   tools::pskill(pid, 0) == PSKILL_SUCCESS
 }
+
+wait_until_hash_field_exists <- function(con, key, field, every=.05,
+                                         timeout=as.difftime(5, units="secs")) {
+  t0 <- Sys.time()
+  while (Sys.time() - t0 < timeout) {
+    if (con$HEXISTS(key, field)) {
+      return()
+    }
+    Sys.sleep(every)
+  }
+  stop(sprintf("field '%s' did not appear in time", field))
+}

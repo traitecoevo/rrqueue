@@ -415,3 +415,29 @@ test_that("file info", {
   expect_that(hash_file(file.path(tmp, filename)),
               equals(hash_file(filename)))
 })
+
+test_that("fetch files", {
+  test_cleanup()
+  queues()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, "worker.log")
+  ## or!
+  ##   w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
+
+  id <- obj$send_message("PUSH", "myfuns.R")
+
+  wait_until_hash_field_exists(obj$con,
+                               obj$workers_info(wid)[[1]]$response,
+                               id)
+  dat <- obj$get_response(id, wid)
+
+  tmp <- tempfile("rrqueue_")
+  files_unpack(obj$files, dat, tmp)
+  expect_that(dir(tmp), equals("myfuns.R"))
+  expect_that(hash_file(file.path(tmp, "myfuns.R")),
+              equals(hash_file("myfuns.R")))
+
+  obj$send_message("STOP")
+})

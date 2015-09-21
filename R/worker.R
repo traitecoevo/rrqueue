@@ -25,6 +25,7 @@ WORKER_LOST <- "LOST"
     heartbeat_period=NULL,
     heartbeat_expire=NULL,
     name=NULL,
+    files=NULL,
     objects=NULL,
     styles=NULL,
 
@@ -100,6 +101,7 @@ WORKER_LOST <- "LOST"
       })
       self$log("ALIVE")
 
+      self$files <- file_cache(self$keys$files, self$con)
       self$objects <- object_cache(self$keys$objects, self$con)
 
       ## Always listen to the message queue, even if no environments
@@ -281,6 +283,8 @@ WORKER_LOST <- "LOST"
                     STOP=run_message_STOP(self, message_id, args), # noreturn
                     INFO=run_message_INFO(self),
                     ENVIR=run_message_ENVIR(self, args),
+                    PUSH=run_message_PUSH(self, args),
+                    PULL=run_message_PULL(self, args),
                     run_message_unknown(cmd, args))
 
       self$send_response(message_id, cmd, res)
@@ -481,6 +485,19 @@ run_message_ENVIR <- function(worker, args) {
     "ENVIR ERROR"
   }
 }
+
+
+## Push and pull
+run_message_PUSH <- function(worker, args) {
+  ## Push files from the worker into the DB.
+  files_pack(worker$files, files=args)
+}
+
+run_message_PULL <- function(worker, args) {
+  browser()
+}
+
+
 
 run_message_unknown <- function(cmd, args) {
   msg <- sprintf("Recieved unknown message: [%s] [%s]", cmd, args)

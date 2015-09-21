@@ -65,7 +65,7 @@
         ## Only store files and send message if the environment is new
         ## to the queue:
         file_info <- object_to_string(files_pack(self$files,
-                                                 names(source_files)))
+                                                 files=names(source_files)))
         self$con$HSET(self$keys$envirs_files, self$envir_id, file_info)
         self$send_message("ENVIR", self$envir_id)
       }
