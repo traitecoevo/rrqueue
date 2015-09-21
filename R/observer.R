@@ -14,6 +14,7 @@
     queue_name=NULL,
     con=NULL,
     keys=NULL,
+    files=NULL,
     objects=NULL,
 
     initialize=function(queue_name, redis_host, redis_port) {
@@ -21,6 +22,7 @@
       self$con <- redis_connection(redis_host, redis_port)
       self$keys <- rrqueue_keys(self$queue_name)
       self$objects <- object_cache(self$keys$objects, self$con)
+      self$files <- file_cache(self$keys$files, self$con)
     },
 
     ## 1. Tasks:

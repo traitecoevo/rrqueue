@@ -222,3 +222,10 @@ create_group <- function(group, verbose) {
   }
   group
 }
+
+read_file_to_string <- function(filename) {
+  readChar(filename, file.info(filename)$size)
+}
+write_string_to_file <- function(str, filename) {
+  writeChar(str, filename, eos=NULL)
+}

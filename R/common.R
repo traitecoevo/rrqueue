@@ -38,9 +38,10 @@ rrqueue_keys_queue <- function(queue) {
        tasks_group     = sprintf("%s:tasks:group",     queue),
 
        envirs_contents = sprintf("%s:envirs:contents", queue),
+       envirs_files    = sprintf("%s:envirs:files",    queue),
 
        files           = sprintf("%s:files",           queue),
-       objects         = sprintf("%s:objects:",        queue))
+       objects         = sprintf("%s:objects",         queue))
 }
 
 ## NOTE: Or alternatively, key_tasks?

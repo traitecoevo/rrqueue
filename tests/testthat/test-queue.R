@@ -22,9 +22,15 @@ test_that("queue", {
 
   ## TODO: add rrqueue version here too so we know we're speaking the
   ## right dialect.
-  keys_startup <- c(keys$envirs_contents)
-  expect_that(sort(as.character(con$KEYS("tmpjobs*"))),
-              equals(sort(keys_startup)))
+
+  ## There is going to be a nasty bit here because the *files* data
+  ## storage creates a couple of keys that are implementation
+  ## dependent.
+  keys_startup <- c(keys$envirs_contents,
+                    keys$envirs_files)
+  tmp <- sort(as.character(con$KEYS("tmpjobs*")))
+  tmp <- tmp[!grepl(paste0(keys$files, ":.*"), tmp)]
+  expect_that(tmp, equals(sort(keys_startup)))
 
   dat <- obj$envirs_contents()[[obj$envir_id]]
   expect_that(dat$packages, equals(NULL))
@@ -81,7 +87,9 @@ test_that("queue", {
                   keys$tasks_complete, keys$tasks_group,
                   keys$tasks_time_sub, key_queue)
 
-  expect_that(sort(as.character(RedisAPI::scan_find(con, "tmpjobs*"))),
+  tmp <- sort(as.character(RedisAPI::scan_find(con, "tmpjobs*")))
+  tmp <- tmp[!grepl(paste0(keys$files, ":.*"), tmp)]
+  expect_that(tmp,
               equals(sort(c(keys_startup, keys_tasks))))
 
   expect_that(con$TYPE(key_queue),           equals("list"))
@@ -388,4 +396,22 @@ test_that("worker-first startup", {
 
   expect_that(obj$envir_workers(envir_id),
               equals(setNames(TRUE, wid)[-1]))
+})
+
+test_that("file info", {
+  test_cleanup()
+  on.exit(test_cleanup())
+
+  existing <- queues()
+  expect_that(existing, equals(character(0)))
+
+  filename <- "myfuns.R"
+  obj <- queue("tmpjobs", sources=filename)
+  dat <- string_to_object(obj$con$HGET(obj$keys$envirs_files, obj$envir_id))
+
+  tmp <- tempfile("rrqueue_")
+  files_unpack(obj$files, dat, tmp)
+  expect_that(dir(tmp), equals(filename))
+  expect_that(hash_file(file.path(tmp, filename)),
+              equals(hash_file(filename)))
 })
