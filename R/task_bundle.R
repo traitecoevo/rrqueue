@@ -1,3 +1,8 @@
+task_bundle <- function(obj, tasks, key_complete=NULL, groups=NULL,
+                        names=NULL) {
+  .R6_task_bundle$new(obj, tasks, key_complete, groups, names)
+}
+
 .R6_task_bundle <- R6::R6Class(
   "task_bundle",
 
@@ -113,11 +118,6 @@
       delete_tasks=function() {
         invisible(self$obj$tasks_drop(self$task_ids))
       }))
-
-task_bundle <- function(obj, tasks, key_complete=NULL, groups=NULL,
-                        names=NULL) {
-  .R6_task_bundle$new(obj, tasks, key_complete, groups, names)
-}
 
 
 ## There are a bunch of ways of getting appropriate things here:

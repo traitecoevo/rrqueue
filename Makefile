@@ -9,6 +9,9 @@ test:
 test_all:
 	REMAKE_TEST_INSTALL_PACKAGES=true make test
 
+autodoc:
+	${RSCRIPT} autodoc.R process
+
 roxygen:
 	@mkdir -p man
 	${RSCRIPT} -e "library(methods); devtools::document()"

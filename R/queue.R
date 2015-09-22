@@ -1,5 +1,34 @@
-## NOTE: queue objects are be able to be destroyed at will: all the
-## data is be stored on the server.
+##' Create an rrqueue queue.  A queue requires a queue name and a set
+##' of packages and sources to load.  The sources and packages
+##' together define an "environment"; on the worker these packages
+##' will be loaded and source files will be \code{source}-ed.
+##'
+##' The default values for \code{redis_host} and \code{redis_port}
+##' correspond to Redis' defaults; if your Redis server is configured
+##' differently or available over an internet connection you will need
+##' to adjust these accordingly.
+##'
+##' The \code{queue} objects can be created and desroyed at will; all
+##' the data is stored on the server.  Once a queue is created it can
+##' also be connected to by the \code{observer} object for read-only
+##' access.
+##'
+##' @template queue_methods
+##' @title Create an rrqueue queue
+##' @param queue_name Queue name (scalar character)
+##' @param packages Optional character vector of packages to load
+##' @param sources Optional character vector of files to source
+##' @param redis_host Redis hostname
+##' @param redis_port Redis port number
+##' @param global Source files into the global environment?  This is a
+##'   good idea for working with the "user friendly" functions.  See
+##'   issue 2 on github.
+##' @export
+queue <- function(queue_name, packages=NULL, sources=NULL,
+                  redis_host="127.0.0.1", redis_port=6379, global=TRUE) {
+  .R6_queue$new(queue_name, packages, sources, redis_host, redis_port, global)
+}
+
 .R6_queue <- R6::R6Class(
   "queue",
 
@@ -215,22 +244,6 @@
       tasks_set_group(self$con, self$keys, task_ids, group, exists_action)
     }
   ))
-
-##' Create an rrqueue queue
-##' @title Create an rrqueue queue
-##' @param queue_name Queue name
-##' @param packages Character vector of packages to load
-##' @param sources Character vector of files to source
-##' @param redis_host Redis hostname
-##' @param redis_port Redis port number
-##' @param global Source files into the global environment?  This is a
-##'   good idea for working with the "user friendly" functions.  See
-##'   issue 2 on github.
-##' @export
-queue <- function(queue_name, packages=NULL, sources=NULL,
-                  redis_host="127.0.0.1", redis_port=6379, global=TRUE) {
-  .R6_queue$new(queue_name, packages, sources, redis_host, redis_port, global)
-}
 
 queue_clean <- function(con, queue_name, purge=FALSE,
                         stop_workers=FALSE,

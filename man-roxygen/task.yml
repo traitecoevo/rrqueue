@@ -1,0 +1,53 @@
+status:
+  short: >-
+    Returns a scalar character indicating the task status.
+
+  params:
+    follow_redirect: >-
+      should we follow redirects to get the status of any requeued task?
+
+  value: |
+    Scalar character.  Possible values are
+    \describe{
+    \item{\code{TASK_PENDING}}{queued, but not run by a worker}
+    \item{\code{TASK_RUNNING}}{being run on a worker, but not complete}
+    \item{\code{TASK_COMPLETE}}{task completed successfully}
+    \item{\code{TASK_ERROR}}{task completed with an error}
+    \item{\code{TASK_ORPHAN}}{task orphaned due to loss of worker}
+    \item{\code{TASK_REDIRECT}}{orphaned task has been redirected}
+    \item{\code{TASK_MISSING}}{task not known (deleted, or never existed)}
+    }
+
+result:
+  short: >-
+    Fetch the result of a task, so long as it has completed.
+
+  params:
+    follow_redirect: >-
+      should we follow redirects to get the status of any requeued task?
+
+    sanitise: >-
+
+      If the task is not yet complete or is missing, return an
+      \code{UnfetchabmeTask} object rather than throwing an error.
+
+expr:
+  short: returns the expression stored in the task
+
+envir:
+  short: returns the environment identifier for the task
+
+times:
+  short: returns a summar of times associated with this task.
+  value: |
+    A \code{data.frame} with columns
+    \describe{
+    \item{\code{submitted}}{Time the task was submitted}
+    \item{\code{started}}{Time the task was started, or \code{NA} if waiting}
+    \item{\code{finished}}{Time the task was completed, or \code{NA}
+    if waiting or running}
+    \item{\code{waiting}}{Elapsed time spent waiting}
+    \item{\code{running}}{Elapsed time spent running, or \code{NA} if waiting}
+    \item{\code{idle}}{Elapsed time since finished, or \code{NA}
+    if waiting or running}
+    }

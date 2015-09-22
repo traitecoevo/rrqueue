@@ -5,3 +5,5 @@
 ^doc$
 ^ignore$
 ^docker$
+^man-roxygen$
+^autodoc.R$

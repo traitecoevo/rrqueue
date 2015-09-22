@@ -18,7 +18,6 @@ monitor_status_tasks <- function(obs) {
                 c(TASK_RUNNING, "green"),
                 c(TASK_COMPLETE, "blue"),
                 c(TASK_ERROR, "red"),
-                c(TASK_ENVIR_ERROR, "red"),
                 c(TASK_ORPHAN, "hotpink"),
                 c(TASK_REDIRECT, "orange"))
   cols <- setNames(cols[2,], cols[1,])

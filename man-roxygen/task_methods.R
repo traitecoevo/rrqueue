@@ -1,0 +1,78 @@
+##' @section Methods:
+##'
+##' \describe{
+##' \item{\code{status}}{
+##'   Returns a scalar character indicating the task status.
+##'
+##'   \emph{Usage:}
+##'   \code{status(follow_redirect = FALSE)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{follow_redirect}}{
+##'       should we follow redirects to get the status of any requeued task?
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   Scalar character.  Possible values are
+##'   \describe{
+##'   \item{\code{TASK_PENDING}}{queued, but not run by a worker}
+##'   \item{\code{TASK_RUNNING}}{being run on a worker, but not complete}
+##'   \item{\code{TASK_COMPLETE}}{task completed successfully}
+##'   \item{\code{TASK_ERROR}}{task completed with an error}
+##'   \item{\code{TASK_ORPHAN}}{task orphaned due to loss of worker}
+##'   \item{\code{TASK_REDIRECT}}{orphaned task has been redirected}
+##'   \item{\code{TASK_MISSING}}{task not known (deleted, or never existed)}
+##'   }
+##' }
+##' \item{\code{result}}{
+##'   Fetch the result of a task, so long as it has completed.
+##'
+##'   \emph{Usage:}
+##'   \code{result(follow_redirect = FALSE, sanitise = FALSE)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{follow_redirect}}{
+##'       should we follow redirects to get the status of any requeued task?
+##'     }
+##'
+##'     \item{\code{sanitise}}{
+##'
+##'       If the task is not yet complete or is missing, return an \code{UnfetchabmeTask} object rather than throwing an error.
+##'     }
+##'   }
+##' }
+##' \item{\code{expr}}{
+##'   returns the expression stored in the task
+##'
+##'   \emph{Usage:}
+##'   \code{expr()}
+##' }
+##' \item{\code{envir}}{
+##'   returns the environment identifier for the task
+##'
+##'   \emph{Usage:}
+##'   \code{envir()}
+##' }
+##' \item{\code{times}}{
+##'   returns a summar of times associated with this task.
+##'
+##'   \emph{Usage:}
+##'   \code{times()}
+##'
+##'   \emph{Value}:
+##'   A \code{data.frame} with columns
+##'   \describe{
+##'   \item{\code{submitted}}{Time the task was submitted}
+##'   \item{\code{started}}{Time the task was started, or \code{NA} if waiting}
+##'   \item{\code{finished}}{Time the task was completed, or \code{NA}
+##'   if waiting or running}
+##'   \item{\code{waiting}}{Elapsed time spent waiting}
+##'   \item{\code{running}}{Elapsed time spent running, or \code{NA} if waiting}
+##'   \item{\code{idle}}{Elapsed time since finished, or \code{NA}
+##'   if waiting or running}
+##'   }
+##' }
+##' }

@@ -1,6 +1,14 @@
-## This actually duplicates most of controller; controller might end
-## up based on this.
-##
+##' Creates an observer for an rrqueue
+##' @title Creates an observer for an rrqueue
+##' @param queue_name Name of the queue
+##' @param redis_host Redis hostname
+##' @param redis_port Redis port number
+##' @export
+observer <- function(queue_name,
+                     redis_host="127.0.0.1", redis_port=6379) {
+  .R6_observer$new(queue_name, redis_host, redis_port)
+}
+
 ## I think the correct design pattern is one that is totally dense
 ## that takes queue_name, redis_host, redis_port and which sets up the
 ## connection and keys.
@@ -69,6 +77,9 @@
       setNames(lapply(task_ids, self$task_result, follow_redirect, sanitise),
                task_ids)
     },
+    task_bundle_get=function(groups=NULL, tasks_ids=NULL) {
+      task_bundle_get(self, groups, task_ids)
+    },
 
     ## 2: environments
     envirs_list=function() {
@@ -115,8 +126,3 @@
       worker_envir(self$con, self$keys, worker_id)
     }
     ))
-
-observer <- function(queue_name,
-                     redis_host="127.0.0.1", redis_port=6379) {
-  .R6_observer$new(queue_name, redis_host, redis_port)
-}

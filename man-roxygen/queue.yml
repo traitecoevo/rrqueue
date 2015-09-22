@@ -1,0 +1,247 @@
+enqueue:
+
+  short: The main queuing function.
+
+  params:
+
+    expr: An unevaluated expression to be evaluated
+
+    envir: >-
+
+      An environment in which local variables required to compute
+      \code{expr} can be found.  These will be evaluated and added
+      to the Redis database.
+
+    key_complete: >-
+
+        an optional string representing the Redis key to write to
+        when the task is complete.  You generally don't need to
+        modify this, but is used in some higher-level functions
+        (such as \code{link{rrqlapply}}) to keep track of task
+        completions efficiently.
+
+    group: >-
+
+        An optional human-readable "group" to add the task to.
+        There are methods for addressing sets of tasks using this
+        group.
+
+  details: >-
+
+    This method uses non standard evaluation and the \code{enqueue_}
+    form may be prefereable for programming.
+
+  value: >-
+
+    invisibly, a \code{link{task}} object, which can be used to
+    monitor the status of the task.
+
+enqueue_:
+
+  short: >-
+
+    The workhorse version of \code{enqueue} which uses standard
+    evaluation and is therefore more suitable for programming.  All
+    arguments are the same as \code{enqueue_} except for
+    \code{eval}.
+
+  params:
+    expr: Either a character string or a language object.
+
+requeue:
+
+  short: >-
+
+    Re-queue a task that has been orphaned by worker failure.
+
+  details: >-
+
+    If a worker fails (either an unhandled exception, R crash,
+    network loss or machine loss) then if the worker was running a
+    heartbeat process the task will eventually be flagged as
+    orphaned.  If this happens then the task can be requeued.
+    Functions for fetching and querying tasks take a
+    \code{follow_redirect} argument which can be set to \code{TRUE}
+    so that this new, requeued, task is found instead of the old
+    task.
+
+  value: >-
+
+    invisibly, a \code{\link{task}} object.
+
+  params:
+
+    task_id: Task id number
+
+send_message:
+
+  short: >-
+
+    Send a message to one or more (or all) workers.  Messages can be
+    used to retrieve information from workers, to shut them down and
+    are useful in debugging.  See Details for possible messages and
+    their action.
+
+  params:
+
+    command: >-
+
+      Name of the command to run; one of "PING", "ECHO", "EVAL",
+      "STOP", "INFO", "ENVIR", "PUSH", "PULL", "DIR".  See Details.
+
+    params: >-
+
+      Arguments to pass through to commands.  Some commands require
+      arguments, others do not.  See Details.
+
+    worker_ids: >-
+
+      Optional vector of worker ids to send the message to.  If this
+      is omitted (or \code{NULL} then the message is broadcast to all
+      workers that rrqueue knows about.
+
+  value: >-
+
+    The "message id" which can be used to retrieve messages with
+    \code{has_responses}, \code{get_responses} and
+    \code{get_response}.
+
+  details: >-
+
+    The possible types of message are
+
+    \code{PING}: send a "PING" to the worker.  It will respond by
+    replying PONG to its stderr, to its log (see \code{observer} for
+    how to access) and to the response queue.  Ignores any argument.
+
+    \code{ECHO}: Like "PING", but the worker responds by echoing the
+    string given.  Requires one argument.
+
+    \code{EVAL}: Evaluate an arbitrary R expression as a string (e.g.,
+    \code{run_message("EVAL", "sin(1)")}).  The output is printed to
+    stdout, the worker log and to the response queue.  Requires a
+    single argument.
+
+    \code{STOP}: Tell the worker to stop cleanly.  Ignores any argument.
+
+    \code{INFO}: Refresh the worker info (see \code{workers_info} in
+    \code{\link{observer}}.  Worker will print info to stderr, write
+    it to the appropriate place in the database and return it in the
+    response queue.  Ignores any argument.
+
+    \code{ENVIR}: Tell the worker to try an load an environment, whose
+    id is given as a single argument.  Requires a single argument.
+
+    \code{PUSH}: Tell the worker to push files into the database.  The
+    arguments should be a vector of filenames to copy.  The response
+    queue will contain appropriate data for retrieving the files, but
+    the interface here will change to make this nice to use.
+
+    \code{PULL}: Tells the worker to pull files into its working
+    directory.  Can be used to keep the worker in sync.
+
+    \code{DIR}: Tell the worker to return directory contents and md5
+    hashes of files.
+
+    After sending a message, there is no guarantee about how long it
+    will take to process.  If the worker is involved in a long-running
+    computation it will be unavailable to process the message.
+    However, it will process the message before running any new task.
+
+    The message id is worth saving.  It can be passed to the method
+    \code{get_respones} to wait for and retrieve responses from one or
+    more workers.
+
+has_responses:
+
+  short: >-
+
+    Detect which workers have responses ready for a given message id.
+
+  params:
+    message_id: id of the message (as returned by \code{send_message}
+    worker_ids: >-
+
+      optional vector of worker ids, or \code{NULL} (the default) to
+      try all known workers.
+
+  value: >-
+
+    A named logical vector; names are worker ids, the value is
+    \code{TRUE} for each worker for which a response is ready and
+    \code{FALSE} for workers where a response is not ready.
+
+get_responses:
+
+  short: >-
+
+    Retrieve responses to a give message id from one or more workers.
+
+  params:
+    message_id: id of the message (as returned by \code{send_message}
+    worker_ids: >-
+
+      optional vector of worker ids, or \code{NULL} (the default) to
+      try all known workers.
+
+    delete: >-
+
+      delete the response after a successful retrieval of \emph{all}
+      responses?
+
+    wait: >-
+
+      Number of seconds to wait for a response.  We poll the database
+      repeatedly during this interval.  If 0, then a response is
+      requested immediately.  If no response is recieved from all
+      workers in time, an error is raised.
+
+  value: >-
+    Always returns a list, even if only one worker id is given.
+
+get_response:
+
+  short: >-
+
+    As for \code{get_responses}, but only for a single worker id, and
+    returns the value of the response rather than a list.
+
+  params:
+    message_id: message id
+    worker_id: single worker id
+    delete: delete response after successful retrieval?
+    wait: how long to wait for a message, in seconds
+
+response_ids:
+  short: >-
+
+    Get list of message ids that a given worker has responses for.
+
+  args:
+    worker_id: single worker id
+
+tasks_drop:
+  short:  Drop tasks from the database
+  args:
+    task_ids: Vector of task ids to drop
+
+tasks_set_group:
+  short: >-
+
+    Set the group name for one or more tasks.  The tasks can be
+    pending, running or completed, and the tasks can already have a
+    group ir can be groupless.  Once tasks have been grouped they can
+    be easier to work with as a set (see \code{tasks_in_groups} and
+    \code{task_bundle_get} in \code{\link{observer}}.
+
+  args:
+
+    task_ids: Vector of task ids
+    group: Single group name
+    exists_action: >-
+
+      Behaviour when a group name already exists for a given task.
+      Options are \code{"stop"} (throw an error, the default),
+      \code{"warn"} (warn, but don't rename), \code{"pass"} (don't
+      warn, don't rename) and \code{"overwrite"} (replace the group
+      name).

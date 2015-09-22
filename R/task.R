@@ -1,3 +1,21 @@
+##' Create a task handle object.  This is a "pointer" to a task and
+##' can be used to retrieve information about status, running times,
+##' expression and the result of the task once complete.  Generally
+##' you do not need to make a task object as they will be created for
+##' you by things like the \code{task_get} method of the
+##' \code{\link{observer}} and \code{\link{queue}} objects.
+##'
+##' @template task_methods
+##' @title Create a task handle
+##' @param obj A \code{queue} or \code{observer} object.
+##' @param task_id Task identifier
+##' @param key_complete If known, specify the \code{key_complete},
+##' otherwise we look it up on creation.
+##' @export
+task <- function(obj, task_id, key_complete=NULL) {
+  .R6_task$new(obj, task_id, key_complete)
+}
+
 ## First, the ideal lifecycle:
 ## * after submissing a job is pending (time_sub)
 TASK_PENDING  <- "PENDING"
@@ -8,8 +26,6 @@ TASK_COMPLETE <- "COMPLETE"
 TASK_ERROR    <- "ERROR"
 
 ## Alternatively:
-## the environment failed to work
-TASK_ENVIR_ERROR <- "ENVIR_ERROR"
 ## worker node died
 TASK_ORPHAN   <- "ORPHAN"
 ## orphaned task was requeued
@@ -60,17 +76,13 @@ TASK_MISSING  <- "MISSING"
     },
 
     envir=function() {
-      tasks_envir(self$con, self$keys, self$id)
+      unname(tasks_envir(self$con, self$keys, self$id))
     },
 
     times=function() {
       tasks_times(self$con, self$keys, self$id)
     }
   ))
-
-task <- function(obj, task_id, key_complete=NULL) {
-  .R6_task$new(obj, task_id, key_complete)
-}
 
 ## TODO: This is going to hit status too many times.  Don't worry
 ## about this for now, but if speed becomes important this is a
