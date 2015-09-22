@@ -43,3 +43,9 @@ wait_until_hash_field_exists <- function(con, key, field, every=.05,
   }
   stop(sprintf("field '%s' did not appear in time", field))
 }
+
+with_wd <- function(path, expr) {
+  owd <- setwd(path)
+  on.exit(setwd(owd))
+  force(expr)
+}

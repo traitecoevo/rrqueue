@@ -441,3 +441,45 @@ test_that("fetch files", {
 
   obj$send_message("STOP")
 })
+
+test_that("empty start", {
+  path <- tempfile("rrqueue_")
+  dir.create(path, FALSE, TRUE)
+
+  test_cleanup()
+  queues()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+
+  Sys.setenv("R_TESTS" = "")
+  logfile <- tempfile("rrqueue_", fileext=".log")
+  wid <- with_wd(path, worker_spawn(obj$queue_name, logfile))
+  expect_that(file.exists(logfile), is_true())
+
+  ## The directory is empty:
+  id <- obj$send_message("DIR")
+  wait_until_hash_field_exists(obj$con,
+                               obj$workers_info(wid)[[1]]$response,
+                               id)
+  dat <- obj$get_response(id, wid)
+  expect_that(dat, equals(empty_named_character()))
+
+  ## But we still do have a worker listening on this queue:
+  expect_that(obj$worker_envir(wid), equals(obj$envir_id))
+  expect_that(obj$envir_workers(obj$envir_id), equals(setNames(TRUE, wid)))
+
+  ## We can pull files onto the worker too:
+  id <- obj$send_message("PULL", obj$envir_id)
+  wait_until_hash_field_exists(obj$con,
+                               obj$workers_info(wid)[[1]]$response,
+                               id)
+  expect_that(obj$get_response(id, wid), equals("OK"))
+
+  id <- obj$send_message("DIR")
+  wait_until_hash_field_exists(obj$con,
+                               obj$workers_info(wid)[[1]]$response,
+                               id)
+  dat <- obj$get_response(id, wid)
+  expect_that(dat, equals(hash_files("myfuns.R")))
+
+  obj$send_message("STOP")
+})

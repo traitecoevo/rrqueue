@@ -212,7 +212,7 @@ WORKER_LOST <- "LOST"
       repeat {
         task <- con$BLPOP(self$key_queue, self$heartbeat_period)
         if (is.null(task)) {
-          self$log("WAITING", push=FALSE)
+          ## self$log("WAITING", push=FALSE)
         } else {
           channel <- task[[1]]
           if (channel == self$keys$message) {
@@ -284,6 +284,7 @@ WORKER_LOST <- "LOST"
                     ENVIR=run_message_ENVIR(self, args),
                     PUSH=run_message_PUSH(self, args),
                     PULL=run_message_PULL(self, args),
+                    DIR=run_message_DIR(args),
                     run_message_unknown(cmd, args))
 
       self$send_response(message_id, cmd, res)
@@ -485,7 +486,6 @@ run_message_ENVIR <- function(worker, args) {
   }
 }
 
-
 ## Push and pull
 run_message_PUSH <- function(worker, args) {
   ## Push files from the worker into the DB.
@@ -503,15 +503,27 @@ run_message_PULL <- function(worker, args) {
     if (!compare_hash(hash_expected)) {
       files_unpack(worker$files, hash_expected)
     }
-    worker$log("PULL", "successful")
+    worker$log("PULL", "OK")
     "OK"
   } else {
-    worker$log("PULL", "failed")
+    worker$log("PULL", "FAIL")
     "FAIL"
   }
 }
 
-
+run_message_DIR <- function(args) {
+  if (length(args) == 0L) {
+    args <- list()
+  }
+  res <- try(do.call("dir", args))
+  if (!inherits(res, "try-error")) {
+    path <- if (is.null(args$path)) res else file.path(args$path, res)
+    ret <- setNames(rep(NA_character_, length(res)), res)
+    is_file <- !vlapply(path, is_directory, USE.NAMES=FALSE)
+    ret[is_file] <- hash_files(path[is_file])
+  }
+  ret
+}
 
 run_message_unknown <- function(cmd, args) {
   msg <- sprintf("Recieved unknown message: [%s] [%s]", cmd, args)
@@ -587,6 +599,10 @@ workers_info <- function(con, keys, worker_ids=NULL) {
                   f=Vectorize(string_to_object, SIMPLIFY=FALSE))
 }
 
+## TODO: this is not really the complement of worker_envir; This
+## returns a true/false vector over workers, while worker_envir
+## returns a character vector of environments that a worker can do.
+## Not sure that's 100% desirable.
 envir_workers <- function(con, keys, envir_id, worker_ids=NULL) {
   if (is.null(worker_ids)) {
     worker_ids <- workers_list(con, keys)
