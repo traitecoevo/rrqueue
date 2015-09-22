@@ -151,35 +151,12 @@
       setNames(as.logical(res), worker_ids)
     },
 
-    get_responses=function(message_id, worker_ids=NULL, delete=FALSE) {
-      if (is.null(worker_ids)) {
-        worker_ids <- self$workers_list()
-      }
-
-      response_keys <- rrqueue_key_worker_response(self$queue_name, worker_ids)
-      res <- lapply(response_keys, self$con$HGET, message_id)
-      names(res) <- worker_ids
-
-      msg <- vlapply(res, is.null)
-      if (any(msg)) {
-        message <- paste0("Response missing for workers: ",
-                          paste(worker_ids[msg], collapse=", "))
-        stop(message)
-      }
-      if (delete) {
-        for (k in response_keys) {
-          self$con$HDEL(k, message_id)
-        }
-      }
-      ## NOTE: if missing_action is pass and a result is really
-      ## missing, then it will be impossible to detect which elements
-      ## are missing based on the output of this.
-      res <- lapply(res, function(x) string_to_object(x)$result)
-      res
+    get_responses=function(message_id, worker_ids=NULL, delete=FALSE, wait=0) {
+      get_responses(self$con, self$keys, message_id, worker_ids, delete, wait)
     },
 
-    get_response=function(message_id, worker_id, delete=FALSE) {
-      self$get_responses(message_id, worker_id, delete)[[1]]
+    get_response=function(message_id, worker_id, delete=FALSE, wait=0) {
+      self$get_responses(message_id, worker_id, delete, wait)[[1]]
     },
 
     response_ids=function(worker_id) {
@@ -339,4 +316,31 @@ queue_send_message <- function(con, keys, command, args=NULL,
     con$RPUSH(k, content)
   }
   invisible(message_id)
+}
+
+get_responses <- function(con, keys, message_id, worker_ids=NULL,
+                          delete=FALSE, wait=0, every=0.05) {
+  ## NOTE: this won't work well if the message was sent only to a
+  ## single worker, or a worker who was not yet started.
+  ##
+  ## NOTE: Could do a progress bar easily enough here.
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  response_keys <- rrqueue_key_worker_response(keys$queue_name, worker_ids)
+  res <- poll_hash_keys(con, response_keys, message_id, wait, every)
+
+  msg <- vlapply(res, is.null)
+  if (any(msg)) {
+    stop(paste0("Response missing for workers: ",
+                paste(worker_ids[msg], collapse=", ")))
+  }
+  if (delete) {
+    for (k in response_keys) {
+      con$HDEL(k, message_id)
+    }
+  }
+
+  names(res) <- worker_ids
+  lapply(res, function(x) string_to_object(x)$result)
 }

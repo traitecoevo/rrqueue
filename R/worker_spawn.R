@@ -6,6 +6,10 @@
 ## 3. from the command line using rrqueue_worker
 ## 4. from the command line using rrqueue_worker_tee
 
+## TODO: need to get a yaml configuration in here as an alternative
+## option (rrqueue_worker --config my.yml).  Or json but we don't
+## depend on either yet.
+##
 ## TODO: autogenerate this in the same way that we do for the args
 ## TODO: expose the redis arguments directly rather than as 'con'?
 rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
@@ -20,7 +24,7 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
   --heartbeat-expire T   Heartbeat expiry time [default: 90]
 
   Arguments:
-  <queue_name>   Name of queue, or omit to read from rrqueue.yml
+  <queue_name>   Name of queue
   ' -> doc
   oo <- options(warnPartialMatchArgs=FALSE)
   if (isTRUE(oo$warnPartialMatchArgs)) {

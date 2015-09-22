@@ -427,11 +427,7 @@ test_that("fetch files", {
   ##   w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 
   id <- obj$send_message("PUSH", "myfuns.R")
-
-  wait_until_hash_field_exists(obj$con,
-                               obj$workers_info(wid)[[1]]$response,
-                               id)
-  dat <- obj$get_response(id, wid)
+  dat <- obj$get_response(id, wid, wait=5, delete=TRUE)
 
   tmp <- tempfile("rrqueue_")
   files_unpack(obj$files, dat, tmp)
@@ -457,10 +453,7 @@ test_that("empty start", {
 
   ## The directory is empty:
   id <- obj$send_message("DIR")
-  wait_until_hash_field_exists(obj$con,
-                               obj$workers_info(wid)[[1]]$response,
-                               id)
-  dat <- obj$get_response(id, wid)
+  dat <- obj$get_response(id, wid, wait=5, delete=TRUE)
   expect_that(dat, equals(empty_named_character()))
 
   ## But we still do have a worker listening on this queue:
@@ -469,17 +462,19 @@ test_that("empty start", {
 
   ## We can pull files onto the worker too:
   id <- obj$send_message("PULL", obj$envir_id)
-  wait_until_hash_field_exists(obj$con,
-                               obj$workers_info(wid)[[1]]$response,
-                               id)
-  expect_that(obj$get_response(id, wid), equals("OK"))
+  expect_that(obj$get_response(id, wid, wait=5, delete=TRUE), equals("OK"))
 
   id <- obj$send_message("DIR")
-  wait_until_hash_field_exists(obj$con,
-                               obj$workers_info(wid)[[1]]$response,
-                               id)
-  dat <- obj$get_response(id, wid)
+  dat <- obj$get_response(id, wid, wait=5)
   expect_that(dat, equals(hash_files("myfuns.R")))
 
-  obj$send_message("STOP")
+  ## can also exectute commands on the worker:
+  id <- obj$send_message("EVAL", "getwd()", wid)
+  dat <- obj$get_response(id, wid, wait=5)
+  ## Might be platform dependent, unfortunately.
+  expect_that(dat, equals(normalizePath(path)))
+
+  id <- obj$send_message("STOP")
+  dat <- obj$get_response(id, wid, wait=5)
+  expect_that(dat, equals("BYE"))
 })
