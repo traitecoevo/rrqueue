@@ -474,3 +474,9 @@ test_that("empty start", {
   dat <- obj$get_response(id, wid, wait=5)
   expect_that(dat, equals("BYE"))
 })
+
+test_that("complex expressions", {
+  obj <- queue("tmpjobs")
+  expect_that(obj$enqueue(sin(cos(1))),
+              throws_error("complex expressions not yet supported"))
+})

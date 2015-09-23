@@ -90,14 +90,10 @@ prepare_expression <- function(expr) {
   fun <- expr[[1]]
   args <- expr[-1]
 
-  ## TODO: disallow *language* as arguments; instead I guess we'll
-  ## serialise those as anonymous symbols, e.g. `.1:<anon1>`, and
-  ## substitute back in on the other side.
-  ##
-  ## is_language <- vlapply(args, is.language)
-  ## if (any(is_language)) {
-  ##   stop("not yet supported")
-  ## }
+  is_call <- vlapply(args, is.call)
+  if (any(is_call)) {
+    stop("complex expressions not yet supported")
+  }
   is_symbol <- vlapply(args, is.symbol)
   if (any(is_symbol)) {
     object_names <- vcapply(args[is_symbol], as.character)
