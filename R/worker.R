@@ -30,7 +30,7 @@ WORKER_LOST <- "LOST"
     styles=NULL,
 
     initialize=function(queue_name, redis_host, redis_port,
-      heartbeat_period, heartbeat_expire) {
+      heartbeat_period, heartbeat_expire, key_worker_alive) {
       #
       self$name <- sprintf("%s::%d", hostname(), process_id())
       self$queue_name <- queue_name
@@ -72,7 +72,7 @@ WORKER_LOST <- "LOST"
         stop("Looks like this worker exists already...")
       }
 
-      withCallingHandlers(self$initialize_worker(),
+      withCallingHandlers(self$initialize_worker(key_worker_alive),
                           error=catch_error)
       ## The problem is that here, withCallingHandlers will let us
       ## continue after clearing the WorkerStop error onto the error
@@ -85,7 +85,7 @@ WORKER_LOST <- "LOST"
 
     ## This is in its own function so that error handling can be done
     ## gracefully; it's only called by initialize()
-    initialize_worker=function() {
+    initialize_worker=function(key_worker_alive) {
       info <- object_to_string(self$print_info())
 
       self$heartbeat <- heartbeat(self$con, self$keys$heartbeat,
@@ -117,7 +117,9 @@ WORKER_LOST <- "LOST"
 
       ## This announces that we're up; things may monitor this
       ## queue, and worker_spawn does a BLPOP to
-      self$con$RPUSH(self$keys$workers_new,   self$name)
+      if (!is.null(key_worker_alive)) {
+        self$con$RPUSH(key_worker_alive, self$name)
+      }
     },
 
     initialize_environment=function(envir_id) {
@@ -344,14 +346,19 @@ WORKER_LOST <- "LOST"
 ##' @param redis_port Port for the Redis server
 ##' @param heartbeat_period Period between heartbeat pulses
 ##' @param heartbeat_expire Time that heartbeat pulses will persist
-##' for (must be greater than \code{heartbeat_period})
+##'   for (must be greater than \code{heartbeat_period})
+##' @param key_worker_alive Optional key to write to when the worker
+##'   becomes alive.  The worker will push onto this key so that
+##'   another process can monitor it and determine when a worker has
+##'   come up.
 ##' @export
 worker <- function(queue_name,
                    redis_host="127.0.0.1", redis_port=6379,
                    heartbeat_period=30,
-                   heartbeat_expire=heartbeat_period * 3) {
+                   heartbeat_expire=heartbeat_period * 3,
+                   key_worker_alive=NULL) {
   .R6_worker$new(queue_name, redis_host, redis_port,
-                 heartbeat_period, heartbeat_expire)
+                 heartbeat_period, heartbeat_expire, key_worker_alive)
 }
 
 workers_len <- function(con, keys) {

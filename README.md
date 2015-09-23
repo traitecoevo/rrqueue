@@ -9,6 +9,8 @@ Other features include:
 * While blocking `mclapply`-like functions are available, the package is designed to be non-blocking so that intermediate results can be used.
 * Automatic fingerprinting of environments so that code run on a remote machine will correspond to the code found locally.
 * Works well connecting to a Redis database running on the cloud (e.g., on an AWS machine over an ssh tunnel).
+* Local workers can be added to a remote pool, so long as everything can talk to the same Redis server.
+?
 * The worker pool can be scaled at any time (up or down).
 * Basic fault tolerance, supporting requeuing tasks lost on crashed workers.
 

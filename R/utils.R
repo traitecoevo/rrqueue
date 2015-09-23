@@ -41,6 +41,12 @@ is_terminal <- function() {
   !is_error(try(system("tput colors", intern=TRUE), silent=TRUE))
 }
 
+assert_integer_like <- function(x, name=deparse(substitute(x))) {
+  if (!isTRUE(all.equal(as.integer(x), x))) {
+    stop(sprintf("%s is not integer like", name))
+  }
+}
+
 vcapply <- function(X, FUN, ...) {
   vapply(X, FUN, character(1), ...)
 }

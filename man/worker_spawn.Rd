@@ -5,21 +5,25 @@
 \title{Spawn a worker}
 \usage{
 worker_spawn(queue_name, logfile, redis_host = "127.0.0.1",
-  redis_port = 6379, timeout = 20, time_poll = 3,
+  redis_port = 6379, n = 1, timeout = 20, time_poll = 1,
   heartbeat_period = NULL, heartbeat_expire = NULL)
 }
 \arguments{
 \item{queue_name}{Name of the queue to connect to}
 
-\item{logfile}{Name of a log file to write to (consider \code{tempfile()})}
+\item{logfile}{Name of a log file to write to (consider
+\code{tempfile()}).  If \code{n} > 1, then \code{n} log files
+must be provided.}
 
 \item{redis_host}{Host name/IP for the Redis server}
 
 \item{redis_port}{Port for the Redis server}
 
+\item{n}{Number of workers to spawn}
+
 \item{timeout}{Time to wait for the worker to appear}
 
-\item{time_poll}{Period to poll for the worker}
+\item{time_poll}{Period to poll for the worker (must be in seconds)}
 
 \item{heartbeat_period}{Period between heartbeat pulses}
 
@@ -27,5 +31,10 @@ worker_spawn(queue_name, logfile, redis_host = "127.0.0.1",
 }
 \description{
 Spawn a worker in the background
+}
+\details{
+Spawning multiple workers.  If \code{n} is greater than one,
+multiple workers will be spawned.  This happens in parallel so it
+does not take n times longer than spawing a single worker.
 }
 

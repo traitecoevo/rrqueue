@@ -21,7 +21,6 @@ rrqueue_keys_queue <- function(queue) {
        workers_name    = sprintf("%s:workers:name",    queue),
        workers_status  = sprintf("%s:workers:status",  queue),
        workers_task    = sprintf("%s:workers:task",    queue),
-       workers_new     = sprintf("%s:workers:new",     queue),
        workers_info    = sprintf("%s:workers:info",    queue),
 
        tasks_counter   = sprintf("%s:tasks:counter",   queue),
@@ -75,6 +74,9 @@ rrqueue_key_worker_envir <- function(queue, worker) {
 }
 rrqueue_key_task_complete <- function(queue, task_id) {
   sprintf("%s:tasks:%s:complete", queue, task_id)
+}
+rrqueue_key_worker_alive <- function(queue) {
+  sprintf("%s:tasks:alive:%s", queue, ids::aa(1)())
 }
 
 ## TODO: come up with a way of scheduling object deletion.  Things
