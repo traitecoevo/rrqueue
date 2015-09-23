@@ -106,6 +106,51 @@ devtools::install_git("https://github.com/traitecoevo/rrqueue")
 
 (*optional*) to see what is going on, in a terminal, run `redis-cli monitor` which will print all the Redis chatter, though it will impact on redis performance.
 
+# Starting workers
+
+Workers can be started from within an R process using `rrqueue::worker_spawn` function.  This takes an optional argument `n` to start more than one worker at a time, and will block until all workers have appeared.
+
+From the command line, workers can be started using the `rrqueue_worker` script.  The script can be installed by running (from R)
+
+```
+rrqueue::install_scripts("~/bin")
+```
+
+replacing `"~/bin"` with a path that is in your executable search path and which is writable.
+
+```
+$ rrqueue_worker --help
+Usage:
+  rrqueue_worker [options] <queue_name>
+  rrqueue_worker --config=FILENAME [options] [<queue_name>]
+  rrqueue_worker -h | --help
+
+Options:
+  --redis-host HOSTNAME   Hostname for Redis [default: 127.0.0.1]
+  --redis-port PORT       Port for Redis [default: 6379]
+  --heartbeat-period T    Heartbeat period [default: 30]
+  --heartbeat-expire T    Heartbeat expiry time [default: 90]
+  --key-worker-alive KEY  Key to write to when the worker becomes alive
+  --config FILENAME       Optional YAML configuration filename
+
+  Arguments:
+  <queue_name>   Name of queue
+```
+
+the arguments correspond to the arguments documented in `?worker_spawn`.  The queue name is determined by position.
+
+The `config` argument is an optional path to a yml configuration file.  That configuration file contains values for any of the arguments to `worker_spawn`, for example:
+
+```yaml
+queue_name: tmpjobs
+redis_host: 127.0.0.1
+redis_port: 6379
+heartbeat_period: 30
+heartbeat_expire: 90
+```
+
+Arguments passed to `rrqueue_worker` in addition to the configuration will override values in the yaml.
+
 # Performance
 
 So far, I've done relatively little performance tuning.  In particular, the *workers* make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use `rrqueue` where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, `rrqueue` uses lua scripting to reduce the number of instruction round trips.

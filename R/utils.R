@@ -251,3 +251,33 @@ install_scripts <- function(dest, overwrite=TRUE) {
                   file.path(dest, scripts), overwrite=overwrite)
   invisible(ok)
 }
+
+yaml_load <- function(string) {
+  handlers <- list(`bool#yes` = function(x) {
+    if (identical(toupper(x), "TRUE")) TRUE else x
+  }, `bool#no` = function(x) {
+    if (identical(toupper(x), "FALSE")) FALSE else x
+  })
+  yaml::yaml.load(string, handlers = handlers)
+}
+yaml_read <- function(filename) {
+  yaml_load(paste(readLines(filename), collapse="\n"))
+}
+
+docopt_parse <- function(doc, args, clean=TRUE) {
+  oo <- options(warnPartialMatchArgs=FALSE)
+  if (isTRUE(oo$warnPartialMatchArgs)) {
+    on.exit(options(oo))
+  }
+  opts <- docopt::docopt(doc, args)
+  if (clean) {
+    opts <- docopt_clean(opts)
+  }
+  opts
+}
+
+docopt_clean <- function(opts) {
+  opts <- opts[!(grepl("^-", names(opts)) | grepl("^<.*>$", names(opts)))]
+  names(opts) <- gsub("-", "_", names(opts))
+  opts
+}

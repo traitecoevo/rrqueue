@@ -1,5 +1,48 @@
 context("worker")
 
+test_that("config", {
+  expect_that(rrqueue_worker_args(character(0)),
+              throws_error())
+
+  queue_name <- "myqueue"
+
+  opts <- rrqueue_worker_args(queue_name)
+  expect_that(opts$queue_name, equals(queue_name))
+
+  opts <- rrqueue_worker_args(c("--config", "config.yml"))
+  dat <- yaml_read("config.yml")
+  expect_that(opts$queue_name, equals(dat$queue_name))
+  expect_that(opts$redis_host, equals(dat$redis_host))
+  expect_that(opts$redis_port, equals(dat$redis_port))
+  expect_that(opts$heartbeat_period, equals(dat$heartbeat_period))
+  expect_that(opts$heartbeat_expire, equals(dat$heartbeat_expire))
+  expect_that(opts$key_worker_alive, is_null())
+
+  ## override some opts:
+  opts <- rrqueue_worker_args(c("--config", "config.yml",
+                                "--key-worker-alive", "mykey"))
+  expect_that(opts$key_worker_alive, equals("mykey"))
+
+  opts <- rrqueue_worker_args(c("--config", "config.yml",
+                                "--redis-port", "9999"))
+  expect_that(opts$redis_port, equals("9999"))
+
+  opts <- rrqueue_worker_args(c("--config", "config.yml", queue_name))
+  expect_that(opts$queue_name, equals(queue_name))
+
+  ## And again with a configuration that loads very little:
+  opts <- rrqueue_worker_args(c("--config", "config2.yml",
+                                "--key-worker-alive", "mykey"))
+  expect_that(opts$key_worker_alive, equals("mykey"))
+  expect_that(opts$redis_host, equals(yaml_read("config2.yml")$redis_host))
+  expect_that(opts$redis_port, equals("6379"))
+
+  expect_that(rrqueue_worker_args(c("--config", "config3.yml")),
+              throws_error("queue name must be given"))
+  opts <- rrqueue_worker_args(c("--config", "config3.yml", queue_name))
+  expect_that(opts$queue_name, equals(queue_name))
+})
+
 test_that("workers_times - nonexistant worker", {
   obs <- observer("tmpjobs")
   name <- "no such worker"

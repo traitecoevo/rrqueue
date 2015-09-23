@@ -1,20 +1,7 @@
 #!/usr/bin/env Rscript
 
 ## Dirty hack to compile docs in the absence of proper Roxygen R6 support.
-## devtools::load_all(".")
 library(rrqueue)
-
-yaml_load <- function(string) {
-  handlers <- list(`bool#yes` = function(x) {
-    if (identical(toupper(x), "TRUE")) TRUE else x
-  }, `bool#no` = function(x) {
-    if (identical(toupper(x), "FALSE")) FALSE else x
-  })
-  yaml::yaml.load(string, handlers = handlers)
-}
-yaml_read <- function(filename) {
-  yaml_load(paste(readLines(filename), collapse="\n"))
-}
 
 add_usage <- function(dat, generator) {
   capture_usage <- function(name) {
@@ -82,7 +69,7 @@ format_class <- function(x) {
 process <- function(type) {
   e <- environment(rrqueue::queue)
   generator <- get(sprintf(".R6_%s", type), e)
-  dat <- yaml_read(sprintf("man-roxygen/%s.yml", type))
+  dat <- rrqueue:::yaml_read(sprintf("man-roxygen/%s.yml", type))
   ret <- format_class(add_usage(dat, generator))
   writeLines(ret, sprintf("man-roxygen/%s_methods.R", type))
 }

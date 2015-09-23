@@ -1,0 +1,2 @@
+queue_name: tmpjobs
+redis_host: redis.mesos.marathon
