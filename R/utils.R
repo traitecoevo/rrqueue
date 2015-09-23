@@ -125,15 +125,6 @@ Sys_kill <- function(pid, signal=NULL) {
   system2("kill", c(pid, signal))
 }
 
-install_scripts <- function(dest, overwrite=TRUE) {
-  src <- system.file("scripts", package=.packageName)
-  scripts <- dir(src)
-  dir.create(dest, FALSE, TRUE)
-  ok <- file.copy(file.path(src, scripts),
-                  file.path(dest, scripts), overwrite=overwrite)
-  invisible(ok)
-}
-
 find_script <- function(name) {
   cmd <- Sys.which(name)
   if (cmd == "") {
@@ -237,4 +228,20 @@ read_file_to_string <- function(filename) {
 }
 write_string_to_file <- function(str, filename) {
   writeChar(str, filename, eos=NULL)
+}
+
+##' Install rrqueue scripts.  This currently includes a script for
+##' starting a worker process.  The script is extremely simple and
+##' does not need upgrading when rrqueue is upgraded.
+##' @title Install rrqueue scripts
+##' @param dest Directory to install scripts to, preferably in the \code{$PATH}
+##' @param overwrite Overwrite any existing file?
+##' @export
+install_scripts <- function(dest, overwrite=TRUE) {
+  src <- system.file("scripts", package=.packageName)
+  scripts <- dir(src)
+  dir.create(dest, FALSE, TRUE)
+  ok <- file.copy(file.path(src, scripts),
+                  file.path(dest, scripts), overwrite=overwrite)
+  invisible(ok)
 }

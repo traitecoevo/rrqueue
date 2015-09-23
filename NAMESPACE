@@ -3,6 +3,7 @@
 S3method(print,worker_info)
 export(enqueue_bulk)
 export(enqueue_bulk_submit)
+export(install_scripts)
 export(observer)
 export(queue)
 export(rrqlapply)
