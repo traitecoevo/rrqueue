@@ -98,11 +98,11 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
     },
 
     ## TODO: envir should be parent.frame?
-    enqueue=function(expr, envir=.GlobalEnv, key_complete=NULL, group=NULL) {
+    enqueue=function(expr, envir=parent.frame(), key_complete=NULL, group=NULL) {
       self$enqueue_(substitute(expr), envir, key_complete, group=group)
     },
 
-    enqueue_=function(expr, envir=.GlobalEnv, key_complete=NULL, group=NULL) {
+    enqueue_=function(expr, envir=parent.frame(), key_complete=NULL, group=NULL) {
       dat <- prepare_expression(expr)
 
       tmp <- self$scripts("job_incr", self$keys$tasks_counter, character(0))
