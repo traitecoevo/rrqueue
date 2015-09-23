@@ -5,7 +5,8 @@
 ##'   The main queuing function.
 ##'
 ##'   \emph{Usage:}
-##'   \code{enqueue(expr = , envir = .GlobalEnv, key_complete = NULL, group = NULL)}
+##'   \code{enqueue(expr = , envir = parent.frame(), key_complete = NULL,
+##'       group = NULL)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -42,7 +43,8 @@
 ##'   The workhorse version of \code{enqueue} which uses standard evaluation and is therefore more suitable for programming.  All arguments are the same as \code{enqueue_} except for \code{eval}.
 ##'
 ##'   \emph{Usage:}
-##'   \code{enqueue_(expr = , envir = .GlobalEnv, key_complete = NULL, group = NULL)}
+##'   \code{enqueue_(expr = , envir = parent.frame(), key_complete = NULL,
+##'       group = NULL)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
