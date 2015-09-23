@@ -480,3 +480,23 @@ test_that("complex expressions", {
   expect_that(obj$enqueue(sin(cos(1))),
               throws_error("complex expressions not yet supported"))
 })
+
+test_that("controlled failures", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  wid <- worker_spawn(obj$queue_name, tempfile())
+
+  t <- obj$enqueue(failure(controlled=TRUE))
+  Sys.sleep(.1)
+  expect_that(t$status(), equals("COMPLETE"))
+  expect_that(is_error(t$result()), is_true())
+  expect_that(t$result(), not(is_a("WorkerTaskError")))
+
+  t <- obj$enqueue(failure(controlled=FALSE))
+  Sys.sleep(.1)
+  expect_that(t$status(), equals("ERROR"))
+  expect_that(is_error(t$result()), is_true())
+  expect_that(t$result(), is_a("WorkerTaskError"))
+
+  obj$send_message("STOP")
+})

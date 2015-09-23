@@ -251,11 +251,14 @@ WORKER_LOST <- "LOST"
       expr_str <- capture.output(print(context$expr))
       self$log("EXPR", expr_str, push=FALSE)
 
-      ## NOTE: if the underlying process *wants* to return an error
-      ## this is going to be a false alarm, but there's not really a
-      ## good way of detecting that.
-      res <- try(eval(context$expr, context$envir))
-      status <- if (is_error(res)) TASK_ERROR else TASK_COMPLETE
+      res <- tryCatch(eval(context$expr, context$envir),
+                      error=WorkerTaskError)
+
+      if (inherits(res, "WorkerTaskError")) {
+        status <- TASK_ERROR
+      } else {
+        status <- TASK_COMPLETE
+      }
       self$task_cleanup(res, task_id, status)
     },
 

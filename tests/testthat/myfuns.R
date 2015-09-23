@@ -16,3 +16,11 @@ ret_null <- function(...) {
   Sys.sleep(0.02)
   NULL
 }
+
+failure <- function(controlled) {
+  if (controlled) {
+    try(stop("an expected error"), silent=TRUE)
+  } else {
+    stop("an unexpected error")
+  }
+}

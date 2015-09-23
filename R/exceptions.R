@@ -24,6 +24,11 @@ WorkerTaskMissing <- function(worker, task_id) {
               class="WorkerTaskMissing")
 }
 
+WorkerTaskError <- function(e) {
+  class(e) <- c("WorkerTaskError", "try-error", class(e))
+  e
+}
+
 UnfetchableTask <- function(task_id, task_status) {
   structure(list(task_id=task_id,
                  task_status=task_status),
