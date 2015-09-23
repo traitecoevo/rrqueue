@@ -70,9 +70,6 @@ observer <- function(queue_name,
     task_get=function(task_id) {
       task(self, task_id)
     },
-    task_expr=function(task_id, locals=FALSE) {
-      task_expr(self$con, self$keys, task_id, if (locals) self$objects)
-    },
     task_result=function(task_id, follow_redirect=FALSE, sanitise=FALSE) {
       task_result(self$con, self$keys, task_id, follow_redirect, sanitise)
     },

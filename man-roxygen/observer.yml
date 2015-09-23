@@ -68,22 +68,6 @@ task_get:
   params:
     task_id: &task_id A single task identifier
 
-task_expr:
-  short: >-
-    returns the expression stored in the task.  Essentially equivalent to
-    \code{task_get(task_id)$expr()}
-  params:
-    task_id: *task_id
-    locals: >-
-      Logical, indicating if the local variables associated with the
-      expression should also be retuned.  If \code{TRUE}, then local
-      variables used in the expression will be returned in a
-      \emph{attribute} of the expression \code{envir}.
-  value: >-
-    A quoted expression (a language object).  Turn this into a string
-    with deparse.  If \code{locals} was \code{TRUE} there will be an
-    environment attribute with local variables included.
-
 task_result:
   short: >-
     Get the result for a single task

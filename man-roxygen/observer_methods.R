@@ -106,26 +106,6 @@
 ##'     }
 ##'   }
 ##' }
-##' \item{\code{task_expr}}{
-##'   returns the expression stored in the task.  Essentially equivalent to \code{task_get(task_id)$expr()}
-##'
-##'   \emph{Usage:}
-##'   \code{task_expr(task_id = , locals = FALSE)}
-##'
-##'   \emph{Arguments:}
-##'   \describe{
-##'     \item{\code{task_id}}{
-##'       A single task identifier
-##'     }
-##'
-##'     \item{\code{locals}}{
-##'       Logical, indicating if the local variables associated with the expression should also be retuned.  If \code{TRUE}, then local variables used in the expression will be returned in a \emph{attribute} of the expression \code{envir}.
-##'     }
-##'   }
-##'
-##'   \emph{Value}:
-##'   A quoted expression (a language object).  Turn this into a string with deparse.  If \code{locals} was \code{TRUE} there will be an environment attribute with local variables included.
-##' }
 ##' \item{\code{task_result}}{
 ##'   Get the result for a single task
 ##'

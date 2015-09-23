@@ -63,7 +63,7 @@ test_that("queue", {
   expect_that(obj$tasks_list(), equals(c("1", "2")))
   expect_that(obj$tasks_status(),
               equals(c("1"=TASK_PENDING, "2"=TASK_PENDING)))
-  expect_that(obj$task_expr(task1$id), equals(quote(sin(1))))
+  expect_that(task1$expr(), equals(quote(sin(1))))
 
   ## as.list because 'table' objects are weird.
   expect_that(as.list(obj$tasks_overview()),
@@ -105,9 +105,10 @@ test_that("queue", {
   expect_that(ids, equals(list("1", "2")))
   ids <- as.character(ids) # unlist
 
-  expect_that(obj$task_expr(task1$id), equals(quote(sin(1))))
+  expect_that(task1$expr(), equals(quote(sin(1))))
 
-  tmp <- obj$task_expr(task2$id, locals=TRUE)
+  expect_that(task2$expr(), equals(quote(sin(2))))
+  tmp <- task2$expr(locals=TRUE)
   expect_that(attr(tmp, "envir"), is_a("environment"))
   expect_that(ls(attr(tmp, "envir")), equals(character(0)))
   attr(tmp, "envir") <- NULL
