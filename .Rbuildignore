@@ -7,3 +7,4 @@
 ^docker$
 ^man-roxygen$
 ^autodoc.R$
+^vignettes/src$

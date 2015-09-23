@@ -5,3 +5,4 @@ notes.md
 tmp.R
 *.log
 ignore
+inst/doc

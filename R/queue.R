@@ -63,10 +63,7 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
       ## Alternatively, and more simply, we could check for hearbeat
       ## keys (that would be much simpler if a heartbeat was
       ## compulsary).
-      nw <- self$workers_len()
-      if (nw > 0L) {
-        message(sprintf("%d workers available", nw))
-      }
+      message(sprintf("%d workers available", self$workers_len()))
 
       self$con$SADD(self$keys$rrqueue_queues, self$queue_name)
       self$initialize_environment(packages, sources, global)
