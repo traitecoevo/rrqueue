@@ -173,3 +173,9 @@ obj$workers_list_exited()
 ## The full log from our worker (dropping the first column which is
 ## the worker id and takes up valuble space here):
 obj$workers_log_tail(wid, Inf)[-1]
+
+### This is unfortunate, but I really need things cleaned up nicely so
+### that I can get tests to pass in R CMD check.  Will try to expose
+### this function soon.
+##+ echo=FALSE, results="hide"
+rrqueue:::queue_clean(obj$con, obj$queue_name, purge=TRUE)

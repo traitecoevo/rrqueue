@@ -225,3 +225,7 @@ the worker id and takes up valuble space here):
 ``` {r }
 obj$workers_log_tail(wid, Inf)[-1]
 ```
+
+``` {r echo=FALSE, results="hide"}
+rrqueue:::queue_clean(obj$con, obj$queue_name, purge=TRUE)
+```

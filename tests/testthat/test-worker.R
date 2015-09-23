@@ -4,7 +4,7 @@ test_that("config", {
   expect_that(rrqueue_worker_args(character(0)),
               throws_error())
 
-  queue_name <- "myqueue"
+  queue_name <- "tmpjobs"
 
   opts <- rrqueue_worker_args(queue_name)
   expect_that(opts$queue_name, equals(queue_name))
@@ -78,4 +78,5 @@ test_that("workers_times - no workers", {
                                      command=character(0),
                                      message=character(0),
                                      stringsAsFactors=FALSE)))
+  test_cleanup()
 })

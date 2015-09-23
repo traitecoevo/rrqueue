@@ -1,6 +1,6 @@
 Package: rrqueue
 Title: Scalable Job Queues for R with 'Redis'
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: "Rich FitzJohn <rich.fitzjohn@gmail.com> [aut, cre]"
 Description: Scalable queuing system for R, using 'Redis'.
 Depends: R (>= 3.1.0)
@@ -10,5 +10,5 @@ SystemRequirements: Redis
 Imports: crayon, RedisAPI (>= 0.1.6), R6, digest, docopt, storr, progress, ids
 Suggests: testthat, RedisHeartbeat, RcppRedis, tools,
     knitr,
-    rmarkdown
+    rmarkdown, yaml
 VignetteBuilder: knitr

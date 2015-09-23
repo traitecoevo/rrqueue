@@ -11,6 +11,7 @@ empty_named_character <- function() {
 
 test_cleanup <- function() {
   test_queue_clean("tmpjobs")
+  test_queue_clean("myqueue") # vignette
   test_queue_clean("testq:heartbeat")
 }
 

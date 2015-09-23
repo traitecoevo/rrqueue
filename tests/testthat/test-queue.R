@@ -517,6 +517,7 @@ test_that("wait", {
   expect_that(t$wait(0), throws_error("task not returned in time"))
   expect_that(t$wait(2), equals(2))
   obj$send_message("STOP")
+  Sys.sleep(.5)
 })
 
 test_that("stop workers", {
