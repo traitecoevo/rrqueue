@@ -217,12 +217,12 @@ response_ids:
 
     Get list of message ids that a given worker has responses for.
 
-  args:
+  params:
     worker_id: single worker id
 
 tasks_drop:
   short:  Drop tasks from the database
-  args:
+  params:
     task_ids: Vector of task ids to drop
 
 tasks_set_group:
@@ -234,7 +234,7 @@ tasks_set_group:
     be easier to work with as a set (see \code{tasks_in_groups} and
     \code{task_bundle_get} in \code{\link{observer}}.
 
-  args:
+  params:
 
     task_ids: Vector of task ids
     group: Single group name

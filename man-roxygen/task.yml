@@ -49,7 +49,7 @@ wait:
 
 expr:
   short: returns the expression stored in the task
-  args:
+  params:
     locals: >-
       Logical, indicating if the local variables associated with the
       expression should also be retuned.  If \code{TRUE}, then local
@@ -65,7 +65,7 @@ envir:
 
 times:
   short: returns a summar of times associated with this task.
-  args:
+  params:
     unit_elapsed: >-
       Unit to use in computing elapsed times.  The default is to use
       "secs".  This is passed through to \code{\link{difftime}} so the

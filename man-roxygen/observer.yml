@@ -88,7 +88,7 @@ tasks_groups_list:
 tasks_in_groups:
   short: >-
     Returns a list of tasks belonging to any of the groups listed.
-  args:
+  params:
     groups: >-
       A character vector of one or more groups (use
       \code{tasks_groups_list} to get a list of valid groups).
@@ -96,7 +96,7 @@ tasks_in_groups:
 tasks_lookup_group:
   short: >-
     Look up the group for a set of tasks
-  args:
+  params:
     task_ids: *task_ids
   value: >-
     A named character vector; names refer to task ids and the value is
@@ -106,7 +106,7 @@ task_bundle_get:
   short: >-
     Return a "bundle" of tasks that can be operated on together; see
     \code{\link{task_bundle}}
-  args:
+  params:
     groups: A vector of groups to include in the bundle
     task_ids: >-
       A vector of task ids in the bundle.  Unlike all other uses of
@@ -120,7 +120,7 @@ envirs_list:
 envirs_contents:
   short: >-
     Return a vector of the environment contents
-  args:
+  params:
     envir_ids: &envir_ids >-
       Vector of environment ids.  If omitted then all environments in
       this queue are used.
@@ -137,7 +137,7 @@ envir_workers:
   short: >-
     Determine which workers are known to be able to process tasks in a
     particular environment.
-  args:
+  params:
     envir_id: A single environment id
     worker_ids: &worker_ids
       Optional vector of worker identifiers.  If omitted all workers known
@@ -184,7 +184,7 @@ workers_times:
     returns a summary of times for a set of workers.  This only
     returns useful information if the workers are running a heartbeat
     process, which requires the \code{RedisHeartbeat} package.
-  args:
+  params:
     worker_ids: *worker_ids
     unit_elapsed: >-
       Unit to use in computing elapsed times.  The default is to use
@@ -205,7 +205,7 @@ workers_times:
 workers_log_tail:
   short: >-
     Return the last few entries in the worker logs.
-  args:
+  params:
     worker_ids: *worker_ids
     n: >-
       Number of log entries to return.  Use \code{0} or \code{Inf} to
@@ -229,7 +229,7 @@ workers_info:
     registered at startup and after recieving a \code{INFO} message
     from a \code{\link{queue}} object.  So the information may be out
     of date.
-  args:
+  params:
     worker_ids: *worker_ids
   value: |
     A list, each element of which is a \code{worker_info}
@@ -239,5 +239,5 @@ worker_envir:
     Returns an up-to-date list of environments a worker is capable of
     using (in contrast to the entry in \code{workers_info} that might
     be out of date.
-  args:
+  params:
     worker_id: Single worker identifier

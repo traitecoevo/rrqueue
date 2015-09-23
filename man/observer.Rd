@@ -174,12 +174,26 @@ expect a vector of task identifiers (and if they have a default
 
   \emph{Usage:}
   \code{tasks_in_groups(groups = )}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{groups}}{
+      A character vector of one or more groups (use \code{tasks_groups_list} to get a list of valid groups).
+    }
+  }
 }
 \item{\code{tasks_lookup_group}}{
   Look up the group for a set of tasks
 
   \emph{Usage:}
   \code{tasks_lookup_group(task_ids = NULL)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{task_ids}}{
+      Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+    }
+  }
 
   \emph{Value}:
   A named character vector; names refer to task ids and the value is the group (or \code{NA} if no group is set for that task id).
@@ -189,6 +203,17 @@ expect a vector of task identifiers (and if they have a default
 
   \emph{Usage:}
   \code{task_bundle_get(groups = NULL, tasks_ids = NULL)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{groups}}{
+      A vector of groups to include in the bundle
+    }
+
+    \item{\code{task_ids}}{
+      A vector of task ids in the bundle.  Unlike all other uses of \code{task_ids} here, only one of \code{groups} or \code{task_ids} can be provided, so if \code{task_ids=NULL} then \code{task_ids} is ignored and \code{groups} is used.
+    }
+  }
 }
 \item{\code{envirs_list}}{
   Return a vector of all known environment ids in this queue.
@@ -201,6 +226,13 @@ expect a vector of task identifiers (and if they have a default
 
   \emph{Usage:}
   \code{envirs_contents(envir_ids = NULL)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{envir_ids}}{
+      Vector of environment ids.  If omitted then all environments in this queue are used.
+    }
+  }
 
   \emph{Value}:
   A list, each element of which is a list of elements
@@ -217,6 +249,17 @@ expect a vector of task identifiers (and if they have a default
 
   \emph{Usage:}
   \code{envir_workers(envir_id = , worker_ids = NULL)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{envir_id}}{
+      A single environment id
+    }
+
+    \item{\code{worker_ids}}{
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    }
+  }
 
   \emph{Value}:
   A named logical vector; \code{TRUE} if a worker can use an environment, named by the worker identifers.
@@ -268,6 +311,17 @@ expect a vector of task identifiers (and if they have a default
   \emph{Usage:}
   \code{workers_times(worker_ids = NULL, unit_elapsed = "secs")}
 
+  \emph{Arguments:}
+  \describe{
+    \item{\code{worker_ids}}{
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    }
+
+    \item{\code{unit_elapsed}}{
+      Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to \code{\link{difftime}} so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+    }
+  }
+
   \emph{Value}:
   A \code{data.frame}, one row per worker, with columns
   \describe{
@@ -285,6 +339,17 @@ expect a vector of task identifiers (and if they have a default
   \emph{Usage:}
   \code{workers_log_tail(worker_ids = NULL, n = 1)}
 
+  \emph{Arguments:}
+  \describe{
+    \item{\code{worker_ids}}{
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    }
+
+    \item{\code{n}}{
+      Number of log entries to return.  Use \code{0} or \code{Inf} to return all entries.
+    }
+  }
+
   \emph{Value}:
 
   A \code{data.frame} with columns
@@ -301,6 +366,13 @@ expect a vector of task identifiers (and if they have a default
   \emph{Usage:}
   \code{workers_info(worker_ids = NULL)}
 
+  \emph{Arguments:}
+  \describe{
+    \item{\code{worker_ids}}{
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    }
+  }
+
   \emph{Value}:
   A list, each element of which is a \code{worker_info}
 }
@@ -309,6 +381,13 @@ expect a vector of task identifiers (and if they have a default
 
   \emph{Usage:}
   \code{worker_envir(worker_id = )}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{worker_id}}{
+      Single worker identifier
+    }
+  }
 }
 }
 }

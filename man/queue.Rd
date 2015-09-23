@@ -249,12 +249,26 @@ access.
 
   \emph{Usage:}
   \code{response_ids(worker_id = )}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{worker_id}}{
+      single worker id
+    }
+  }
 }
 \item{\code{tasks_drop}}{
   Drop tasks from the database
 
   \emph{Usage:}
   \code{tasks_drop(task_ids = )}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{task_ids}}{
+      Vector of task ids to drop
+    }
+  }
 }
 \item{\code{tasks_set_group}}{
 
@@ -262,6 +276,22 @@ access.
 
   \emph{Usage:}
   \code{tasks_set_group(task_ids = , group = , exists_action = "stop")}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{task_ids}}{
+      Vector of task ids
+    }
+
+    \item{\code{group}}{
+      Single group name
+    }
+
+    \item{\code{exists_action}}{
+
+      Behaviour when a group name already exists for a given task. Options are \code{"stop"} (throw an error, the default), \code{"warn"} (warn, but don't rename), \code{"pass"} (don't warn, don't rename) and \code{"overwrite"} (replace the group name).
+    }
+  }
 }
 }
 }

@@ -48,7 +48,7 @@
 ##'   Like \code{result}, but will wait until the task is complete.  In order to preserve the \code{key_complete} for anything that might be listening for it (and to avoid collision with anything else writing to that key), this function repeatedly polls the database. Over a slow connection you may want to increase the \code{every} parameter.
 ##'
 ##'   \emph{Usage:}
-##'   \code{wait()}
+##'   \code{wait(timeout = , every = 0.05)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -67,6 +67,13 @@
 ##'   \emph{Usage:}
 ##'   \code{expr(locals = FALSE)}
 ##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{locals}}{
+##'       Logical, indicating if the local variables associated with the expression should also be retuned.  If \code{TRUE}, then local variables used in the expression will be returned in a \emph{attribute} of the expression \code{envir}.
+##'     }
+##'   }
+##'
 ##'   \emph{Value}:
 ##'   A quoted expression (a language object).  Turn this into a string with deparse.  If \code{locals} was \code{TRUE} there will be an environment attribute with local variables included.
 ##' }
@@ -81,6 +88,13 @@
 ##'
 ##'   \emph{Usage:}
 ##'   \code{times(unit_elapsed = "secs")}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{unit_elapsed}}{
+##'       Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to \code{\link{difftime}} so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+##'     }
+##'   }
 ##'
 ##'   \emph{Value}:
 ##'   A one row \code{data.frame} with columns
