@@ -22,6 +22,17 @@ you do not need to make a task object as they will be created for
 you by things like the \code{task_get} method of the
 \code{\link{observer}} and \code{\link{queue}} objects.
 }
+\details{
+Tasks have a \emph{unique identifier}; these are unique within a
+queue and are implemented as an incrementing integer.  However,
+this is an implementation detail and should not be relied on.  The
+identifier is represented as a \emph{character string} rather than
+an integer in most places.
+
+Tasks exist in one of a number of \emph{statuses}.  See the
+\code{status} method below for a list of possible statuses and
+their interpretation.
+}
 \section{Methods}{
 
 
@@ -42,13 +53,13 @@ you by things like the \code{task_get} method of the
   \emph{Value}:
   Scalar character.  Possible values are
   \describe{
-  \item{\code{TASK_PENDING}}{queued, but not run by a worker}
-  \item{\code{TASK_RUNNING}}{being run on a worker, but not complete}
-  \item{\code{TASK_COMPLETE}}{task completed successfully}
-  \item{\code{TASK_ERROR}}{task completed with an error}
-  \item{\code{TASK_ORPHAN}}{task orphaned due to loss of worker}
-  \item{\code{TASK_REDIRECT}}{orphaned task has been redirected}
-  \item{\code{TASK_MISSING}}{task not known (deleted, or never existed)}
+  \item{\code{PENDING}}{queued, but not run by a worker}
+  \item{\code{RUNNING}}{being run on a worker, but not complete}
+  \item{\code{COMPLETE}}{task completed successfully}
+  \item{\code{ERROR}}{task completed with an error}
+  \item{\code{ORPHAN}}{task orphaned due to loss of worker}
+  \item{\code{REDIRECT}}{orphaned task has been redirected}
+  \item{\code{MISSING}}{task not known (deleted, or never existed)}
   }
 }
 \item{\code{result}}{
@@ -73,7 +84,10 @@ you by things like the \code{task_get} method of the
   returns the expression stored in the task
 
   \emph{Usage:}
-  \code{expr()}
+  \code{expr(locals = FALSE)}
+
+  \emph{Value}:
+  A quoted expression (a language object).  Turn this into a string with deparse.  If \code{locals} was \code{TRUE} there will be an environment attribute with local variables included.
 }
 \item{\code{envir}}{
   returns the environment identifier for the task
@@ -85,10 +99,10 @@ you by things like the \code{task_get} method of the
   returns a summar of times associated with this task.
 
   \emph{Usage:}
-  \code{times()}
+  \code{times(unit_elapsed = "secs")}
 
   \emph{Value}:
-  A \code{data.frame} with columns
+  A one row \code{data.frame} with columns
   \describe{
   \item{\code{submitted}}{Time the task was submitted}
   \item{\code{started}}{Time the task was started, or \code{NA} if waiting}

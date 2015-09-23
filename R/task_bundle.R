@@ -1,6 +1,14 @@
-task_bundle <- function(obj, tasks, key_complete=NULL, groups=NULL,
-                        names=NULL) {
-  .R6_task_bundle$new(obj, tasks, key_complete, groups, names)
+##' Create a task bundle.  Generally these are not created manually,
+##' but this page serves to document methods that bundles have.
+##' @title Create a task bundle
+##' @param obj An observer or queue object
+##' @param tasks A list of tasks
+##' @param groups Optional vector of groups, may be dropped soon
+##' @param names Optional vector of names to label output with.
+##' @export
+task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
+  ## TODO: What is groups used for here?  Seems no longer needed?
+  .R6_task_bundle$new(obj, tasks, groups, names)
 }
 
 .R6_task_bundle <- R6::R6Class(
@@ -19,7 +27,7 @@ task_bundle <- function(obj, tasks, key_complete=NULL, groups=NULL,
       results=NULL,
       done=NULL,
 
-      initialize=function(obj, tasks, key_complete, groups, names) {
+      initialize=function(obj, tasks, groups, names) {
         self$con <- obj$con
         self$keys <- obj$keys
         self$obj <- obj
@@ -28,13 +36,10 @@ task_bundle <- function(obj, tasks, key_complete=NULL, groups=NULL,
         self$task_ids <- vcapply(tasks, "[[", "id")
         self$tasks <- setNames(tasks, self$task_ids)
 
-        if (is.null(key_complete)) {
-          key_complete <- unique(vcapply(tasks, "[[", "key_complete"))
-        }
-        self$key_complete <- key_complete
+        self$key_complete <- unique(vcapply(tasks, "[[", "key_complete"))
 
         if (is.null(groups)) {
-          groups <- obj$task_lookup_groups(self$task_ids)
+          groups <- obj$tasks_lookup_group(self$task_ids)
         }
         self$groups <- groups
 
@@ -52,10 +57,11 @@ task_bundle <- function(obj, tasks, key_complete=NULL, groups=NULL,
         self$done <- !(status == TASK_PENDING | status == TASK_RUNNING |
                          status == TASK_ORPHAN)
         if (any(self$done)) {
+          get1 <- function(id) {
+            self$obj$task_result(id, follow_redirect=TRUE, sanitise=TRUE)
+          }
           ids <- self$task_ids[self$done]
-          self$results[self$done] <- self$obj$tasks_result(ids,
-                                                          follow_redirect=TRUE,
-                                                          sanitise=TRUE)
+          self$results[self$done] <- lapply(ids, get1)
         }
       },
 
@@ -126,7 +132,7 @@ task_bundle_get <- function(obj, groups=NULL, task_ids=NULL) {
     stop("Exactly one of task_ids or groups must be given")
   }
   if (is.null(groups)) {
-    groups <- obj$task_lookup_groups(task_ids)
+    groups <- obj$tasks_lookup_group(task_ids)
   } else {
     task_ids <- obj$tasks_in_groups(groups)
   }
@@ -134,5 +140,5 @@ task_bundle_get <- function(obj, groups=NULL, task_ids=NULL) {
   tasks <- lapply(task_ids, obj$task_get)
   names(tasks) <- task_ids
   key_complete <- unique(vcapply(tasks, "[[", "key_complete"))
-  task_bundle(obj, tasks, key_complete, groups)
+  task_bundle(obj, tasks, groups)
 }

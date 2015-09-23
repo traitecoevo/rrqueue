@@ -5,6 +5,16 @@
 ##' you by things like the \code{task_get} method of the
 ##' \code{\link{observer}} and \code{\link{queue}} objects.
 ##'
+##' Tasks have a \emph{unique identifier}; these are unique within a
+##' queue and are implemented as an incrementing integer.  However,
+##' this is an implementation detail and should not be relied on.  The
+##' identifier is represented as a \emph{character string} rather than
+##' an integer in most places.
+##'
+##' Tasks exist in one of a number of \emph{statuses}.  See the
+##' \code{status} method below for a list of possible statuses and
+##' their interpretation.
+##'
 ##' @template task_methods
 ##' @title Create a task handle
 ##' @param obj A \code{queue} or \code{observer} object.
@@ -70,17 +80,17 @@ TASK_MISSING  <- "MISSING"
       task_result(self$con, self$keys, self$id, follow_redirect, sanitise)
     },
 
-    ## TODO: Better handling of locals?
-    expr=function() {
-      task_expr(self$con, self$keys, self$id)
+    expr=function(locals=FALSE) {
+      task_expr(self$con, self$keys, self$id,
+                if (locals) object_cache(self$keys$objects, self$con))
     },
 
     envir=function() {
       unname(tasks_envir(self$con, self$keys, self$id))
     },
 
-    times=function() {
-      tasks_times(self$con, self$keys, self$id)
+    times=function(unit_elapsed="secs") {
+      tasks_times(self$con, self$keys, self$id, unit_elapsed)
     }
   ))
 
@@ -135,10 +145,6 @@ tasks_list <- function(con, keys) {
   as.character(con$HKEYS(keys$tasks_status))
 }
 
-tasks_len <- function(con, keys) {
-  con$HLEN(keys$tasks_status)
-}
-
 tasks_status <- function(con, keys, task_ids=NULL, follow_redirect=FALSE) {
   ret <- from_redis_hash(con, keys$tasks_status, task_ids,
                          as.character, TASK_MISSING)
@@ -163,11 +169,6 @@ tasks_overview <- function(con, keys) {
 
 tasks_envir <- function(con, keys, task_ids=NULL) {
   from_redis_hash(con, keys$tasks_envir, task_ids)
-}
-
-tasks_expr <- function(con, keys, task_ids, ...) {
-  setNames(lapply(task_ids, function(i) task_expr(con, keys, i, ...)),
-           task_ids)
 }
 
 tasks_times <- function(con, keys, task_ids=NULL, unit_elapsed="secs") {
@@ -207,11 +208,15 @@ tasks_in_groups <- function(con, keys, groups) {
 }
 
 ## TODO: not tested anywhere yet.
-tasks_lookup_group <- function(con, keys, task_ids) {
+tasks_lookup_group <- function(con, keys, task_ids=NULL) {
+  if (is.null(task_ids)) {
+    task_ids <- tasks_list(con, keys)
+  }
+  ## TODO: this is not how we usually do this...
+  ## TODO: there are alot of possible edge cases here the should be
+  ## tested, especially missing values
   groups <- from_redis_hash(con, keys$tasks_group)
-  ret <- groups[task_ids]
-  names(ret) <- task_ids
-  ret
+  setNames(groups[task_ids], task_ids)
 }
 
 tasks_set_group <- function(con, keys, task_ids, group,

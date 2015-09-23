@@ -3,19 +3,19 @@ status:
     Returns a scalar character indicating the task status.
 
   params:
-    follow_redirect: >-
+    follow_redirect: &follow_redirect >-
       should we follow redirects to get the status of any requeued task?
 
   value: |
     Scalar character.  Possible values are
     \describe{
-    \item{\code{TASK_PENDING}}{queued, but not run by a worker}
-    \item{\code{TASK_RUNNING}}{being run on a worker, but not complete}
-    \item{\code{TASK_COMPLETE}}{task completed successfully}
-    \item{\code{TASK_ERROR}}{task completed with an error}
-    \item{\code{TASK_ORPHAN}}{task orphaned due to loss of worker}
-    \item{\code{TASK_REDIRECT}}{orphaned task has been redirected}
-    \item{\code{TASK_MISSING}}{task not known (deleted, or never existed)}
+    \item{\code{PENDING}}{queued, but not run by a worker}
+    \item{\code{RUNNING}}{being run on a worker, but not complete}
+    \item{\code{COMPLETE}}{task completed successfully}
+    \item{\code{ERROR}}{task completed with an error}
+    \item{\code{ORPHAN}}{task orphaned due to loss of worker}
+    \item{\code{REDIRECT}}{orphaned task has been redirected}
+    \item{\code{MISSING}}{task not known (deleted, or never existed)}
     }
 
 result:
@@ -23,8 +23,7 @@ result:
     Fetch the result of a task, so long as it has completed.
 
   params:
-    follow_redirect: >-
-      should we follow redirects to get the status of any requeued task?
+    follow_redirect: *follow_redirect
 
     sanitise: >-
 
@@ -33,14 +32,30 @@ result:
 
 expr:
   short: returns the expression stored in the task
+  args:
+    locals: >-
+      Logical, indicating if the local variables associated with the
+      expression should also be retuned.  If \code{TRUE}, then local
+      variables used in the expression will be returned in a
+      \emph{attribute} of the expression \code{envir}.
+  value: >-
+    A quoted expression (a language object).  Turn this into a string
+    with deparse.  If \code{locals} was \code{TRUE} there will be an
+    environment attribute with local variables included.
 
 envir:
   short: returns the environment identifier for the task
 
 times:
   short: returns a summar of times associated with this task.
+  args:
+    unit_elapsed: >-
+      Unit to use in computing elapsed times.  The default is to use
+      "secs".  This is passed through to \code{\link{difftime}} so the
+      units there are available and are "auto", "secs", "mins",
+      "hours", "days", "weeks".
   value: |
-    A \code{data.frame} with columns
+    A one row \code{data.frame} with columns
     \describe{
     \item{\code{submitted}}{Time the task was submitted}
     \item{\code{started}}{Time the task was started, or \code{NA} if waiting}

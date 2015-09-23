@@ -53,7 +53,7 @@ rrqlapply_submit <- function(X, FUN, rrq, ..., group=NULL,
     }
     p()
   }
-  task_bundle(rrq, tasks, key_complete, group, names(X))
+  task_bundle(rrq, tasks, group, names(X))
 }
 
 ## This is hopefully going to be enough:

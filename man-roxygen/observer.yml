@@ -1,0 +1,259 @@
+tasks_list:
+  short: Return a vector of known task ids.
+  value: A character vector
+
+tasks_status:
+  short: >-
+    Returns a named character vector indicating the task status.
+  params:
+    task_ids: &task_ids >-
+      Optional vector of task identifiers.  If omitted all tasks known
+      to rrqueue will be used.
+    follow_redirect: >-
+      should we follow redirects to get the status of any requeued tasks?
+  value: |
+    A named character vector; the names will be the task ids, and the
+    values are the status of each task.  Possible status values are
+    \describe{
+    \item{\code{PENDING}}{queued, but not run by a worker}
+    \item{\code{RUNNING}}{being run on a worker, but not complete}
+    \item{\code{COMPLETE}}{task completed successfully}
+    \item{\code{ERROR}}{task completed with an error}
+    \item{\code{ORPHAN}}{task orphaned due to loss of worker}
+    \item{\code{REDIRECT}}{orphaned task has been redirected}
+    \item{\code{MISSING}}{task not known (deleted, or never existed)}
+    }
+
+tasks_overview:
+  short: >-
+    High-level overview of the tasks in the queue; the number of tasks
+    in each status.
+
+tasks_times:
+  short: returns a summary of times for a set of tasks
+  params:
+    task_ids: *task_ids
+    unit_elapsed: >-
+      Unit to use in computing elapsed times.  The default is to use
+      "secs".  This is passed through to \code{\link{difftime}} so the
+      units there are available and are "auto", "secs", "mins",
+      "hours", "days", "weeks".
+  value: |
+    A \code{data.frame}, one row per task, with columns
+    \describe{
+    \item{\code{submitted}}{Time the task was submitted}
+    \item{\code{started}}{Time the task was started, or \code{NA} if waiting}
+    \item{\code{finished}}{Time the task was completed, or \code{NA}
+    if waiting or running}
+    \item{\code{waiting}}{Elapsed time spent waiting}
+    \item{\code{running}}{Elapsed time spent running, or \code{NA} if waiting}
+    \item{\code{idle}}{Elapsed time since finished, or \code{NA}
+    if waiting or running}
+    }
+    The row names of the data.frame will be the task ids.
+
+tasks_envir:
+  short: returns the mapping of tasks to environment
+  params:
+    task_ids: *task_ids
+  value: >-
+    A named character vector; names are the task ids and the value is
+    the environment id associated with that task.
+
+task_get:
+  short: >-
+    returns a \code{\link{task}} object associated with a given task
+    identifier.  This can be used to interrogate an individual task.
+    See the help for \code{\link{task}} objects for more about these objects.
+  params:
+    task_id: &task_id A single task identifier
+
+task_expr:
+  short: >-
+    returns the expression stored in the task.  Essentially equivalent to
+    \code{task_get(task_id)$expr()}
+  params:
+    task_id: *task_id
+    locals: >-
+      Logical, indicating if the local variables associated with the
+      expression should also be retuned.  If \code{TRUE}, then local
+      variables used in the expression will be returned in a
+      \emph{attribute} of the expression \code{envir}.
+  value: >-
+    A quoted expression (a language object).  Turn this into a string
+    with deparse.  If \code{locals} was \code{TRUE} there will be an
+    environment attribute with local variables included.
+
+task_result:
+  short: >-
+    Get the result for a single task
+  params:
+    task_id: *task_id
+    follow_redirect: &follow_redirect >-
+      should we follow redirects to get the status of any requeued task?
+    sanitise:
+      If the task is not yet complete or is missing, return an
+      \code{UnfetchabmeTask} object rather than throwing an error.
+
+tasks_groups_list:
+  short: >-
+    Returns list of \emph{groups} known to rrqueue.  Groups are
+    assigned during task creation, or through the
+    \code{tasks_set_group} method of \code{link{queue}}.
+
+tasks_in_groups:
+  short: >-
+    Returns a list of tasks belonging to any of the groups listed.
+  args:
+    groups: >-
+      A character vector of one or more groups (use
+      \code{tasks_groups_list} to get a list of valid groups).
+
+tasks_lookup_group:
+  short: >-
+    Look up the group for a set of tasks
+  args:
+    task_ids: *task_ids
+  value: >-
+    A named character vector; names refer to task ids and the value is
+    the group (or \code{NA} if no group is set for that task id).
+
+task_bundle_get:
+  short: >-
+    Return a "bundle" of tasks that can be operated on together; see
+    \code{\link{task_bundle}}
+  args:
+    groups: A vector of groups to include in the bundle
+    task_ids: >-
+      A vector of task ids in the bundle.  Unlike all other uses of
+      \code{task_ids} here, only one of \code{groups} or
+      \code{task_ids} can be provided, so if \code{task_ids=NULL} then
+      \code{task_ids} is ignored and \code{groups} is used.
+
+envirs_list:
+  short: >-
+    Return a vector of all known environment ids in this queue.
+envirs_contents:
+  short: >-
+    Return a vector of the environment contents
+  args:
+    envir_ids: &envir_ids >-
+      Vector of environment ids.  If omitted then all environments in
+      this queue are used.
+  value: |
+    A list, each element of which is a list of elements
+    \describe{
+    \item{\code{packages}}{a vector of packages loaded}
+    \item{\code{sources}}{a vector of files explicitly sourced}
+    \item{\code{source_files}}{a vector of files sourced including
+    their hashes.  This includes and files detected to be sourced
+    by another file}
+    }
+envir_workers:
+  short: >-
+    Determine which workers are known to be able to process tasks in a
+    particular environment.
+  args:
+    envir_id: A single environment id
+    worker_ids: &worker_ids
+      Optional vector of worker identifiers.  If omitted all workers known
+      to rrqueue will be used (currently running workers only).
+  value: >-
+    A named logical vector; \code{TRUE} if a worker can use an
+    environment, named by the worker identifers.
+
+workers_len:
+  short: >-
+    Number of workers that have made themselves known to rrqueue.
+    There are situations where this is an overestimate and that may
+    get fixed at some point.
+
+workers_list:
+  short: >-
+    Returns a vector of all known worker identifiers (may include
+    workers that have crashed).
+
+workers_list_exited:
+  short: >-
+    Returns a vector of workers that are known to have exited.
+    Workers leave behind most of the interesting bits of logs, times,
+    etc, so these identifiers are useful for asking what they worked
+    on.
+
+workers_status:
+  short: >-
+    Returns a named character vector indicating the task status.
+  params:
+    worker_ids: *worker_ids
+  value: |
+    A named character vector; the names will be the task ids, and the
+    values are the status of each task.  Possible status values are
+    \describe{
+    \item{\code{IDLE}}{worker is idle}
+    \item{\code{BUSY}}{worker is running a task}
+    \item{\code{LOST}}{worker has been lost; this is only currently
+    detectable via detecting orphan jobs}
+    }
+
+workers_times:
+  short: >-
+    returns a summary of times for a set of workers.  This only
+    returns useful information if the workers are running a heartbeat
+    process, which requires the \code{RedisHeartbeat} package.
+  args:
+    worker_ids: *worker_ids
+    unit_elapsed: >-
+      Unit to use in computing elapsed times.  The default is to use
+      "secs".  This is passed through to \code{\link{difftime}} so the
+      units there are available and are "auto", "secs", "mins",
+      "hours", "days", "weeks".
+  value: |
+    A \code{data.frame}, one row per worker, with columns
+    \describe{
+    \item{\code{worker_id}}{Worker identifier}
+    \item{\code{expire_max}}{Maximum length of time before worker can
+      be declared missing, in seconds}
+    \item{\code{expire}}{Time until the worker will expire, in seconds}
+    \item{\code{last_seen}}{Time since the worker was last seen}
+    \item{\code{last_action}}{Time since the last worker action}
+    }
+
+workers_log_tail:
+  short: >-
+    Return the last few entries in the worker logs.
+  args:
+    worker_ids: *worker_ids
+    n: >-
+      Number of log entries to return.  Use \code{0} or \code{Inf} to
+      return all entries.
+  value: |
+
+    A \code{data.frame} with columns
+    \describe{
+    \item{\code{worker_id}}{the worker identifier}
+    \item{\code{time}}{time of the event}
+    \item{\code{command}}{the command (e.g., MESSAGE, ALIVE)}
+    \item{\code{message}}{The message associated with the command}
+    }
+
+workers_info:
+  short: >-
+    Returns a set of key/value information about workers.  Includes
+    things like hostnames, process ids, environments that can be run,
+    etc.  Note that this information is from the last time that the
+    worker process registered an \code{INFO} command.  This is
+    registered at startup and after recieving a \code{INFO} message
+    from a \code{\link{queue}} object.  So the information may be out
+    of date.
+  args:
+    worker_ids: *worker_ids
+  value: |
+    A list, each element of which is a \code{worker_info}
+
+worker_envir:
+  short: >-
+    Returns an up-to-date list of environments a worker is capable of
+    using (in contrast to the entry in \code{workers_info} that might
+    be out of date.
+  args:
+    worker_id: Single worker identifier

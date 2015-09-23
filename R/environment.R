@@ -56,11 +56,3 @@ envirs_contents <- function(con, keys, envir_ids=NULL) {
   }
   lapply(dat, string_to_object)
 }
-
-envirs_tasks <- function(con, keys, envir_ids=NULL) {
-  if (is.null(envir_ids)) {
-    envir_ids <- envirs_list(con, keys)
-  }
-  tmp <- tasks_envir(con, keys)
-  split(names(tmp), envir_ids[match(tmp, envir_ids)])
-}

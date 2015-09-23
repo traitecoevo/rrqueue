@@ -97,5 +97,5 @@ enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE, group=NULL,
     p()
   }
 
-  task_bundle(rrq, tasks, key_complete, group, names(X))
+  task_bundle(rrq, tasks, group, names(X))
 }

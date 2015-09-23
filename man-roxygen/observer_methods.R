@@ -1,0 +1,297 @@
+##' @section Methods:
+##'
+##' \describe{
+##' \item{\code{tasks_list}}{
+##'   Return a vector of known task ids.
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_list()}
+##'
+##'   \emph{Value}:
+##'   A character vector
+##' }
+##' \item{\code{tasks_status}}{
+##'   Returns a named character vector indicating the task status.
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_status(task_ids = NULL, follow_redirect = FALSE)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{task_ids}}{
+##'       Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+##'     }
+##'
+##'     \item{\code{follow_redirect}}{
+##'       should we follow redirects to get the status of any requeued tasks?
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   A named character vector; the names will be the task ids, and the
+##'   values are the status of each task.  Possible status values are
+##'   \describe{
+##'   \item{\code{PENDING}}{queued, but not run by a worker}
+##'   \item{\code{RUNNING}}{being run on a worker, but not complete}
+##'   \item{\code{COMPLETE}}{task completed successfully}
+##'   \item{\code{ERROR}}{task completed with an error}
+##'   \item{\code{ORPHAN}}{task orphaned due to loss of worker}
+##'   \item{\code{REDIRECT}}{orphaned task has been redirected}
+##'   \item{\code{MISSING}}{task not known (deleted, or never existed)}
+##'   }
+##' }
+##' \item{\code{tasks_overview}}{
+##'   High-level overview of the tasks in the queue; the number of tasks in each status.
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_overview()}
+##' }
+##' \item{\code{tasks_times}}{
+##'   returns a summary of times for a set of tasks
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_times(task_ids = NULL, unit_elapsed = "secs")}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{task_ids}}{
+##'       Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+##'     }
+##'
+##'     \item{\code{unit_elapsed}}{
+##'       Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to \code{\link{difftime}} so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   A \code{data.frame}, one row per task, with columns
+##'   \describe{
+##'   \item{\code{submitted}}{Time the task was submitted}
+##'   \item{\code{started}}{Time the task was started, or \code{NA} if waiting}
+##'   \item{\code{finished}}{Time the task was completed, or \code{NA}
+##'   if waiting or running}
+##'   \item{\code{waiting}}{Elapsed time spent waiting}
+##'   \item{\code{running}}{Elapsed time spent running, or \code{NA} if waiting}
+##'   \item{\code{idle}}{Elapsed time since finished, or \code{NA}
+##'   if waiting or running}
+##'   }
+##'   The row names of the data.frame will be the task ids.
+##' }
+##' \item{\code{tasks_envir}}{
+##'   returns the mapping of tasks to environmen
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_envir(task_ids = NULL)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{task_ids}}{
+##'       Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   A named character vector; names are the task ids and the value is the environment id associated with that task.
+##' }
+##' \item{\code{task_get}}{
+##'   returns a \code{\link{task}} object associated with a given task identifier.  This can be used to interrogate an individual task. See the help for \code{\link{task}} objects for more about these objects.
+##'
+##'   \emph{Usage:}
+##'   \code{task_get(task_id = )}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{task_id}}{
+##'       A single task identifier
+##'     }
+##'   }
+##' }
+##' \item{\code{task_expr}}{
+##'   returns the expression stored in the task.  Essentially equivalent to \code{task_get(task_id)$expr()}
+##'
+##'   \emph{Usage:}
+##'   \code{task_expr(task_id = , locals = FALSE)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{task_id}}{
+##'       A single task identifier
+##'     }
+##'
+##'     \item{\code{locals}}{
+##'       Logical, indicating if the local variables associated with the expression should also be retuned.  If \code{TRUE}, then local variables used in the expression will be returned in a \emph{attribute} of the expression \code{envir}.
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   A quoted expression (a language object).  Turn this into a string with deparse.  If \code{locals} was \code{TRUE} there will be an environment attribute with local variables included.
+##' }
+##' \item{\code{task_result}}{
+##'   Get the result for a single task
+##'
+##'   \emph{Usage:}
+##'   \code{task_result(task_id = , follow_redirect = FALSE, sanitise = FALSE)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{task_id}}{
+##'       A single task identifier
+##'     }
+##'
+##'     \item{\code{follow_redirect}}{
+##'       should we follow redirects to get the status of any requeued task?
+##'     }
+##'
+##'     \item{\code{sanitise}}{
+##'       If the task is not yet complete or is missing, return an \code{UnfetchabmeTask} object rather than throwing an error.
+##'     }
+##'   }
+##' }
+##' \item{\code{tasks_groups_list}}{
+##'   Returns list of \emph{groups} known to rrqueue.  Groups are assigned during task creation, or through the \code{tasks_set_group} method of \code{link{queue}}.
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_groups_list()}
+##' }
+##' \item{\code{tasks_in_groups}}{
+##'   Returns a list of tasks belonging to any of the groups listed.
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_in_groups(groups = )}
+##' }
+##' \item{\code{tasks_lookup_group}}{
+##'   Look up the group for a set of tasks
+##'
+##'   \emph{Usage:}
+##'   \code{tasks_lookup_group(task_ids = NULL)}
+##'
+##'   \emph{Value}:
+##'   A named character vector; names refer to task ids and the value is the group (or \code{NA} if no group is set for that task id).
+##' }
+##' \item{\code{task_bundle_get}}{
+##'   Return a "bundle" of tasks that can be operated on together; see \code{\link{task_bundle}}
+##'
+##'   \emph{Usage:}
+##'   \code{task_bundle_get(groups = NULL, tasks_ids = NULL)}
+##' }
+##' \item{\code{envirs_list}}{
+##'   Return a vector of all known environment ids in this queue.
+##'
+##'   \emph{Usage:}
+##'   \code{envirs_list()}
+##' }
+##' \item{\code{envirs_contents}}{
+##'   Return a vector of the environment contents
+##'
+##'   \emph{Usage:}
+##'   \code{envirs_contents(envir_ids = NULL)}
+##'
+##'   \emph{Value}:
+##'   A list, each element of which is a list of elements
+##'   \describe{
+##'   \item{\code{packages}}{a vector of packages loaded}
+##'   \item{\code{sources}}{a vector of files explicitly sourced}
+##'   \item{\code{source_files}}{a vector of files sourced including
+##'   their hashes.  This includes and files detected to be sourced
+##'   by another file}
+##'   }
+##' }
+##' \item{\code{envir_workers}}{
+##'   Determine which workers are known to be able to process tasks in a particular environment.
+##'
+##'   \emph{Usage:}
+##'   \code{envir_workers(envir_id = , worker_ids = NULL)}
+##'
+##'   \emph{Value}:
+##'   A named logical vector; \code{TRUE} if a worker can use an environment, named by the worker identifers.
+##' }
+##' \item{\code{workers_len}}{
+##'   Number of workers that have made themselves known to rrqueue. There are situations where this is an overestimate and that may get fixed at some point.
+##'
+##'   \emph{Usage:}
+##'   \code{workers_len()}
+##' }
+##' \item{\code{workers_list}}{
+##'   Returns a vector of all known worker identifiers (may include workers that have crashed).
+##'
+##'   \emph{Usage:}
+##'   \code{workers_list()}
+##' }
+##' \item{\code{workers_list_exited}}{
+##'   Returns a vector of workers that are known to have exited. Workers leave behind most of the interesting bits of logs, times, etc, so these identifiers are useful for asking what they worked on.
+##'
+##'   \emph{Usage:}
+##'   \code{workers_list_exited()}
+##' }
+##' \item{\code{workers_status}}{
+##'   Returns a named character vector indicating the task status.
+##'
+##'   \emph{Usage:}
+##'   \code{workers_status(worker_ids = NULL)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{worker_ids}}{
+##'       Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   A named character vector; the names will be the task ids, and the
+##'   values are the status of each task.  Possible status values are
+##'   \describe{
+##'   \item{\code{IDLE}}{worker is idle}
+##'   \item{\code{BUSY}}{worker is running a task}
+##'   \item{\code{LOST}}{worker has been lost; this is only currently
+##'   detectable via detecting orphan jobs}
+##'   }
+##' }
+##' \item{\code{workers_times}}{
+##'   returns a summary of times for a set of workers.  This only returns useful information if the workers are running a heartbeat process, which requires the \code{RedisHeartbeat} package.
+##'
+##'   \emph{Usage:}
+##'   \code{workers_times(worker_ids = NULL, unit_elapsed = "secs")}
+##'
+##'   \emph{Value}:
+##'   A \code{data.frame}, one row per worker, with columns
+##'   \describe{
+##'   \item{\code{worker_id}}{Worker identifier}
+##'   \item{\code{expire_max}}{Maximum length of time before worker can
+##'     be declared missing, in seconds}
+##'   \item{\code{expire}}{Time until the worker will expire, in seconds}
+##'   \item{\code{last_seen}}{Time since the worker was last seen}
+##'   \item{\code{last_action}}{Time since the last worker action}
+##'   }
+##' }
+##' \item{\code{workers_log_tail}}{
+##'   Return the last few entries in the worker logs.
+##'
+##'   \emph{Usage:}
+##'   \code{workers_log_tail(worker_ids = NULL, n = 1)}
+##'
+##'   \emph{Value}:
+##'
+##'   A \code{data.frame} with columns
+##'   \describe{
+##'   \item{\code{worker_id}}{the worker identifier}
+##'   \item{\code{time}}{time of the event}
+##'   \item{\code{command}}{the command (e.g., MESSAGE, ALIVE)}
+##'   \item{\code{message}}{The message associated with the command}
+##'   }
+##' }
+##' \item{\code{workers_info}}{
+##'   Returns a set of key/value information about workers.  Includes things like hostnames, process ids, environments that can be run, etc.  Note that this information is from the last time that the worker process registered an \code{INFO} command.  This is registered at startup and after recieving a \code{INFO} message from a \code{\link{queue}} object.  So the information may be out of date.
+##'
+##'   \emph{Usage:}
+##'   \code{workers_info(worker_ids = NULL)}
+##'
+##'   \emph{Value}:
+##'   A list, each element of which is a \code{worker_info}
+##' }
+##' \item{\code{worker_envir}}{
+##'   Returns an up-to-date list of environments a worker is capable of using (in contrast to the entry in \code{workers_info} that might be out of date.
+##'
+##'   \emph{Usage:}
+##'   \code{worker_envir(worker_id = )}
+##' }
+##' }

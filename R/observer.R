@@ -1,4 +1,22 @@
-##' Creates an observer for an rrqueue
+##' Creates an observer for an rrqueue.  This is the "base class" for
+##' a couple of different objects in rrqueue; notably the
+##' \code{\link{queue}} object.  So any method listed here also works
+##' within \code{queue} objects.
+##'
+##' Most of the methods of the \code{observer} object are extremely
+##' simple and involve fetching information from the database about
+##' the state of tasks, environments and workers.
+##'
+##' The method and argument names try to give hints about the sort of
+##' things they expect; a method asking for \code{task_id} expects a
+##' single task identifier, while those asking for \code{task_ids}
+##' expect a vector of task identifiers (and if they have a default
+##' \code{NULL} then will default to returning information for
+##' \emph{all} task identifiers).  Similarly, a method starting
+##' \code{task_} applies to one task while a method starting
+##' \code{tasks_} applies to multiple.
+##'
+##' @template observer_methods
 ##' @title Creates an observer for an rrqueue
 ##' @param queue_name Name of the queue
 ##' @param redis_host Redis hostname
@@ -37,9 +55,6 @@ observer <- function(queue_name,
     tasks_list=function() {
       tasks_list(self$con, self$keys)
     },
-    tasks_len=function() {
-      tasks_len(self$con, self$keys)
-    },
     tasks_status=function(task_ids=NULL, follow_redirect=FALSE) {
       tasks_status(self$con, self$keys, task_ids, follow_redirect)
     },
@@ -52,15 +67,6 @@ observer <- function(queue_name,
     tasks_envir=function(task_ids=NULL) {
       tasks_envir(self$con, self$keys, task_ids)
     },
-    tasks_groups_list=function() {
-      tasks_groups_list(self$con, self$keys)
-    },
-    tasks_in_groups=function(groups) {
-      tasks_in_groups(self$con, self$keys, groups)
-    },
-    tasks_lookup_group=function(task_ids) {
-      tasks_lookup_group(self$con, self$keys, task_ids)
-    },
     task_get=function(task_id) {
       task(self, task_id)
     },
@@ -70,12 +76,16 @@ observer <- function(queue_name,
     task_result=function(task_id, follow_redirect=FALSE, sanitise=FALSE) {
       task_result(self$con, self$keys, task_id, follow_redirect, sanitise)
     },
-    tasks_expr=function(task_ids, ...) {
-      tasks_expr(self$con, self$keys, task_ids, ...)
+
+    ## (task groups)
+    tasks_groups_list=function() {
+      tasks_groups_list(self$con, self$keys)
     },
-    tasks_result=function(task_ids, follow_redirect=FALSE, sanitise=FALSE) {
-      setNames(lapply(task_ids, self$task_result, follow_redirect, sanitise),
-               task_ids)
+    tasks_in_groups=function(groups) {
+      tasks_in_groups(self$con, self$keys, groups)
+    },
+    tasks_lookup_group=function(task_ids=NULL) {
+      tasks_lookup_group(self$con, self$keys, task_ids)
     },
     task_bundle_get=function(groups=NULL, tasks_ids=NULL) {
       task_bundle_get(self, groups, task_ids)
@@ -87,10 +97,6 @@ observer <- function(queue_name,
     },
     envirs_contents=function(envir_ids=NULL) {
       envirs_contents(self$con, self$keys, envir_ids)
-    },
-    ## NOTE: this is not yet used anywhere!
-    envirs_tasks=function(envir_ids=NULL) {
-      envirs_tasks(self$con, self$keys, envir_ids)
     },
     envir_workers=function(envir_id, worker_ids=NULL) {
       envir_workers(self$con, self$keys, envir_id, worker_ids)
@@ -109,11 +115,8 @@ observer <- function(queue_name,
     workers_status=function(worker_ids=NULL) {
       workers_status(self$con, self$keys, worker_ids)
     },
-    workers_times=function(worker_ids=NULL) {
-      workers_times(self$con, self$keys, worker_ids)
-    },
-    worker_log_tail=function(worker_id, n=1) {
-      worker_log_tail(self$con, self$keys, worker_id, n)
+    workers_times=function(worker_ids=NULL, unit_elapsed="secs") {
+      workers_times(self$con, self$keys, worker_ids, unit_elapsed)
     },
     workers_log_tail=function(worker_ids=NULL, n=1) {
       workers_log_tail(self$con, self$keys, worker_ids, n)

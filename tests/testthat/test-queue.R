@@ -60,7 +60,7 @@ test_that("queue", {
   expect_that(task2$id, equals("2"))
   expect_that(con$GET(keys$tasks_counter), equals("2"))
 
-  expect_that(obj$tasks_len(), equals(2))
+  expect_that(obj$tasks_list(), equals(c("1", "2")))
   expect_that(obj$tasks_status(),
               equals(c("1"=TASK_PENDING, "2"=TASK_PENDING)))
   expect_that(obj$task_expr(task1$id), equals(quote(sin(1))))
@@ -112,10 +112,6 @@ test_that("queue", {
   expect_that(ls(attr(tmp, "envir")), equals(character(0)))
   attr(tmp, "envir") <- NULL
   expect_that(tmp, equals(quote(sin(2))))
-
-  expect_that(obj$tasks_expr(c("1", "2")),
-              equals(list("1"=quote(sin(1)),
-                          "2"=quote(sin(2)))))
 
   ## TODO: check that envir is 1 and that the complete queue is empty,
   ## but that it is registered

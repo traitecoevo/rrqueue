@@ -379,7 +379,7 @@ workers_status <- function(con, keys, worker_ids=NULL) {
   from_redis_hash(con, keys$workers_status, worker_ids)
 }
 
-workers_times <- function(con, keys, worker_ids=NULL) {
+workers_times <- function(con, keys, worker_ids=NULL, unit_elapsed="secs") {
   if (is.null(worker_ids)) {
     worker_ids <- workers_list(con, keys)
   }
@@ -406,8 +406,8 @@ workers_times <- function(con, keys, worker_ids=NULL) {
   data.frame(worker_id=worker_ids,
              expire_max=expire_max,
              expire=t_expire,
-             last_seen=expire_max - t_expire,
-             last_action=t_curr - t_last,
+             last_seen=as.numeric(expire_max - t_expire, unit_elapsed),
+             last_action=as.numeric(t_curr - t_last, unit_elapsed),
              stringsAsFactors=FALSE)
 }
 
