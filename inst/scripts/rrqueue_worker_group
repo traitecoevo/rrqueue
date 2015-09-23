@@ -1,3 +1,0 @@
-#!/usr/bin/env Rscript
-library(methods)
-w <- rrqueue:::worker_group_main()
