@@ -598,10 +598,10 @@ print.worker_info <- function(x, banner=FALSE, styles=worker_styles(), ...) {
   invisible(x)
 }
 
-worker_cleanup <- function(con, keys, worker_name) {
-  con$DEL(rrqueue_key_worker_heartbeat(keys$queue_name, worker_name))
-  con$SREM(keys$workers_name,   worker_name)
-  con$HDEL(keys$workers_status, worker_name)
+worker_cleanup <- function(con, keys, worker_id) {
+  con$DEL(rrqueue_key_worker_heartbeat(keys$queue_name, worker_id))
+  con$SREM(keys$workers_name,   worker_id)
+  con$HDEL(keys$workers_status, worker_id)
 }
 
 workers_info <- function(con, keys, worker_ids=NULL) {

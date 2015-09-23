@@ -94,11 +94,11 @@ send_message:
       Arguments to pass through to commands.  Some commands require
       arguments, others do not.  See Details.
 
-    worker_ids: >-
+    worker_ids: &worker_ids >-
 
       Optional vector of worker ids to send the message to.  If this
-      is omitted (or \code{NULL} then the message is broadcast to all
-      workers that rrqueue knows about.
+      is omitted (or \code{NULL} then try all workers that rrqueue
+      knows about.
 
   value: >-
 
@@ -160,10 +160,7 @@ has_responses:
 
   params:
     message_id: id of the message (as returned by \code{send_message}
-    worker_ids: >-
-
-      optional vector of worker ids, or \code{NULL} (the default) to
-      try all known workers.
+    worker_ids: *worker_ids
 
   value: >-
 
@@ -179,10 +176,7 @@ get_responses:
 
   params:
     message_id: id of the message (as returned by \code{send_message}
-    worker_ids: >-
-
-      optional vector of worker ids, or \code{NULL} (the default) to
-      try all known workers.
+    worker_ids: *worker_ids
 
     delete: >-
 
@@ -245,3 +239,24 @@ tasks_set_group:
       \code{"warn"} (warn, but don't rename), \code{"pass"} (don't
       warn, don't rename) and \code{"overwrite"} (replace the group
       name).
+
+stop_workers:
+  short: >-
+
+    Stop some or all rrqueue workers.
+
+  params:
+    worker_ids: *worker_ids
+    kill_local: >-
+
+      After requesting stop, kill any workers still running?  Because
+      messages are only recieved by workers that are not running jobs,
+      this might be needed to get through to stop local workers.
+      Remote workers cannot be killed this way.
+
+    wait_stop: >-
+
+      Time, in seconds, to wait between sending the STOP message and
+      attempting to kill workers.  Set this to 0 to just straight up
+      kill workers, or use the default to nicely bring down any idle
+      workers.

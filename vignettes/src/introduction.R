@@ -26,7 +26,7 @@
 ##+ echo=FALSE, results="hide"
 rrqueue:::queue_clean(RedisAPI::hiredis(), "myqueue",
                       purge=TRUE, stop_workers=TRUE,
-                      kill_local_workers=TRUE, wait_stop=0.1)
+                      kill_local=TRUE, wait_stop=0.1)
 lang_output <- function(x, lang) {
   cat(c(sprintf("```%s", lang), x, "```"), sep="\n")
 }
@@ -159,10 +159,10 @@ t$result()
 t$times()
 
 ## # Finishing up
+obj$stop_workers()
 
-## Messaging will be properly dealt with in another vignette.
-id <- obj$send_message("STOP")
-obj$get_response(id, wid, wait=10)
+##+ echo=FALSE
+Sys.sleep(.5)
 
 ##+ results="asis", echo=FALSE
 plain_output(readLines(logfile))

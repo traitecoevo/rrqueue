@@ -26,7 +26,7 @@ twice the number.  It's useful for testing.
 ``` {r echo=FALSE, results="hide"}
 rrqueue:::queue_clean(RedisAPI::hiredis(), "myqueue",
                       purge=TRUE, stop_workers=TRUE,
-                      kill_local_workers=TRUE, wait_stop=0.1)
+                      kill_local=TRUE, wait_stop=0.1)
 lang_output <- function(x, lang) {
   cat(c(sprintf("```%s", lang), x, "```"), sep="\n")
 }
@@ -203,11 +203,12 @@ t$times()
 ```
 
 # Finishing up
-
-Messaging will be properly dealt with in another vignette.
 ``` {r }
-id <- obj$send_message("STOP")
-obj$get_response(id, wid, wait=10)
+obj$stop_workers()
+```
+
+``` {r echo=FALSE}
+Sys.sleep(.5)
 ```
 
 ``` {r results="asis", echo=FALSE}

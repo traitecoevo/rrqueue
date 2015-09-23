@@ -16,7 +16,7 @@ test_cleanup <- function() {
 
 test_queue_clean <- function(name) {
   queue_clean(redis_connection(NULL), name, purge=TRUE,
-              stop_workers=TRUE, kill_local_workers=TRUE, wait_stop=0.05)
+              stop_workers=TRUE, kill_local=TRUE, wait_stop=0.05)
 }
 
 skip_if_no_heartbeat <- function() {

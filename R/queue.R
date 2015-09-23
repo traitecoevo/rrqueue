@@ -239,41 +239,21 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
 
     tasks_set_group=function(task_ids, group, exists_action="stop") {
       tasks_set_group(self$con, self$keys, task_ids, group, exists_action)
+    },
+
+    stop_workers=function(worker_ids=NULL, kill_local=FALSE, wait_stop=1) {
+      stop_workers(self$con, self$keys, worker_ids, kill_local, wait_stop)
     }
   ))
 
 queue_clean <- function(con, queue_name, purge=FALSE,
                         stop_workers=FALSE,
-                        kill_local_workers=FALSE,
+                        kill_local=FALSE,
                         wait_stop=1) {
   keys <- rrqueue_keys(queue_name)
   if (stop_workers) {
-    queue_send_message(con, keys, "STOP")
+    stop_workers(con, keys, NULL, kill_local, wait_stop)
   }
-
-  if (kill_local_workers) {
-    ## Get the set of workers:
-    if (stop_workers && wait_stop > 0 && length(workers_list(con, keys)) > 0) {
-      ## Give the workers a second to cleanup
-      message("Waiting for local workers to stop themselves")
-      Sys.sleep(wait_stop)
-    }
-    worker_ids <- workers_list(con, keys)
-    if (length(worker_ids) > 0) {
-      w_info <- from_redis_hash(con, keys$workers_info, worker_ids,
-                                f=Vectorize(string_to_object, SIMPLIFY=FALSE))
-      w_local <- vcapply(w_info, "[[", "hostname") == hostname()
-      if (any(w_local)) {
-        w_local_pid <- vnapply(w_info[w_local], "[[", "pid")
-        tools::pskill(w_local_pid, tools::SIGKILL)
-        ## Some attempt at cleanup:
-        for (name in names(w_local)) {
-          worker_cleanup(con, keys, name)
-        }
-      }
-    }
-  }
-
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
   if (purge) {
@@ -353,4 +333,47 @@ get_responses <- function(con, keys, message_id, worker_ids=NULL,
 
   names(res) <- worker_ids
   lapply(res, function(x) string_to_object(x)$result)
+}
+
+stop_workers <- function(con, keys, worker_ids=NULL,
+                         kill_local=FALSE, wait_stop=1) {
+  worker_ids <- workers_list(con, keys)
+  if (length(worker_ids) == 0L) {
+    return(invisible())
+  }
+  message_id <- queue_send_message(con, keys, "STOP", worker_ids=worker_ids)
+
+  ## TODO: would be nice if this could retrieve actual messages, but
+  ## that requires getting missing message support into get_responses.
+  if (kill_local) {
+    ## Get the set of workers:
+    if (wait_stop > 0 && length(workers_list(con, keys)) > 0) {
+      ## Give the workers a second to cleanup
+      message("Waiting for local workers to stop themselves")
+      Sys.sleep(wait_stop)
+    }
+    extant <- workers_list(con, keys)
+    stopped <- setdiff(worker_ids, extant)
+    if (length(stopped) > 0L) {
+      message(sprintf("%d workers stopped cleanly: %s",
+                      length(stopped), paste(stopped, collapse=", ")))
+    }
+    worker_ids <- intersect(worker_ids, extant)
+
+    if (length(worker_ids) > 0) {
+      w_info <- workers_info(con, keys, worker_ids)
+      w_local <- worker_ids[vcapply(w_info, "[[", "hostname") == hostname()]
+      n_local <- length(w_local)
+      if (n_local > 0) {
+        w_local_pid <- vnapply(w_info[w_local], "[[", "pid")
+        message(sprintf("killing %d workers: %s",
+                        length(w_local), paste(w_local, collapse=", ")))
+        tools::pskill(w_local_pid, tools::SIGKILL)
+        ## Some attempt at cleanup:
+        for (worker_id in w_local) {
+          worker_cleanup(con, keys, worker_id)
+        }
+      }
+    }
+  }
 }

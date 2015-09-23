@@ -138,7 +138,7 @@ access.
 
     \item{\code{worker_ids}}{
 
-      Optional vector of worker ids to send the message to.  If this is omitted (or \code{NULL} then the message is broadcast to all workers that rrqueue knows about.
+      Optional vector of worker ids to send the message to.  If this is omitted (or \code{NULL} then try all workers that rrqueue knows about.
     }
   }
 
@@ -176,7 +176,7 @@ access.
 
     \item{\code{worker_ids}}{
 
-      optional vector of worker ids, or \code{NULL} (the default) to try all known workers.
+      Optional vector of worker ids to send the message to.  If this is omitted (or \code{NULL} then try all workers that rrqueue knows about.
     }
   }
 
@@ -200,7 +200,7 @@ access.
 
     \item{\code{worker_ids}}{
 
-      optional vector of worker ids, or \code{NULL} (the default) to try all known workers.
+      Optional vector of worker ids to send the message to.  If this is omitted (or \code{NULL} then try all workers that rrqueue knows about.
     }
 
     \item{\code{delete}}{
@@ -290,6 +290,31 @@ access.
     \item{\code{exists_action}}{
 
       Behaviour when a group name already exists for a given task. Options are \code{"stop"} (throw an error, the default), \code{"warn"} (warn, but don't rename), \code{"pass"} (don't warn, don't rename) and \code{"overwrite"} (replace the group name).
+    }
+  }
+}
+\item{\code{stop_workers}}{
+
+  Stop some or all rrqueue workers.
+
+  \emph{Usage:}
+  \code{stop_workers(worker_ids = NULL, kill_local = FALSE, wait_stop = 1)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{worker_ids}}{
+
+      Optional vector of worker ids to send the message to.  If this is omitted (or \code{NULL} then try all workers that rrqueue knows about.
+    }
+
+    \item{\code{kill_local}}{
+
+      After requesting stop, kill any workers still running?  Because messages are only recieved by workers that are not running jobs, this might be needed to get through to stop local workers. Remote workers cannot be killed this way.
+    }
+
+    \item{\code{wait_stop}}{
+
+      Time, in seconds, to wait between sending the STOP message and attempting to kill workers.  Set this to 0 to just straight up kill workers, or use the default to nicely bring down any idle workers.
     }
   }
 }
