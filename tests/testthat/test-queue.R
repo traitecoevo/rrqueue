@@ -501,3 +501,20 @@ test_that("controlled failures", {
 
   obj$send_message("STOP")
 })
+
+test_that("wait", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  t <- obj$enqueue(slowdouble(0.3))
+  expect_that(t$wait(0), throws_error("task not returned in time"))
+  expect_that(t$wait(0.1), throws_error("task not returned in time"))
+
+  wid <- worker_spawn(obj$queue_name, tempfile())
+  expect_that(t$wait(1), equals(0.6))
+  expect_that(t$wait(1), takes_less_than(1))
+
+  t <- obj$enqueue(slowdouble(1))
+  expect_that(t$wait(0), throws_error("task not returned in time"))
+  expect_that(t$wait(2), equals(2))
+  obj$send_message("STOP")
+})

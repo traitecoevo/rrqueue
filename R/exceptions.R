@@ -32,5 +32,5 @@ WorkerTaskError <- function(e) {
 UnfetchableTask <- function(task_id, task_status) {
   structure(list(task_id=task_id,
                  task_status=task_status),
-            class=c(class, "WorkerError", "error", "condition"))
+            class=c("UnfetchableTask", "error", "condition"))
 }

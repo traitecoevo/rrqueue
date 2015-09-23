@@ -80,6 +80,23 @@ their interpretation.
     }
   }
 }
+\item{\code{wait}}{
+  Like \code{result}, but will wait until the task is complete.  In order to preserve the \code{key_complete} for anything that might be listening for it (and to avoid collision with anything else writing to that key), this function repeatedly polls the database. Over a slow connection you may want to increase the \code{every} parameter.
+
+  \emph{Usage:}
+  \code{wait()}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{timeout}}{
+      Length of time, in seconds, to wait.  A value of zero will not wait.  Infinite times are possible and can be escaped by pressing Ctrl-C or Escape (depending on platform).
+    }
+
+    \item{\code{every}}{
+      How often, in seconds, to poll for results
+    }
+  }
+}
 \item{\code{expr}}{
   returns the expression stored in the task
 

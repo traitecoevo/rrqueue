@@ -91,6 +91,10 @@ TASK_MISSING  <- "MISSING"
 
     times=function(unit_elapsed="secs") {
       tasks_times(self$con, self$keys, self$id, unit_elapsed)
+    },
+
+    wait=function(timeout, every=0.05) {
+      task_wait(self$con, self$keys, self$id, timeout, every)
     }
   ))
 
@@ -251,4 +255,19 @@ tasks_set_group <- function(con, keys, task_ids, group,
     con$HMSET(keys$tasks_group, task_ids, group)
   }
   invisible(NULL)
+}
+
+task_wait <- function(con, keys, task_id, timeout, every=0.05) {
+  t0 <- Sys.time()
+  timeout <- as.difftime(timeout, units="secs")
+  repeat {
+    res <- task_result(con, keys, task_id, sanitise=TRUE)
+    if (!inherits(res, "UnfetchableTask")) {
+      return(res)
+    } else if (Sys.time() - t0 < timeout) {
+      Sys.sleep(every)
+    } else {
+      stop("task not returned in time")
+    }
+  }
 }
