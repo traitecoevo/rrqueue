@@ -85,9 +85,19 @@ load_config <- function(filename, opts=NULL) {
 ##' @param redis_port Port for the Redis server
 ##' @param n Number of workers to spawn
 ##' @param timeout Time to wait for the worker to appear
-##' @param time_poll Period to poll for the worker (must be in seconds)
+##' @param time_poll Period to poll for the worker (must be in
+##'   seconds)
 ##' @param heartbeat_period Period between heartbeat pulses
 ##' @param heartbeat_expire Time that heartbeat pulses will persist
+##' @param path Path to start the worker in.  By default workers will
+##'   start in the current working directory, but you can start them
+##'   elsewhere by providing a path here.  If the path does not exist,
+##'   an error will be thrown.  If \code{n} is greater than 1, all
+##'   workers will start in the same working directory.  The
+##'   \code{logfile} argument will be interpreted relative to current
+##'   working directory (not the worker working directory); use
+##'   \code{\link{normalizePath}} to convert into an absolute path
+##'   name to prevent this.
 ##' @export
 worker_spawn <- function(queue_name, logfile,
                          redis_host="127.0.0.1",
@@ -95,7 +105,8 @@ worker_spawn <- function(queue_name, logfile,
                          n=1,
                          timeout=20, time_poll=1,
                          heartbeat_period=NULL,
-                         heartbeat_expire=NULL) {
+                         heartbeat_expire=NULL,
+                         path=".") {
   rrqueue_worker <- find_script("rrqueue_worker")
   env <- paste0("RLIBS=", paste(.libPaths(), collapse=":"),
                 'R_TESTS=""')
@@ -123,12 +134,17 @@ worker_spawn <- function(queue_name, logfile,
   }
   opts <- c(opts, "--key-worker-alive", key_worker_alive, queue_name)
 
+  dir_create(dirname(logfile))
+  logfile <- file.path(normalizePath(dirname(logfile)), basename(logfile))
+
   code <- integer(n)
-  for (i in seq_len(n)) {
-    code[[i]] <- system2(rrqueue_worker, opts,
-                         env=env, wait=FALSE,
-                         stdout=logfile[[i]], stderr=logfile[[i]])
-  }
+  with_wd(path, {
+    for (i in seq_len(n)) {
+      code[[i]] <- system2(rrqueue_worker, opts,
+                           env=env, wait=FALSE,
+                           stdout=logfile[[i]], stderr=logfile[[i]])
+    }
+  })
   if (any(code != 0L)) {
     warning("Error launching script: worker *probably* does not exist")
   }

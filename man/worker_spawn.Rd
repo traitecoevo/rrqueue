@@ -6,7 +6,7 @@
 \usage{
 worker_spawn(queue_name, logfile, redis_host = "127.0.0.1",
   redis_port = 6379, n = 1, timeout = 20, time_poll = 1,
-  heartbeat_period = NULL, heartbeat_expire = NULL)
+  heartbeat_period = NULL, heartbeat_expire = NULL, path = ".")
 }
 \arguments{
 \item{queue_name}{Name of the queue to connect to}
@@ -23,11 +23,22 @@ must be provided.}
 
 \item{timeout}{Time to wait for the worker to appear}
 
-\item{time_poll}{Period to poll for the worker (must be in seconds)}
+\item{time_poll}{Period to poll for the worker (must be in
+seconds)}
 
 \item{heartbeat_period}{Period between heartbeat pulses}
 
 \item{heartbeat_expire}{Time that heartbeat pulses will persist}
+
+\item{path}{Path to start the worker in.  By default workers will
+start in the current working directory, but you can start them
+elsewhere by providing a path here.  If the path does not exist,
+an error will be thrown.  If \code{n} is greater than 1, all
+workers will start in the same working directory.  The
+\code{logfile} argument will be interpreted relative to current
+working directory (not the worker working directory); use
+\code{\link{normalizePath}} to convert into an absolute path
+name to prevent this.}
 }
 \description{
 Spawn a worker in the background

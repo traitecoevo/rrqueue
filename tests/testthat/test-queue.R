@@ -438,7 +438,7 @@ test_that("fetch files", {
 
 test_that("empty start", {
   path <- tempfile("rrqueue_")
-  dir.create(path, FALSE, TRUE)
+  dir.create(path)
 
   test_cleanup()
   queues()
@@ -446,7 +446,8 @@ test_that("empty start", {
 
   Sys.setenv("R_TESTS" = "")
   logfile <- tempfile("rrqueue_", fileext=".log")
-  wid <- with_wd(path, worker_spawn(obj$queue_name, logfile))
+  wid <- worker_spawn(obj$queue_name, logfile, path=path)
+
   expect_that(file.exists(logfile), is_true())
 
   ## The directory is empty:

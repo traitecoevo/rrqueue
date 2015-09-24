@@ -32,9 +32,3 @@ PSKILL_SUCCESS <- tools::pskill(Sys.getpid(), 0)
 pid_exists <- function(pid) {
   tools::pskill(pid, 0) == PSKILL_SUCCESS
 }
-
-with_wd <- function(path, expr) {
-  owd <- setwd(path)
-  on.exit(setwd(owd))
-  force(expr)
-}

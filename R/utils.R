@@ -281,3 +281,21 @@ docopt_clean <- function(opts) {
   names(opts) <- gsub("-", "_", names(opts))
   opts
 }
+
+with_wd <- function(path, expr) {
+  if (path != ".") {
+    if (!file.exists(path)) {
+      stop(sprintf("Path '%s' does not exist", path))
+    }
+    if (!is_directory(path)) {
+      stop(sprintf("Path '%s' exists, but is not a directory", path))
+    }
+    owd <- setwd(path)
+    on.exit(setwd(owd))
+  }
+  force(expr)
+}
+
+dir_create <- function(paths) {
+  invisible(vlapply(unique(paths), dir.create, FALSE, TRUE))
+}
