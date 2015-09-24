@@ -260,9 +260,9 @@ test_that("queue", {
   expect_that(dlog$command, equals(c("ALIVE", "ENVIR",
                                      "TASK_START", "TASK_COMPLETE",
                                      "TASK_START", "TASK_COMPLETE",
-                                     "MESSAGE", "STOP")))
+                                     "MESSAGE", "RESPONSE", "STOP")))
   expect_that(dlog$message, equals(c("", obj$envir_id, "3", "3", "4", "4",
-                                     "STOP", "OK")))
+                                     "STOP", "STOP", "OK")))
 
   ## TODO: cleanup properly.
   test_cleanup()

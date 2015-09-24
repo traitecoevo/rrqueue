@@ -296,6 +296,7 @@ WORKER_LOST <- "LOST"
     },
 
     send_response=function(message_id, cmd, result) {
+      self$log("RESPONSE", cmd)
       self$con$HSET(self$keys$response, message_id,
                     response_prepare(message_id, cmd, result))
     },
