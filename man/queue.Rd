@@ -91,7 +91,19 @@ access.
   \emph{Arguments:}
   \describe{
     \item{\code{expr}}{
-      Either a character string or a language object.
+      Either a language object (quoted expression)
+    }
+
+    \item{\code{envir}}{
+      Environment to find locals (see `enqueue`)
+    }
+
+    \item{\code{key_complete}}{
+      See `enqueue`
+    }
+
+    \item{\code{group}}{
+      See `enqueue`
     }
   }
 }
@@ -131,7 +143,7 @@ access.
       Name of the command to run; one of "PING", "ECHO", "EVAL", "STOP", "INFO", "ENVIR", "PUSH", "PULL", "DIR".  See Details.
     }
 
-    \item{\code{params}}{
+    \item{\code{args}}{
 
       Arguments to pass through to commands.  Some commands require arguments, others do not.  See Details.
     }
@@ -147,13 +159,13 @@ access.
   The possible types of message are
   \code{PING}: send a "PING" to the worker.  It will respond by replying PONG to its stderr, to its log (see \code{observer} for how to access) and to the response queue.  Ignores any argument.
   \code{ECHO}: Like "PING", but the worker responds by echoing the string given.  Requires one argument.
-  \code{EVAL}: Evaluate an arbitrary R expression as a string (e.g., \code{run_message("EVAL", "sin(1)")}).  The output is printed to stdout, the worker log and to the response queue.  Requires a single argument.
-  \code{STOP}: Tell the worker to stop cleanly.  Ignores any argument.
   \code{INFO}: Refresh the worker info (see \code{workers_info} in \code{\link{observer}}.  Worker will print info to stderr, write it to the appropriate place in the database and return it in the response queue.  Ignores any argument.
-  \code{ENVIR}: Tell the worker to try an load an environment, whose id is given as a single argument.  Requires a single argument.
+  \code{DIR}: Tell the worker to return directory contents and md5 hashes of files.
   \code{PUSH}: Tell the worker to push files into the database.  The arguments should be a vector of filenames to copy.  The response queue will contain appropriate data for retrieving the files, but the interface here will change to make this nice to use.
   \code{PULL}: Tells the worker to pull files into its working directory.  Can be used to keep the worker in sync.
-  \code{DIR}: Tell the worker to return directory contents and md5 hashes of files.
+  \code{EVAL}: Evaluate an arbitrary R expression as a string (e.g., \code{run_message("EVAL", "sin(1)")}).  The output is printed to stdout, the worker log and to the response queue.  Requires a single argument.
+  # the interface here is likely to change, so I'll withdraw the # documentation for now: # \code{ENVIR}: Tell the worker to try an load an environment, whose # id is given as a single argument.  Requires a single argument.
+  \code{STOP}: Tell the worker to stop cleanly.  Ignores any argument.
   After sending a message, there is no guarantee about how long it will take to process.  If the worker is involved in a long-running computation it will be unavailable to process the message. However, it will process the message before running any new task.
   The message id is worth saving.  It can be passed to the method \code{get_respones} to wait for and retrieve responses from one or more workers.
 
@@ -267,6 +279,40 @@ access.
   \describe{
     \item{\code{task_ids}}{
       Vector of task ids to drop
+    }
+  }
+}
+\item{\code{files_pack}}{
+  Pack files into the Redis database
+
+  \emph{Usage:}
+  \code{files_pack(... = , files = c(...))}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{...}}{
+      filenames
+    }
+
+    \item{\code{files}}{
+      a vector of filename, used in place of \code{...}
+    }
+  }
+}
+\item{\code{files_unpack}}{
+  Unpack files from the Redis database onto the filesystem.
+
+  \emph{Usage:}
+  \code{files_unpack(pack = , path = tempfile())}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{pack}}{
+      a \code{files_pack} object, created by \code{files_pack} or returned as a response to a \code{PUSH} response.
+    }
+
+    \item{\code{path}}{
+      path to unpack files.  Files will be overwritten without warning, so using \code{tempfile()} (the default) guarantees not to overwrite anything.  This method returns \code{path} invisibly so you can move files around easily afterwards.
     }
   }
 }

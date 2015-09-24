@@ -155,6 +155,18 @@ Arguments passed to `rrqueue_worker` in addition to the configuration will overr
 
 So far, I've done relatively little performance tuning.  In particular, the *workers* make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use `rrqueue` where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, `rrqueue` uses [lua scripting](https://en.wikipedia.org/wiki/Lua_(programming_language)) to reduce the number of instruction round trips.
 
+# False warning errors
+
+You may see a variant on errors like
+
+```
+Calls: <Anonymous> -> .handleSimpleError -> h -> signalCondition
+Error in signalCondition(e) :
+  no function to return from, jumping to top level
+```
+
+This is an issue somewhere within Rcpp modules (which RcppRedis uses) and seems harmless.
+
 # Vignette
 
 There is a vignette with code examples. Once installed, run the following in an R session to open the vignette

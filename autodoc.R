@@ -37,8 +37,27 @@ format_params <- function(xp) {
 }
 
 format_method <- function(x) {
+  ## if (x$method_name == "files_pack") browser()
   title <- sprintf("\\item{\\code{%s}}{", x$method_name)
   end <- "}"
+
+  p_msg   <- setdiff(x$order, names(x$params))
+  p_extra <- setdiff(names(x$params), x$order)
+  if (length(p_msg) > 0) {
+    warning(sprintf("In '%s', missing parameters: %s",
+                    x$method_name, paste(p_msg, collapse=", ")),
+            immediate.=TRUE, call.=FALSE)
+  }
+  if (length(p_extra) > 0) {
+    warning(sprintf("In '%s', extra parameters: %s",
+                    x$method_name, paste(p_extra, collapse=", ")),
+            immediate.=TRUE, call.=FALSE)
+  }
+  ## preseve order, though I'm pretty sure that the yaml package is
+  ## actually preserving it.
+  if (length(p_msg) == 0 && length(p_extra) == 0) {
+    x$params <- x$params[x$order]
+  }
 
   body <- sprintf("%s\n\n\\emph{Usage:}\n\\code{%s}",
                   x$short, x$usage)

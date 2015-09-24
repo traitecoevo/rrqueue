@@ -84,7 +84,7 @@ observer <- function(queue_name,
     tasks_lookup_group=function(task_ids=NULL) {
       tasks_lookup_group(self$con, self$keys, task_ids)
     },
-    task_bundle_get=function(groups=NULL, tasks_ids=NULL) {
+    task_bundle_get=function(groups=NULL, task_ids=NULL) {
       task_bundle_get(self, groups, task_ids)
     },
 

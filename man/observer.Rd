@@ -202,7 +202,7 @@ expect a vector of task identifiers (and if they have a default
   Return a "bundle" of tasks that can be operated on together; see \code{\link{task_bundle}}
 
   \emph{Usage:}
-  \code{task_bundle_get(groups = NULL, tasks_ids = NULL)}
+  \code{task_bundle_get(groups = NULL, task_ids = NULL)}
 
   \emph{Arguments:}
   \describe{

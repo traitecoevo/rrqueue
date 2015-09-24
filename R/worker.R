@@ -518,11 +518,11 @@ run_message_DIR <- function(args) {
   res <- try(do.call("dir", args))
   if (!inherits(res, "try-error")) {
     path <- if (is.null(args$path)) res else file.path(args$path, res)
-    ret <- setNames(rep(NA_character_, length(res)), res)
+    res <- setNames(rep(NA_character_, length(res)), res)
     is_file <- !vlapply(path, is_directory, USE.NAMES=FALSE)
-    ret[is_file] <- hash_files(path[is_file])
+    res[is_file] <- hash_files(path[is_file])
   }
-  ret
+  res
 }
 
 run_message_unknown <- function(cmd, args) {
