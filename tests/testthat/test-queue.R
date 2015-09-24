@@ -459,7 +459,9 @@ test_that("empty start", {
   expect_that(obj$envir_workers(obj$envir_id), equals(setNames(TRUE, wid)))
 
   ## We can pull files onto the worker too:
-  id <- obj$send_message("PULL", obj$envir_id)
+  res <- obj$files_pack("myfuns.R")
+  dat <- obj$envirs_contents(obj$envir_id)[[1]]$source_files
+  id <- obj$send_message("PULL", dat)
   expect_that(obj$get_response(id, wid, wait=5, delete=TRUE), equals("OK"))
 
   id <- obj$send_message("DIR")

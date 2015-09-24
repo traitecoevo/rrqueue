@@ -237,6 +237,13 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
       ret
     },
 
+    files_pack=function(..., files=c(...)) {
+      files_pack(self$files, files=files)
+    },
+    files_unpack=function(pack, path=tempfile()) {
+      files_unpack(self$files, pack, path)
+    },
+
     tasks_set_group=function(task_ids, group, exists_action="stop") {
       tasks_set_group(self$con, self$keys, task_ids, group, exists_action)
     },

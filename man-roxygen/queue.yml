@@ -219,6 +219,26 @@ tasks_drop:
   params:
     task_ids: Vector of task ids to drop
 
+files_pack:
+  short: >-
+    Pack files into the Redis database
+  params:
+    "...": filenames
+    files: a vector of filename, used in place of \code{...}
+
+files_unpack:
+  short: >-
+    Unpack files from the Redis database onto the filesystem.
+  params:
+    pack: >-
+      a \code{files_pack} object, created by \code{files_pack}
+      or returned as a response to a \code{PUSH} response.
+    path: >-
+      path to unpack files.  Files will be overwritten without
+      warning, so using \code{tempfile()} (the default) guarantees not
+      to overwrite anything.  This method returns \code{path}
+      invisibly so you can move files around easily afterwards.
+
 tasks_set_group:
   short: >-
 

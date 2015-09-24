@@ -20,7 +20,7 @@ test_that("files", {
   expect_that(cache$list(), equals(character(0)))
 
   obj <- files_pack(cache)
-  expect_that(obj, equals(character(0)))
+  expect_that(obj, equals(structure(character(0), class="files_pack")))
 
   obj <- files_pack(cache, "myfuns.R")
   expect_that(length(obj), equals(1))

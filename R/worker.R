@@ -499,26 +499,16 @@ run_message_ENVIR <- function(worker, args) {
 ## Push and pull
 run_message_PUSH <- function(worker, args) {
   ## Push files from the worker into the DB.
+  worker$log("PUSH")
   files_pack(worker$files, files=args)
 }
 
 run_message_PULL <- function(worker, args) {
-  envir_id <- args
-  ok <- length(envir_id) == 1 &&
-               worker$con$HEXISTS(worker$keys$envirs_contents, envir_id)
-  if (ok) {
-    dat_str <- worker$con$HGET(worker$keys$envirs_contents, envir_id)
-    dat <- string_to_object(dat_str)
-    hash_expected <- dat$source_files
-    if (!compare_hash(hash_expected)) {
-      files_unpack(worker$files, hash_expected)
-    }
-    worker$log("PULL", "OK")
-    "OK"
-  } else {
-    worker$log("PULL", "FAIL")
-    "FAIL"
+  worker$log("PULL")
+  if (!compare_hash(args)) {
+    files_unpack(worker$files, args, ".")
   }
+  "OK"
 }
 
 run_message_DIR <- function(args) {

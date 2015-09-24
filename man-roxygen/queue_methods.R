@@ -228,6 +228,40 @@
 ##'     }
 ##'   }
 ##' }
+##' \item{\code{files_pack}}{
+##'   Pack files into the Redis database
+##'
+##'   \emph{Usage:}
+##'   \code{files_pack(... = , files = c(...))}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{...}}{
+##'       filenames
+##'     }
+##'
+##'     \item{\code{files}}{
+##'       a vector of filename, used in place of \code{...}
+##'     }
+##'   }
+##' }
+##' \item{\code{files_unpack}}{
+##'   Unpack files from the Redis database onto the filesystem.
+##'
+##'   \emph{Usage:}
+##'   \code{files_unpack(pack = , path = tempfile())}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{pack}}{
+##'       a \code{files_pack} object, created by \code{files_pack} or returned as a response to a \code{PUSH} response.
+##'     }
+##'
+##'     \item{\code{path}}{
+##'       path to unpack files.  Files will be overwritten without warning, so using \code{tempfile()} (the default) guarantees not to overwrite anything.  This method returns \code{path} invisibly so you can move files around easily afterwards.
+##'     }
+##'   }
+##' }
 ##' \item{\code{tasks_set_group}}{
 ##'
 ##'   Set the group name for one or more tasks.  The tasks can be pending, running or completed, and the tasks can already have a group ir can be groupless.  Once tasks have been grouped they can be easier to work with as a set (see \code{tasks_in_groups} and \code{task_bundle_get} in \code{\link{observer}}.

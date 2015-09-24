@@ -9,16 +9,18 @@ files_pack <- function(cache, ..., files=c(...)) {
     cache$set(hash, contents)
     setNames(hash, filename)
   }
-  vcapply(files, pack1)
+  ret <- vcapply(files, pack1)
+  class(ret) <- "files_pack"
+  ret
 }
 
-files_unpack <- function(cache, obj, path=".") {
+files_unpack <- function(cache, pack, path=tempfile()) {
   unpack1 <- function(x) {
     filename <- file.path(path, x)
     dir.create(dirname(filename), FALSE, TRUE)
-    contents <- cache$get(obj[[x]])
+    contents <- cache$get(pack[[x]])
     write_string_to_file(contents, filename)
   }
-  lapply(names(obj), unpack1)
-  invisible(TRUE)
+  lapply(names(pack), unpack1)
+  invisible(path)
 }
