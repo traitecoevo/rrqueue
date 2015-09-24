@@ -85,16 +85,16 @@ There's lots more in various stages of completion, including `mclapply`-like fun
 
 # Installation
 
-Redis must be installed, `redis-server` must be running.  If you are familiar with docker, the [redis](https://registry.hub.docker.com/_/redis/) docker image might be a good idea here. Alterantively, [download redis](http://redis.io/download), unpack and then install by running `make install` in a terminal window within the downlaoded folder.
+Redis must be installed, `redis-server` must be running.  If you are familiar with docker, the [redis](https://registry.hub.docker.com/_/redis/) docker image might be a good idea here. Alternatively, [download redis](http://redis.io/download), unpack and then install by running `make install` in a terminal window within the downloaded folder.
 
 Once installed start `redis-server` by typing in a terminal window
 
 ```
 redis-server
 ```
+(On Linux the server will probably be running for you if you. On Mac OSX, you might like to set it up to run as a daemon -- i.e. [background process](https://en.wikipedia.org/wiki/Daemon_(computing)) -- i f you end up using redis at lot, following [these instructions](http://naleid.com/blog/2011/03/05/running-redis-as-a-user-daemon-on-osx-with-launchd))
 
-On Linux the server will probably be running for you if you.  Try `redis-server PING` to see if it is running.
-
+ Try `redis-server PING` to see if it is running.
 
 R packages:
 
@@ -116,7 +116,7 @@ From the command line, workers can be started using the `rrqueue_worker` script.
 rrqueue::install_scripts("~/bin")
 ```
 
-replacing `"~/bin"` with a path that is in your executable search path and which is writable.
+replacing `"~/bin"` with a path that is in your executable search path and which is writeable.
 
 ```
 $ rrqueue_worker --help
@@ -153,4 +153,12 @@ Arguments passed to `rrqueue_worker` in addition to the configuration will overr
 
 # Performance
 
-So far, I've done relatively little performance tuning.  In particular, the *workers* make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use `rrqueue` where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, `rrqueue` uses lua scripting to reduce the number of instruction round trips.
+So far, I've done relatively little performance tuning.  In particular, the *workers* make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use `rrqueue` where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, `rrqueue` uses [lua scripting](https://en.wikipedia.org/wiki/Lua_(programming_language)) to reduce the number of instruction round trips.
+
+# Vignette
+
+There is a vignette with code examples. Once installed, run the following in an R session to open the vignette
+
+```
+ vignette("introduction", package="rrqueue")
+```

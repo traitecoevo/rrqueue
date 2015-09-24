@@ -9,6 +9,33 @@
 ##   %\VignetteEncoding{UTF-8}
 ## ---
 
+## # Overview
+
+## `rrqueue` is a *distributed task queue* for R, implemented on top of  [Redis](http://redis.io).
+## At the cost of a little more work it allows for more flexible parallelisation than afforded by `mclapply`.
+## The main goal is to support non-map style operations: submit some tasks, collect the completed results,
+## queue more even while some tasks are still running.
+
+## Other features include:
+
+## * Low-level task submission / retrieval has a simple API so that asynchronous task queues can be created.
+## * Objects representing tasks, workers, queues, etc can be queried.
+## * While blocking `mclapply`-like functions are available, the package is designed to be non-blocking so that intermediate results can be used.
+## * Automatic fingerprinting of environments so that code run on a remote machine will correspond to the code found locally.
+## * Works well connecting to a Redis database running on the cloud (e.g., on an AWS machine over an ssh tunnel).
+## * Local workers can be added to a remote pool, so long as everything can talk to the same Redis server.
+## * The worker pool can be scaled at any time (up or down).
+## * Basic fault tolerance, supporting re-queuing tasks lost on crashed workers.
+
+## The basic workflow is:
+
+## 1. Create a queue
+## 2. Submit tasks to the queue
+## 3. Start workers
+## 4. Collect results
+
+## The workers can be started at any time between 1-3, though they do need to be started before results can be collected.
+
 ## Documenting things that work asynchronously is difficult.  This
 ## document gives a tutorial-style overview of working with rrqueue.
 
@@ -107,14 +134,14 @@ wid <- rrqueue::worker_spawn("myqueue", logfile)
 ##+ echo=FALSE
 Sys.sleep(.5)
 
-## This function returns the \emph{worker identifier}, which is also
+## This function returns the *worker identifier*, which is also
 ## printed to the screen.
 
 ## It's probably informative at this point to read the logfile of the
 ## worker to see what it did on startup:
 
 ### See the RcppR6 tutorial for how to do this nicely.
-##+ results="asis", echo=FALSE
+##+ results="asis", echo=TRUE
 plain_output(readLines(logfile))
 
 ## The worker first prints a lot of diagnostic information to the
@@ -147,6 +174,7 @@ obj$workers_list()
 
 ## Queue a slower task; this time the `slowdouble` function.  This
 ## will take 1s:
+##+ echo=TRUE
 t <- obj$enqueue(slowdouble(1))
 t$status()
 Sys.sleep(.3)
@@ -171,7 +199,7 @@ plain_output(readLines(logfile))
 obj$workers_list_exited()
 
 ## The full log from our worker (dropping the first column which is
-## the worker id and takes up valuble space here):
+## the worker id and takes up valuable space here):
 obj$workers_log_tail(wid, Inf)[-1]
 
 ### This is unfortunate, but I really need things cleaned up nicely so
