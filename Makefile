@@ -37,7 +37,9 @@ README.md: README.Rmd
 
 vignettes/introduction.Rmd: vignettes/src/introduction.R
 	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
-vignettes: vignettes/introduction.Rmd
+vignettes/messages.Rmd: vignettes/src/messages.R
+	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
+vignettes: vignettes/introduction.Rmd vignettes/messages.Rmd
 	${RSCRIPT} -e 'library(methods); devtools::build_vignettes()'
 
 .PHONY: all test document install vignettes
