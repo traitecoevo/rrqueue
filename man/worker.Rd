@@ -5,8 +5,7 @@
 \title{Create an rrqueue worker}
 \usage{
 worker(queue_name, redis_host = "127.0.0.1", redis_port = 6379,
-  heartbeat_period = 30, heartbeat_expire = heartbeat_period * 3,
-  key_worker_alive = NULL)
+  heartbeat_period = 30, heartbeat_expire = 90, key_worker_alive = NULL)
 }
 \arguments{
 \item{queue_name}{Queue name}

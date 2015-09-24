@@ -5,7 +5,8 @@
 \title{Create an rrqueue queue}
 \usage{
 queue(queue_name, packages = NULL, sources = NULL,
-  redis_host = "127.0.0.1", redis_port = 6379, global = TRUE)
+  redis_host = "127.0.0.1", redis_port = 6379, global = TRUE,
+  config = NULL)
 }
 \arguments{
 \item{queue_name}{Queue name (scalar character)}
@@ -21,6 +22,11 @@ queue(queue_name, packages = NULL, sources = NULL,
 \item{global}{Source files into the global environment?  This is a
 good idea for working with the "user friendly" functions.  See
 issue 2 on github.}
+
+\item{config}{Configuration file of key/value pairs in yaml
+format.  See the package README for an example.  If given,
+additional arguments to this function override values in the
+file which in turn override defaults of this function.}
 }
 \description{
 Create an rrqueue queue.  A queue requires a queue name and a set

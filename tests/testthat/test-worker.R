@@ -2,12 +2,17 @@ context("worker")
 
 test_that("config", {
   expect_that(rrqueue_worker_args(character(0)),
-              throws_error())
+              throws_error("usage: rrqueue_worker"))
 
   queue_name <- "tmpjobs"
 
   opts <- rrqueue_worker_args(queue_name)
   expect_that(opts$queue_name, equals(queue_name))
+  expect_that(opts$redis_host, equals("127.0.0.1"))
+  expect_that(opts$redis_port, equals(6379))
+  expect_that(opts$heartbeat_period, equals(30))
+  expect_that(opts$heartbeat_expire, equals(90))
+  expect_that(opts$key_worker_alive, is_null())
 
   opts <- rrqueue_worker_args(c("--config", "config.yml"))
   dat <- yaml_read("config.yml")
@@ -35,7 +40,7 @@ test_that("config", {
                                 "--key-worker-alive", "mykey"))
   expect_that(opts$key_worker_alive, equals("mykey"))
   expect_that(opts$redis_host, equals(yaml_read("config2.yml")$redis_host))
-  expect_that(opts$redis_port, equals("6379"))
+  expect_that(opts$redis_port, equals(6379))
 
   expect_that(rrqueue_worker_args(c("--config", "config3.yml")),
               throws_error("queue name must be given"))

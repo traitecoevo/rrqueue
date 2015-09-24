@@ -126,10 +126,10 @@ Usage:
   rrqueue_worker -h | --help
 
 Options:
-  --redis-host HOSTNAME   Hostname for Redis [default: 127.0.0.1]
-  --redis-port PORT       Port for Redis [default: 6379]
-  --heartbeat-period T    Heartbeat period [default: 30]
-  --heartbeat-expire T    Heartbeat expiry time [default: 90]
+  --redis-host HOSTNAME   Hostname for Redis
+  --redis-port PORT       Port for Redis
+  --heartbeat-period T    Heartbeat period
+  --heartbeat-expire T    Heartbeat expiry time
   --key-worker-alive KEY  Key to write to when the worker becomes alive
   --config FILENAME       Optional YAML configuration filename
 
@@ -150,6 +150,8 @@ heartbeat_expire: 90
 ```
 
 Arguments passed to `rrqueue_worker` in addition to the configuration will override values in the yaml.
+
+This file can also be passed to `queue` and `observer` as the `config` argument (e.g., `queue(config="config.yml")` rather than having to pass in lots of parameters.
 
 # Performance
 

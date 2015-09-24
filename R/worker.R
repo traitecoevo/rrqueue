@@ -359,7 +359,7 @@ WORKER_LOST <- "LOST"
 worker <- function(queue_name,
                    redis_host="127.0.0.1", redis_port=6379,
                    heartbeat_period=30,
-                   heartbeat_expire=heartbeat_period * 3,
+                   heartbeat_expire=90,
                    key_worker_alive=NULL) {
   .R6_worker$new(queue_name, redis_host, redis_port,
                  heartbeat_period, heartbeat_expire, key_worker_alive)

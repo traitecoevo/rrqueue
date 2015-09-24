@@ -6,23 +6,6 @@
 ## 3. from the command line using rrqueue_worker
 ## 4. from the command line using rrqueue_worker_tee
 
-'Usage:
-  rrqueue_worker [options] <queue_name>
-  rrqueue_worker --config=FILENAME [options] [<queue_name>]
-  rrqueue_worker -h | --help
-
-Options:
-  --redis-host HOSTNAME   Hostname for Redis [default: 127.0.0.1]
-  --redis-port PORT       Port for Redis [default: 6379]
-  --heartbeat-period T    Heartbeat period [default: 30]
-  --heartbeat-expire T    Heartbeat expiry time [default: 90]
-  --key-worker-alive KEY  Key to write to when the worker becomes alive
-  --config FILENAME       Optional YAML configuration filename
-
-  Arguments:
-  <queue_name>   Name of queue
-  ' -> rrqueue_worker_doc
-
 ## TODO: autogenerate this in the same way that we do for the args
 rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
   opts <- rrqueue_worker_args(args)
@@ -34,40 +17,39 @@ rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
 }
 
 rrqueue_worker_args <- function(args=commandArgs(TRUE)) {
-  opts <- docopt_parse(rrqueue_worker_doc, args)
-  if (!is.null(opts$config)) {
-    opts <- load_config(opts$config, opts)
-  }
-  opts
-}
+  'Usage:
+  rrqueue_worker [options] <queue_name>
+  rrqueue_worker --config=FILENAME [options] [<queue_name>]
+  rrqueue_worker -h | --help
 
-load_config <- function(filename, opts=NULL) {
-  keys <- c("queue_name", "redis_host", "redis_port",
-            "heartbeat_period", "heartbeat_expire", "key_worker_alive")
-  config <- yaml_read(filename)
-  extra <- setdiff(names(config), keys)
-  if (length(extra) > 0L) {
-    warning(sprintf("Unknown keys in %s: %s",
-                    filename, paste(extra, collapse=", ")))
-  }
+Options:
+  --redis-host HOSTNAME   Hostname for Redis
+  --redis-port PORT       Port for Redis
+  --heartbeat-period T    Heartbeat period
+  --heartbeat-expire T    Heartbeat expiry time
+  --key-worker-alive KEY  Key to write to when the worker becomes alive
+  --config FILENAME       Optional YAML configuration filename
 
-  defaults <- docopt_parse(rrqueue_worker_doc, "queue_name")[keys]
+  Arguments:
+  <queue_name>   Name of queue
+  ' -> doc
+
+  given <- docopt_parse(doc, args)
+  given <- given[!vlapply(given, is.null)]
+
+  defaults <- as.list(formals(worker))
+  nms <- names(defaults)
   defaults$queue_name <- NULL
-  config <- modifyList(defaults, config, keep.null=TRUE)
-
-  if (!is.null(opts)) {
-    for (k in keys) {
-      if (!identical(opts[[k]], defaults[[k]])) { # key was given
-        config[[k]] <- opts[[k]]
-      }
-    }
+  if (is.null(given$config)) {
+    ret <- modifyList(defaults, given)[nms]
+  } else {
+    ret <- modifyList(load_config(given$config), given)[nms]
     ## Check that we did get a queue_name
-    if (is.null(config$queue_name)) {
+    if (is.null(ret$queue_name)) {
       stop("queue name must be given")
     }
   }
-
-  config
+  ret
 }
 
 ##' Spawn a worker in the background

@@ -21,10 +21,24 @@
 ##' @param queue_name Name of the queue
 ##' @param redis_host Redis hostname
 ##' @param redis_port Redis port number
+##' @param config Configuration file of key/value pairs in yaml
+##'   format.  See the package README for an example.  If given,
+##'   additional arguments to this function override values in the
+##'   file which in turn override defaults of this function.
 ##' @export
 observer <- function(queue_name,
-                     redis_host="127.0.0.1", redis_port=6379) {
-  .R6_observer$new(queue_name, redis_host, redis_port)
+                     redis_host="127.0.0.1", redis_port=6379,
+                     config=NULL) {
+  if (!is.null(config)) {
+    given <- as.list(sys.call())[-1] # -1 is the function name
+    dat <- modifyList(load_config(config), given)
+    if (is.null(dat$queue_name)) {
+      stop("queue_name must be given or specified in config")
+    }
+    observer(dat$queue_name, dat$redis_host, dat$redis_port, NULL)
+  } else {
+    .R6_observer$new(queue_name, redis_host, redis_port)
+  }
 }
 
 ## I think the correct design pattern is one that is totally dense

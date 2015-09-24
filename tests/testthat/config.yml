@@ -1,6 +1,11 @@
 queue_name: tmpjobs
 redis_host: 127.0.0.1
 redis_port: 6379
+## Only affect workers:
 heartbeat_period: 30
 heartbeat_expire: 90
 key_worker_alive: ~
+## Only affect queues:
+packages: ~
+sources:
+  - "myfuns.R"

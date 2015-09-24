@@ -4,7 +4,8 @@
 \alias{observer}
 \title{Creates an observer for an rrqueue}
 \usage{
-observer(queue_name, redis_host = "127.0.0.1", redis_port = 6379)
+observer(queue_name, redis_host = "127.0.0.1", redis_port = 6379,
+  config = NULL)
 }
 \arguments{
 \item{queue_name}{Name of the queue}
@@ -12,6 +13,11 @@ observer(queue_name, redis_host = "127.0.0.1", redis_port = 6379)
 \item{redis_host}{Redis hostname}
 
 \item{redis_port}{Redis port number}
+
+\item{config}{Configuration file of key/value pairs in yaml
+format.  See the package README for an example.  If given,
+additional arguments to this function override values in the
+file which in turn override defaults of this function.}
 }
 \description{
 Creates an observer for an rrqueue.  This is the "base class" for

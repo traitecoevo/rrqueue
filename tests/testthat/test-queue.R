@@ -552,3 +552,23 @@ test_that("stop workers", {
   expect_that(obj$workers_list(), equals(character(0)))
   expect_that(obj$workers_list_exited(), equals(wid))
 })
+
+test_that("config", {
+  obj <- queue(sources="myfuns.R", config="config.yml")
+  dat <- load_config("config.yml")
+  expect_that(obj$queue_name, equals(dat$queue_name))
+  expect_that(obj$con$host, equals(dat$redis_host))
+  expect_that(obj$con$port, equals(dat$redis_port))
+
+  env <- obj$envirs_contents()[[obj$envir_id]]
+  expect_that(env$packages, equals(dat$packages))
+  expect_that(env$sources, equals(dat$sources))
+})
+
+test_that("config observer", {
+  obj <- observer(config="config.yml")
+  dat <- load_config("config.yml")
+  expect_that(obj$queue_name, equals(dat$queue_name))
+  expect_that(obj$con$host, equals(dat$redis_host))
+  expect_that(obj$con$port, equals(dat$redis_port))
+})
