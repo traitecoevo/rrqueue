@@ -556,7 +556,10 @@ worker_banner_text <- function() {
 }
 
 worker_info <- function(worker) {
+  sys <- sessionInfo()
   dat <- list(version=version_string(),
+              platform=sys$platform,
+              running=sys$running,
               hostname=Sys.info()[["nodename"]],
               pid=Sys.getpid(),
               redis_host=worker$con$host,
@@ -567,8 +570,8 @@ worker_info <- function(worker) {
               heartbeat_expire=worker$heartbeat_expire,
               message=worker$keys$message,
               response=worker$keys$response,
-              envir=as.character(worker$con$SMEMBERS(worker$keys$envir)),
-              log=worker$keys$log)
+              log=worker$keys$log,
+              envir=as.character(worker$con$SMEMBERS(worker$keys$envir)))
   class(dat) <- "worker_info"
   dat
 }
