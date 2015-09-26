@@ -1,5 +1,6 @@
 WORKER_IDLE <- "IDLE"
 WORKER_BUSY <- "BUSY"
+WORKER_EXITED <- "EXITED"
 WORKER_LOST <- "LOST"
 
 ## TODO: Part way through restructuring the task timeout / heartbeat
@@ -34,31 +35,12 @@ WORKER_LOST <- "LOST"
       #
       self$name <- sprintf("%s::%d", hostname(), process_id())
       self$queue_name <- queue_name
+      ## TODO: Set these differently if there is no heartbeat support.
       self$heartbeat_period <- as.numeric(heartbeat_period)
       self$heartbeat_expire <- as.numeric(heartbeat_expire)
 
       self$keys <- rrqueue_keys(self$queue_name, worker_name=self$name)
       self$styles <- worker_styles()
-
-      ## TODO: first interrupt should be to kill currently evaluating
-      ## process, not full shutdown.
-      catch_interrupt <- function(e) {
-        ## TODO: this should only matter when running interactively,
-        ## but it does apply here.  Make this ignorable.
-        message("Catching interrupt - halting worker")
-        self$shutdown("INTERRUPT")
-        ## TODO: flag all jobs immediately as orphaned?
-      }
-      catch_error <- function(e) {
-        message("Caught fatal error - halting")
-        self$shutdown("ERROR")
-        stop(e)
-      }
-      catch_worker_stop <- function(e) {
-        self$shutdown("OK")
-      }
-
-      ## Establish the database connection
       self$con <- redis_connection(redis_host, redis_port)
 
       ## NOTE: This needs to happen *before* running the
@@ -66,21 +48,14 @@ WORKER_LOST <- "LOST"
       ## database and that we will not write anything to an existing
       ## worker.  An error here will not be caught.
       ##
-      ## TODO: This could just throw WorkerClash and get a different
-      ## handler in the tryCatch
+      ## TODO: Provide some guidance as to what to do here!
       if (self$con$SISMEMBER(self$keys$workers_name, self$name) == 1L) {
         stop("Looks like this worker exists already...")
       }
 
       withCallingHandlers(self$initialize_worker(key_worker_alive),
-                          error=catch_error)
-      ## The problem is that here, withCallingHandlers will let us
-      ## continue after clearing the WorkerStop error onto the error
-      ## error, so we get a OK/STOP pair.
-      tryCatch(self$main(),
-               WorkerStop=catch_worker_stop,
-               error=catch_error,
-               interrupt=catch_interrupt)
+                          error=self$catch_error)
+      self$main()
     },
 
     ## This is in its own function so that error handling can be done
@@ -197,35 +172,65 @@ WORKER_LOST <- "LOST"
       }
     },
 
-    ## TODO: Store time since last task.
     main=function() {
       con <- self$con
-
-      ## TODO: should be possible to send SIGHUP or something to
-      ## trigger stopping current task but keep listening.
-      ##
-      ## TODO: another option is to look at a redis key after
-      ## interrupt?
-      ##
-      ## TODO: hopefully can do some of that with the heartbeat.
-      ## Remaining question is how long to poll between jobs here?  No
-      ## real need for it to be the same as the heartbeat period but
-      ## might as well make it so.
-      repeat {
-        task <- con$BLPOP(self$key_queue, self$heartbeat_period)
-        if (is.null(task)) {
-          ## self$log("WAITING", push=FALSE)
-        } else {
-          channel <- task[[1]]
-          if (channel == self$keys$message) {
-            self$run_message(task[[2]])
-          } else { # is a task
-            withCallingHandlers(
-              self$run_task(task[[2]]),
-              WorkerError=function(e)
-                self$task_cleanup(e, e$task_id, e$task_status))
-          }
+      task <- NULL
+      continue <- TRUE
+      catch_interrupt <- function(e) {
+        ## NOTE: this won't recursively catch interrupts.  Especially
+        ## on a high-latency connection this might be long enough for
+        ## a second interrupt to arrive.  We don't deal with that and
+        ## it will be about the same as a SIGTERM - we'll just die.
+        ## But that will disable the heartbeat so it should all end up
+        ## OK.
+        self$log("INTERRUPT")
+        ## This condition is not quite enough; I need to know if we're
+        ## working on a job at all.
+        task_running <- self$con$HGET(self$keys$workers_task, self$name)
+        if (!is.null(task_running)) {
+          self$task_cleanup(e, task_running, TASK_ORPHAN)
         }
+        ## Depending on when the interrupt was recieved in the loop
+        ## below (I think BLPOP vs R code) we might have picked a task
+        ## off the list but not yet be running it (this is the
+        ## situation where a SIGTERM will lose a job, but we'd pick
+        ## that up with the orphaning approach).  So here, we test
+        ## that if we have a task and it's not the same as the task
+        ## that was running we immediately push it back onto the queue
+        ## in first place.
+        if (!is.null(task[[2]]) && !identical(task[[2]], task_running)) {
+          self$log("REQUEUE", task[[2]])
+          self$con$LPUSH(task[[1]], task[[2]])
+        }
+        worker_stop_message(self)
+      }
+      catch_worker_stop <- function(e) {
+        self$shutdown("OK")
+        continue <<- FALSE
+      }
+      catch_worker_error <- function(e) {
+        if (!is.null(e$task_id)) {
+          self$task_cleanup(e, e$task_id, e$task_status)
+        }
+      }
+
+      while (continue) {
+        tryCatch({
+          task <- con$BLPOP(self$key_queue, self$heartbeat_period)
+          if (is.null(task)) {
+            self$log("WAITING", push=FALSE)
+          } else {
+            if (task[[1]] == self$keys$message) {
+              self$run_message(task[[2]])
+            } else { # is a task
+              self$run_task(task[[2]])
+            }
+          }
+        },
+        interrupt=catch_interrupt,
+        WorkerStop=catch_worker_stop,
+        WorkerError=catch_worker_error,
+        error=self$catch_error)
       }
     },
 
@@ -337,9 +342,18 @@ WORKER_LOST <- "LOST"
       print(worker_info(self), banner=TRUE, styles=self$styles)
     },
 
+    ## Error handler of last resort:
+    catch_error=function(e) {
+      self$shutdown("ERROR")
+      message("This is an uncaught error in rrqueue, probably a bug!")
+      stop(e)
+    },
+
     shutdown=function(status="OK") {
       self$heartbeat$stop()
-      worker_cleanup(self$con, self$keys, self$name)
+      self$con$DEL(self$keys$heartbeat)
+      self$con$SREM(self$keys$workers_name,   self$name)
+      self$con$HSET(self$keys$workers_status, self$name, WORKER_EXITED)
       self$log("STOP", status)
     }))
 
@@ -380,9 +394,7 @@ workers_list <- function(con, keys) {
 
 workers_list_exited <- function(con, keys) {
   active <- workers_list(con, keys)
-  fmt <- "%s:workers:%s:log"
-  all <- RedisAPI::scan_find(con, sprintf(fmt, keys$queue_name, "*"))
-  ids <- sub(sprintf(fmt, keys$queue_name, "(.*)"), "\\1", all)
+  ids <- as.character(con$HKEYS(keys$workers_info))
   setdiff(ids, active)
 }
 
@@ -403,8 +415,7 @@ workers_times <- function(con, keys, worker_ids=NULL, unit_elapsed="secs") {
   expire_max <- vnapply(key, f_expire_max, USE.NAMES=FALSE)
 
   ## Current time left to expire:
-  t_expire <- unname(vnapply(key, con$PTTL))
-  t_expire[t_expire > 0] <- t_expire[t_expire > 0] / 1000
+  t_expire <- clean_pttl(vnapply(key, con$PTTL, USE.NAMES=FALSE))
 
   log <- workers_log_tail(con, keys, worker_ids, 1)
   if (nrow(log) > 0L) {
@@ -479,6 +490,9 @@ run_message_EVAL <- function(args) {
 
 run_message_STOP <- function(worker, message_id, args) {
   worker$send_response(message_id, "STOP", "BYE")
+  if (is.null(args)) {
+    args <- "BYE"
+  }
   stop(WorkerStop(worker, args))
 }
 
@@ -592,10 +606,67 @@ print.worker_info <- function(x, banner=FALSE, styles=worker_styles(), ...) {
   invisible(x)
 }
 
-worker_cleanup <- function(con, keys, worker_id) {
-  con$DEL(rrqueue_key_worker_heartbeat(keys$queue_name, worker_id))
-  con$SREM(keys$workers_name,   worker_id)
-  con$HDEL(keys$workers_status, worker_id)
+workers_running <- function(con, keys, worker_ids=NULL, include_times=FALSE) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  hkeys <- rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)
+  pttl  <- vnapply(hkeys, con$PTTL, USE.NAMES=FALSE)
+  status <- setNames(rep.int(TRUE, length(worker_ids)), worker_ids)
+  status[pttl == -1] <- NA
+  status[pttl == -2] <- FALSE
+  if (include_times) {
+    attr(status, "time") <- clean_pttl(pttl)
+  }
+  status
+}
+
+workers_identify_lost <- function(con, keys, worker_ids=NULL) {
+  lost <- !workers_running(con, keys, worker_ids)
+  if (any(lost)) {
+    lost_worker_ids <- names(lost)[lost]
+    con$SREM(keys$workers_name,   lost_worker_ids)
+    con$HSET(keys$workers_status, lost_worker_ids, WORKER_LOST)
+    ## Also pick up the *tasks* that are lost here.
+    task_ids <- con$HGET(keys$workers_task, lost_worker_ids)
+
+    if (length(task_ids) > 0L) {
+      time <- RedisAPI::redis_time(con)
+      con$HMSET(keys$tasks_time_end, task_ids, time)
+      con$HMSET(keys$tasks_status,   task_ids, TASK_ORPHAN)
+      con$HDEL(keys$workers_task,    lost_worker_ids)
+    }
+
+    list(workers=lost_worker_ids, tasks=task_ids)
+  } else {
+    list(workers=character(0), tasks=character(0))
+  }
+}
+
+## A better way through here would be to only do exited workers:
+workers_delete_exited <- function(con, keys, worker_ids=NULL) {
+  ## This only includes things that have been processed and had task
+  ## orphaning completed.
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list_exited(con, keys)
+  } else {
+    extra <- setdiff(worker_ids, workers_list_exited(con, keys))
+    if (length(extra)) {
+      stop(sprintf("Workers %s may not have exited;\n\trun workers_identify_lost first",
+                   paste(extra, collapse=", ")))
+    }
+  }
+  if (length(worker_ids) > 0L) {
+    con$HDEL(keys$workers_info, worker_ids)
+    con$HDEL(keys$workers_status, worker_ids)
+    con$HDEL(keys$workers_task, worker_ids)
+    con$DEL(c(rrqueue_key_worker_log(keys$queue_name, worker_ids),
+              rrqueue_key_worker_message(keys$queue_name, worker_ids),
+              rrqueue_key_worker_message(keys$queue_name, worker_ids),
+              rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids),
+              rrqueue_key_worker_envir(keys$queue_name, worker_ids)))
+  }
+  worker_ids
 }
 
 workers_info <- function(con, keys, worker_ids=NULL) {
@@ -616,4 +687,40 @@ envir_workers <- function(con, keys, envir_id, worker_ids=NULL) {
   storage.mode(ret) <- "logical"
   names(ret) <- worker_ids
   ret
+}
+
+## Designed to be used as a standalone function:
+worker_stop <- function(queue, worker_id, type="message",
+                        host="127.0.0.1", port=6379) {
+  type <- match_value(type, c("message", "kill"))
+  con <- RedisAPI::hiredis(host, port)
+  keys <- rrqueue_keys(queue)
+  if (type == "message") {
+    queue_send_message(con, keys, "STOP", worker_ids=worker_id)
+  } else {
+    queue_send_signal(con, keys, tools::SIGKILL, worker_id)
+  }
+}
+
+worker_stop_message <- function(worker) {
+  if (interactive()) {
+    args <- list(worker$keys$queue_name, worker$name)
+    if (!(worker$con$host %in% c("127.0.0.1", "localhost"))) {
+      args <- c(args, list(host=worker$con$host))
+    }
+    if (worker$con$port != 6379) {
+      args <- c(args, list(port=worker$con$port))
+    }
+    str <- deparse(as.call(c(list(quote(worker_stop)),
+                             args)),
+                   width.cutoff=getOption("width") - 2L)
+    msg <- c("If you're trying to exit with Escape/Ctrl-C that won't work",
+             "Instead, run this from an R instance on this machine:",
+             "",
+             paste("  ", str))
+    message(paste(c(worker$styles$value(msg[1:3]),
+                    worker$styles$key(msg[-(1:3)])),
+                  collapse="\n"))
+    invisible(msg)
+  }
 }

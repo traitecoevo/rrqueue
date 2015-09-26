@@ -74,7 +74,7 @@ test_that("queue", {
 
   t <- obj$tasks_times()
   expect_that(t, is_a("data.frame"))
-  now <- redis_time_to_r(RedisAPI::redis_time(obj$con))
+  now <- RedisAPI::redis_time_to_r(RedisAPI::redis_time(obj$con))
   expect_that(all(t$submitted <= now), is_true())
   expect_that(all(t$waiting >= 0.0), is_true())
   expect_that(all(is.na(t$started)), is_true())
@@ -252,7 +252,7 @@ test_that("queue", {
 
   expect_that(obj$workers_list_exited(), equals(wid))
   expect_that(obj$workers_log_tail(wid)[["command"]], equals("STOP"))
-  expect_that(obj$workers_status(wid), equals(setNames(NA_character_, wid)))
+  expect_that(obj$workers_status(wid), equals(setNames("EXITED", wid)))
 
   dlog <- obj$workers_log_tail(w, n=0)
   expect_that(dlog, is_a("data.frame"))

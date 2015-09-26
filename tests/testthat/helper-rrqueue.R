@@ -20,13 +20,6 @@ test_queue_clean <- function(name) {
               stop_workers=TRUE, kill_local=TRUE, wait_stop=0.05)
 }
 
-skip_if_no_heartbeat <- function() {
-  if (heartbeat_available()) {
-    return()
-  }
-  skip("RedisHeartbeat is not available")
-}
-
 ## Looks like a bug to me, relative to the docs:
 PSKILL_SUCCESS <- tools::pskill(Sys.getpid(), 0)
 pid_exists <- function(pid) {

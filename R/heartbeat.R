@@ -1,20 +1,10 @@
 ## Heartbeat support, but with a slightly different interface to
 ## RedisHeartbeat and falling back on something informative if we have
 ## no support.
-NO_HEARTBEAT_SUPPORT <- -2
 heartbeat <- function(con, key, period, expire) {
-  if (requireNamespace("RedisHeartbeat", quietly=TRUE)) {
-    RedisHeartbeat::heartbeat(key, period,
-                              expire=expire, value=expire,
-                              host=con$host, port=con$port)
-  } else {
-    con$SET(key, NO_HEARTBEAT_SUPPORT)
-    list(stop=function() {con$DEL(key); FALSE})
-  }
-}
-
-heartbeat_available <- function() {
-  requireNamespace("RedisHeartbeat", quietly=TRUE)
+  RedisHeartbeat::heartbeat(key, period,
+                            expire=expire, value=expire,
+                            host=con$host, port=con$port)
 }
 
 heartbeat_time <- function(obj) {

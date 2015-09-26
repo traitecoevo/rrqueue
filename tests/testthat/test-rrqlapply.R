@@ -121,4 +121,5 @@ test_that("bulk", {
   expect_that(res, equals(cmp_prod))
 
   obj$send_message("STOP")
+  test_cleanup()
 })

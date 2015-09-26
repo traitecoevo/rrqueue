@@ -138,5 +138,8 @@ observer <- function(queue_name,
     },
     worker_envir=function(worker_id) {
       worker_envir(self$con, self$keys, worker_id)
+    },
+    workers_running=function(worker_ids=NULL) {
+      workers_running(self$con, self$keys, worker_ids)
     }
     ))

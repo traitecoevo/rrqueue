@@ -50,3 +50,9 @@ poll_hash_keys <- function(con, keys, field, wait, every=0.05) {
   names(res) <- keys
   res
 }
+
+clean_pttl <- function(x) {
+  i <- x > 0
+  x[i] <- x[i] / 1000
+  x
+}

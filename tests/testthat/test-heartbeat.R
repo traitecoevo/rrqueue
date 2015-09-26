@@ -1,90 +1,191 @@
 context("heartbeat")
 
-test_that("heartbeat", {
-  skip_if_no_heartbeat()
+## This file collects all the really nasty stuff with starting and
+## destroying worker processes, and detecting that with the heartbeat
+## process.  There is a lot of mocking up and it's slow to develop and
+## test.  There is a real problem with cascading test failures
+## throughout, so many failures might just be caused by a single root
+## thing.
+test_that("heartbeat with signals", {
   test_cleanup()
-  on.exit(test_cleanup())
 
-  existing <- queues()
-  expect_that(existing, equals(character(0)))
-
-  ## TODO: probably best to use different queue names for different
-  ## tests?
-  obj <- queue("testq:heartbeat", sources="myfuns.R")
+  ## Fairly fast worker timeout:
+  expire <- 3
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
 
   logfile <- "worker_heartbeat.log"
   Sys.setenv("R_TESTS" = "")
   wid <- worker_spawn(obj$queue_name, logfile,
-                              heartbeat_period=1, heartbeat_expire=3)
-  ## w <- rrqueue::worker("testq:heartbeat")
-  expect_that(obj$workers_len(), equals(1))
+                      heartbeat_period=1, heartbeat_expire=expire)
+  ## worker("tmpjobs", heartbeat_expire=3, heartbeat_period=1)
 
-  ## First, check that things are working
-  t <- obj$enqueue(sin(1))
-  done <- obj$con$BLPOP(t$key_complete, 10)
-  expect_that(t$result(), equals(sin(1)))
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE)))
+  pid <- obj$workers_info()[[wid]]$pid
+  expect_that(pid_exists(pid), is_true())
+
+  expect_that(obj$workers_running(wid),
+              equals(setNames(TRUE, wid)))
+  expect_that(obj$workers_status(),
+              equals(setNames(WORKER_IDLE, wid)))
+
+  t <- obj$enqueue(slowdouble(100))
+  Sys.sleep(.5)
+  expect_that(obj$workers_status(wid), equals(setNames("BUSY", wid)))
+  expect_that(is.na(t$times()[["finished"]]), is_true())
+
+  obj$send_signal(tools::SIGINT, wid)
+  Sys.sleep(.5)
+
+  expect_that(t$status(), equals(TASK_ORPHAN))
+  expect_that(is.na(t$times()[["finished"]]), is_false())
+
+  ## Machine still alive:
+  expect_that(pid_exists(pid), is_true())
+
+  ## Realistically, this will trigger fairly quickly.
+  for (i in seq_len(10)) {
+    ## Another one at this point will do nothing:
+    obj$send_signal(tools::SIGINT, wid)
+    Sys.sleep(.5)
+    expect_that(pid_exists(pid), is_true())
+
+    ## Check that an additional job will work OK and not get caught by
+    ## the *second* interrupt (this did happen to me before)
+    tt <- obj$enqueue(sin(1))
+    expect_that(res <- tt$wait(1), not(throws_error()))
+    expect_that(res, equals(sin(1)))
+
+    if ("REQUEUE" %in% obj$workers_log_tail(wid, 0)$command) {
+      break
+    }
+  }
+  expect_that("REQUEUE" %in% obj$workers_log_tail(wid, 0)$command,
+              is_true())
+
+  t <- obj$enqueue(slowdouble(100))
+  Sys.sleep(.5)
+  obj$send_signal(tools::SIGTERM, wid)
+  Sys.sleep(.5)
+
+  expect_that(pid_exists(pid), is_false())
+
+  expect_that(obj$workers_running(wid),
+              equals(setNames(TRUE, wid)))
+  expect_that(obj$workers_list(), equals(wid))
+
+  Sys.sleep(expire)
+
+  expect_that(obj$workers_running(wid),
+              equals(setNames(FALSE, wid)))
+  ## Still in the workers list, though:
+  expect_that(obj$workers_list(), equals(wid))
+
+  ret <- obj$workers_identify_lost()
+
+  expect_that(ret, equals(list(workers=wid, tasks=t$id)))
+  expect_that(t$status(), equals(TASK_ORPHAN))
+  expect_that(is.na(t$times()[["finished"]]), is_false())
+  expect_that(obj$workers_status(wid), equals(setNames(WORKER_LOST, wid)))
+  expect_that(obj$workers_list_exited(), equals(wid))
+
+  ## We were killed in the act:
+  log <- obj$workers_log_tail(wid, 1)
+  expect_that(log$command, equals("TASK_START"))
+
+  ## Then we can clean this mess up:
+  res <- obj$workers_delete_exited()
+  expect_that(res, equals(wid))
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+  expect_that(obj$workers_delete_exited(), equals(character(0)))
+
+  ## No worker keys, plenty of task keys:
+  expect_that(RedisAPI::scan_find(obj$con, "tmpjobs:tasks:*"),
+              not(equals(character(0))))
+  expect_that(RedisAPI::scan_find(obj$con, "tmpjobs:workers:*"),
+              equals(character(0)))
+})
+
+test_that("heartbeat shutdown when running job", {
+  expire <- 3
+
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile,
+                      heartbeat_period=1, heartbeat_expire=expire)
+  ## worker("tmpjobs", heartbeat_expire=3, heartbeat_period=1)
+  ## wid <- obj$workers_list()
+  pid <- obj$workers_info()[[wid]]$pid
+  expect_that(pid_exists(pid), is_true())
+
+  t <- obj$enqueue(slowdouble(100))
+  Sys.sleep(.5)
+  expect_that(obj$workers_status(wid), equals(setNames("BUSY", wid)))
+
+  ## This message will be ignored:
+  obj$send_message("STOP")
+  Sys.sleep(.5)
+  expect_that(obj$workers_status(wid), equals(setNames("BUSY", wid)))
+  expect_that(pid_exists(pid), is_true())
+  expect_that(t$status(), equals("RUNNING"))
+
+  ## But after a message will be honoured:
+  obj$send_signal(tools::SIGINT, wid)
+  Sys.sleep(.5)
+
+  ## The shutdown *is* clean:
+  expect_that(obj$workers_status(wid),
+              equals(setNames(WORKER_EXITED, wid)))
+  log <- obj$workers_log_tail(wid, 1)
+  expect_that(log$command, equals("STOP"))
+  expect_that(log$message, equals("OK"))
+  expect_that(pid_exists(pid), is_false())
+
+  ## The task was orphaned:
+  expect_that(t$status(), equals(TASK_ORPHAN))
+})
+
+test_that("requeue orphaned jobs", {
+  expire <- 3
+
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile,
+                      heartbeat_period=1, heartbeat_expire=expire)
+  ## worker("tmpjobs", heartbeat_expire=3, heartbeat_period=1)
+  ## wid <- obj$workers_list()
+  pid <- obj$workers_info()[[wid]]$pid
+  expect_that(pid_exists(pid), is_true())
 
   t_double <- 5
-  e <- environment()
-  t <- obj$enqueue(slowdouble(t_double), e)
-  Sys.sleep(0.5)
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_RUNNING)))
+  t <- obj$enqueue(slowdouble(t_double))
+  Sys.sleep(.5)
+  expect_that(obj$workers_status(wid), equals(setNames("BUSY", wid)))
+  expect_that(is.na(t$times()[["finished"]]), is_true())
 
-  ## Then, test that we see a heartbeat
-  h <- rrqueue_key_worker_heartbeat(obj$queue_name, wid)
-  expect_that(obj$con$GET(h), equals("3")) # 3 -> expire
-  ttl <- obj$con$TTL(h)
-  ## TODO: Need to make heartbeat configurable upon spawning worker or
-  ## we're going to wait for ages
-  expect_that(ttl, is_more_than(1))
-  expect_that(ttl, is_less_than(3 + 1))
+  obj$send_signal(tools::SIGINT, wid)
+  Sys.sleep(.5)
 
-  Sys_kill(parse_worker_name(wid)$pid)
-  Sys.sleep(0.5)
-
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_RUNNING)))
-  ttl <- obj$con$TTL(h)
-  Sys.sleep(ttl + 1)
-
-  expect_that(obj$con$TTL(h), equals(-2))
-  expect_that(heartbeat_time(obj)$time, equals(-2))
-
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_RUNNING)))
-
-  orphans <- identify_orphan_tasks(obj)
-  expect_that(orphans, equals(setNames("2", wid)))
-
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_ORPHAN)))
   expect_that(t$status(), equals(TASK_ORPHAN))
+  expect_that(is.na(t$times()[["finished"]]), is_false())
 
   t2 <- obj$requeue(t$id)
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_REDIRECT,
-                                           "3"=TASK_PENDING)))
-
-  expect_that(obj$tasks_status(c("1", "2"), follow_redirect=TRUE),
-              equals(c("1"=TASK_COMPLETE, "2"=TASK_PENDING)))
-
-  logfile2 <- sub("\\.log$", "2.log", logfile)
-  wid2 <- worker_spawn(obj$queue_name, logfile2)
-  ##   w <- rrqueue::worker("testq:heartbeat")
-
+  expect_that(t$status(), equals(TASK_REDIRECT))
   Sys.sleep(0.5)
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_REDIRECT,
-                                           "3"=TASK_RUNNING)))
+  expect_that(t2$status(), equals(TASK_RUNNING))
   Sys.sleep(t_double)
-  expect_that(obj$tasks_status(), equals(c("1"=TASK_COMPLETE,
-                                           "2"=TASK_REDIRECT,
-                                           "3"=TASK_COMPLETE)))
+  expect_that(t2$status(), equals(TASK_COMPLETE))
 
-  expect_that(obj$tasks_status(c("1", "2"), follow_redirect=TRUE),
-              equals(c("1"=TASK_COMPLETE, "2"=TASK_COMPLETE)))
+  expect_that(t$status(follow_redirect=TRUE), equals(TASK_COMPLETE))
+  expect_that(t$result(follow_redirect=TRUE), equals(t_double * 2))
+  expect_that(t$result(), throws_error("task [0-9]+ is unfetchable"))
 
   tt <- obj$tasks_times(t2$id)
   expect_that(tt, is_a("data.frame"))

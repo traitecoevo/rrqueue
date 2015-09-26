@@ -258,9 +258,27 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
     files_unpack=function(pack, path=tempfile()) {
       files_unpack(self$files, pack, path)
     },
+    send_files=function(..., files=c(...), worker_ids=NULL) {
+      pack <- obj$files_pack(files=files)
+      obj$send_message("PULL", pack, worker_ids)
+    },
+    ## Requesting is hard because it could take an unknown amount of
+    ## time to get back and we really need the response do do
+    ## anything.
 
     tasks_set_group=function(task_ids, group, exists_action="stop") {
       tasks_set_group(self$con, self$keys, task_ids, group, exists_action)
+    },
+
+    send_signal=function(signal=tools::SIGINT, worker_ids=NULL) {
+      queue_send_signal(self$con, self$keys, signal, worker_ids)
+    },
+
+    workers_identify_lost=function(worker_ids=NULL) {
+      workers_identify_lost(self$con, self$keys, worker_ids)
+    },
+    workers_delete_exited=function(worker_ids=NULL) {
+      workers_delete_exited(self$con, self$keys, worker_ids)
     },
 
     stop_workers=function(worker_ids=NULL, kill_local=FALSE, wait_stop=1) {
@@ -302,6 +320,15 @@ queue_clean <- function(con, queue_name, purge=FALSE,
     con$DEL(keys$tasks_time_end)
 
     con$DEL(keys$envirs_contents)
+  }
+}
+
+queue_send_signal <- function(con, keys, signal, worker_ids) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
+    RedisHeartbeat::heartbeat_send_signal(key, signal, con)
   }
 }
 
@@ -357,6 +384,7 @@ get_responses <- function(con, keys, message_id, worker_ids=NULL,
   lapply(res, function(x) string_to_object(x)$result)
 }
 
+## NOTE: This will change with the new signal handling stuff.
 stop_workers <- function(con, keys, worker_ids=NULL,
                          kill_local=FALSE, wait_stop=1) {
   worker_ids <- workers_list(con, keys)
@@ -364,6 +392,16 @@ stop_workers <- function(con, keys, worker_ids=NULL,
     return(invisible())
   }
   message_id <- queue_send_message(con, keys, "STOP", worker_ids=worker_ids)
+
+  ## Basically here, if we want we can do:
+  ##
+  ##   queue_send_signal(con, keys, tools::SIGINT, worker_ids)
+  ##
+  ## and that *should* kill all the workers because they'll get
+  ## interrupted and then stop.  However, if one is doing something
+  ## where the main loop is in C it might not be listening for an
+  ## interrupt.  In that case we'd want to be able to send
+  ## tools::SIGTERM instead.
 
   ## TODO: would be nice if this could retrieve actual messages, but
   ## that requires getting missing message support into get_responses.
@@ -393,7 +431,9 @@ stop_workers <- function(con, keys, worker_ids=NULL,
         tools::pskill(w_local_pid, tools::SIGKILL)
         ## Some attempt at cleanup:
         for (worker_id in w_local) {
-          worker_cleanup(con, keys, worker_id)
+          con$DEL(rrqueue_key_worker_heartbeat(keys$queue_name, worker_id))
+          con$SREM(keys$workers_name,   worker_id)
+          con$HDEL(keys$workers_status, worker_id)
         }
       }
     }
