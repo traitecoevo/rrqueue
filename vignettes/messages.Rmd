@@ -11,8 +11,7 @@ vignette: >
 
 ``` {r echo=FALSE, results="hide"}
 rrqueue:::queue_clean(RedisAPI::hiredis(), "myqueue",
-                      purge=TRUE, stop_workers=TRUE,
-                      kill_local=TRUE, wait_stop=0.1)
+                      purge=TRUE, stop_workers="kill")
 lang_output <- function(x, lang) {
   cat(c(sprintf("```%s", lang), x, "```"), sep="\n")
 }
