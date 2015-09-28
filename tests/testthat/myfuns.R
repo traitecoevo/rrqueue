@@ -24,3 +24,10 @@ failure <- function(controlled) {
     stop("an unexpected error")
   }
 }
+
+## This is a blocking call that skips the R interrupt loop; we won't
+## listen for SIGINT during this and the stop request will fail.
+block <- function(n) {
+  key <- ids::aa(1)(1)
+  rrqueue:::redis_connection(NULL)$BLPOP(key, n)
+}

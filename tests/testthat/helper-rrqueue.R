@@ -16,8 +16,7 @@ test_cleanup <- function() {
 }
 
 test_queue_clean <- function(name) {
-  queue_clean(redis_connection(NULL), name, purge=TRUE,
-              stop_workers=TRUE, kill_local=TRUE, wait_stop=0.05)
+  queue_clean(redis_connection(NULL), name, purge=TRUE, stop_workers="kill")
 }
 
 ## Looks like a bug to me, relative to the docs:

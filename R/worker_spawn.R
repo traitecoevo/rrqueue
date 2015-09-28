@@ -143,7 +143,11 @@ worker_spawn <- function(queue_name, logfile,
       flush.console()
     } else {
       ret[[i]] <- x[[2]]
-      message(sprintf("new worker: %s (%d / %d)", x[[2]], i, n))
+      if (n > 1L) {
+        message(sprintf("new worker: %s (%d / %d)", x[[2]], i, n))
+      } else {
+        message(sprintf("new worker: %s", x[[2]]))
+      }
       i <- i + 1
     }
     if (!any(is.na(ret))) {

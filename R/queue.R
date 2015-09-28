@@ -184,12 +184,7 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
     },
 
     has_responses=function(message_id, worker_ids=NULL) {
-      if (is.null(worker_ids)) {
-        worker_ids <- self$workers_list()
-      }
-      res <- vnapply(rrqueue_key_worker_response(self$queue_name, worker_ids),
-                     self$con$HEXISTS, message_id)
-      setNames(as.logical(res), worker_ids)
+      has_responses(self$con, self$keys, message_id, worker_ids)
     },
 
     get_responses=function(message_id, worker_ids=NULL, delete=FALSE, wait=0) {
@@ -206,10 +201,6 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
       ids[order(as.numeric(ids))]
     },
 
-    ## This one is tricky.  Responses will go into one list per
-    ## worker, and matching up with the id requires fetching the whole
-    ## thing.  So let's change the response queue to be a hash on ID.
-    ## fetch_response=function
     tasks_drop=function(task_ids) {
       con <- self$con
       keys <- self$keys
@@ -281,18 +272,15 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
       workers_delete_exited(self$con, self$keys, worker_ids)
     },
 
-    stop_workers=function(worker_ids=NULL, kill_local=FALSE, wait_stop=1) {
-      stop_workers(self$con, self$keys, worker_ids, kill_local, wait_stop)
+    stop_workers=function(worker_ids=NULL, type="message", interrupt=TRUE, wait=0) {
+      stop_workers(self$con, self$keys, worker_ids, type, interrupt, wait)
     }
   ))
 
-queue_clean <- function(con, queue_name, purge=FALSE,
-                        stop_workers=FALSE,
-                        kill_local=FALSE,
-                        wait_stop=1) {
+queue_clean <- function(con, queue_name, purge=FALSE, stop_workers=FALSE) {
   keys <- rrqueue_keys(queue_name)
-  if (stop_workers) {
-    stop_workers(con, keys, NULL, kill_local, wait_stop)
+  if (!identical(stop_workers, FALSE)) {
+    stop_workers(con, keys, type=stop_workers, wait=.1)
   }
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
@@ -357,6 +345,15 @@ queue_send_message <- function(con, keys, command, args=NULL,
   invisible(message_id)
 }
 
+has_responses <- function(con, keys, message_id, worker_ids) {
+  if (is.null(worker_ids)) {
+    worker_ids <- workers_list(con, keys)
+  }
+  res <- vnapply(rrqueue_key_worker_response(keys$queue_name, worker_ids),
+                 con$HEXISTS, message_id)
+  setNames(as.logical(res), worker_ids)
+}
+
 get_responses <- function(con, keys, message_id, worker_ids=NULL,
                           delete=FALSE, wait=0, every=0.05) {
   ## NOTE: this won't work well if the message was sent only to a
@@ -384,58 +381,41 @@ get_responses <- function(con, keys, message_id, worker_ids=NULL,
   lapply(res, function(x) string_to_object(x)$result)
 }
 
-## NOTE: This will change with the new signal handling stuff.
 stop_workers <- function(con, keys, worker_ids=NULL,
-                         kill_local=FALSE, wait_stop=1) {
+                         type="message", interrupt=TRUE, wait=0) {
+  type <- match_value(type, c("message", "kill", "kill_local"))
   worker_ids <- workers_list(con, keys)
   if (length(worker_ids) == 0L) {
-    return(invisible())
+    return(invisible(worker_ids))
   }
-  message_id <- queue_send_message(con, keys, "STOP", worker_ids=worker_ids)
 
-  ## Basically here, if we want we can do:
-  ##
-  ##   queue_send_signal(con, keys, tools::SIGINT, worker_ids)
-  ##
-  ## and that *should* kill all the workers because they'll get
-  ## interrupted and then stop.  However, if one is doing something
-  ## where the main loop is in C it might not be listening for an
-  ## interrupt.  In that case we'd want to be able to send
-  ## tools::SIGTERM instead.
+  if (type == "message") {
+    is_busy <- workers_status(con, keys, worker_ids) == WORKER_BUSY
 
-  ## TODO: would be nice if this could retrieve actual messages, but
-  ## that requires getting missing message support into get_responses.
-  if (kill_local) {
-    ## Get the set of workers:
-    if (wait_stop > 0 && length(workers_list(con, keys)) > 0) {
-      ## Give the workers a second to cleanup
-      message("Waiting for local workers to stop themselves")
-      Sys.sleep(wait_stop)
+    ## First, we send a message saying 'STOP'
+    message_id <- queue_send_message(con, keys, "STOP", worker_ids=worker_ids)
+    if (interrupt && any(is_busy)) {
+      queue_send_signal(con, keys, tools::SIGINT, worker_ids[is_busy])
     }
-    extant <- workers_list(con, keys)
-    stopped <- setdiff(worker_ids, extant)
-    if (length(stopped) > 0L) {
-      message(sprintf("%d workers stopped cleanly: %s",
-                      length(stopped), paste(stopped, collapse=", ")))
-    }
-    worker_ids <- intersect(worker_ids, extant)
-
-    if (length(worker_ids) > 0) {
-      w_info <- workers_info(con, keys, worker_ids)
-      w_local <- worker_ids[vcapply(w_info, "[[", "hostname") == hostname()]
-      n_local <- length(w_local)
-      if (n_local > 0) {
-        w_local_pid <- vnapply(w_info[w_local], "[[", "pid")
-        message(sprintf("killing %d workers: %s",
-                        length(w_local), paste(w_local, collapse=", ")))
-        tools::pskill(w_local_pid, tools::SIGKILL)
-        ## Some attempt at cleanup:
-        for (worker_id in w_local) {
-          con$DEL(rrqueue_key_worker_heartbeat(keys$queue_name, worker_id))
-          con$SREM(keys$workers_name,   worker_id)
-          con$HDEL(keys$workers_status, worker_id)
-        }
+    if (wait > 0L) {
+      ok <- try(get_responses(con, keys, message_id, worker_ids,
+                              delete=FALSE, wait=wait),
+                silent=TRUE)
+      if (is_error(ok)) {
+        done <- has_responses(con, keys, message_id, worker_ids)
+        stop_workers(con, keys, worker_ids[!done], "kill")
       }
     }
+  } else if (type == "kill") {
+    queue_send_signal(con, keys, tools::SIGTERM, worker_ids)
+  } else { # kill_local
+    w_info <- workers_info(con, keys, worker_ids)
+    w_local <- vcapply(w_info, "[[", "hostname") == hostname()
+    if (!all(w_local)) {
+      stop("Not all workers are local: ",
+           paste(worker_ids[!w_local], collapse=", "))
+    }
+    tools::pskill(vnapply(w_info, "[[", "pid"), tools::SIGTERM)
   }
+  invisible(worker_ids)
 }

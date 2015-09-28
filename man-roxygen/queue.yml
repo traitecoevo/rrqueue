@@ -272,16 +272,59 @@ stop_workers:
 
   params:
     worker_ids: *worker_ids
-    kill_local: >-
 
-      After requesting stop, kill any workers still running?  Because
-      messages are only recieved by workers that are not running jobs,
-      this might be needed to get through to stop local workers.
-      Remote workers cannot be killed this way.
+    type: >-
 
-    wait_stop: >-
+      way to stop workers; options are \code{"message"} (the default)
+      or \code{"kill"}.  See Details for more information.
 
-      Time, in seconds, to wait between sending the STOP message and
-      attempting to kill workers.  Set this to 0 to just straight up
-      kill workers, or use the default to nicely bring down any idle
-      workers.
+    interrupt: >-
+
+      Should busy workers be interrupted after sending a message?  See
+      Details.
+
+    wait: >-
+
+      How long to wait after sending a message for a response to be
+      retrieved.  If this is greater than zero, any unresponsive
+      workers will be killed.
+
+  details: >-
+
+    Stopping remote workers is fairly tricky because we can't really
+    talk to them, they might be working on a task, or worse they might
+    be working on a task that does not listen for interrupt (custom
+    C/C++ code is a common culprit here).
+
+
+    The default behaviour of this function is to send a \code{STOP}
+    message and then immediately send an interrupt signal to all
+    workers that have status \code{"BUSY"}.  This should work in most
+    cases.  Wait a second or two and then check
+    \code{workers_list_exited()} to make sure that all workers are
+    listed.
+
+
+    To let workers finish whatever task they are working on, specify
+    \code{interrupt=FALSE}.  The \code{STOP} message will be the next
+    thing the workers process, so they will shut down as soon as they
+    finish the task.
+
+
+    To ensure that workers do stop in some timeframe, specify a time.
+    Passing \code{time=5} will send a \code{STOP} signal (and possibly
+    an interrupt) and then poll for responses from all workers for 5
+    seconds.  Any worker that has not completed within this time will
+    then be killed.  If all workers respond in time, the function will
+    exit more quickly, so you can use an overestimate.
+
+
+    If you just want to kill the workers outright, use
+    \code{type="kill"} which will send a \code{SIGTERM} via the
+    database.  No other checks are done as the worker will be
+    unceremoniously halted.
+
+
+    If you want to kill a local worker and just want it dead, you can
+    use \code{type="kill_local"} which will use \code{tools::pskill}
+    to terminate the process.  This is really a line of last resort.

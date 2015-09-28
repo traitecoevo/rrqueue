@@ -230,3 +230,115 @@ test_that("workers stop", {
   expect_that(log$command, equals("STOP"))
   expect_that(log$message, equals("OK"))
 })
+
+test_that("stop_workers (simple case)", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile)
+
+  ok <- obj$stop_workers(wid, wait=10)
+  expect_that(ok, equals(wid))
+
+  expect_that(obj$workers_list(), equals(character(0)))
+  expect_that(obj$workers_list_exited(), equals(wid))
+  log <- obj$workers_log_tail(wid, 3)
+  expect_that(log$command, equals(c("MESSAGE", "RESPONSE", "STOP")))
+  expect_that(log$message, equals(c("STOP", "STOP", "OK")))
+
+  res <- obj$workers_identify_lost()
+  expect_that(res, equals(list(workers=character(), tasks=character())))
+
+  expect_that(obj$workers_delete_exited(), equals(wid))
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+  expect_that(nrow(obj$workers_log_tail(wid, 1)), equals(0))
+})
+
+test_that("stop_workers (running, interrupt)", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile)
+
+  len <- 2
+  t <- obj$enqueue(slowdouble(len))
+  Sys.sleep(.25)
+  expect_that(t$status(), equals(TASK_RUNNING))
+  ok <- obj$stop_workers(wid, interrupt=TRUE)
+  expect_that(ok, equals(wid))
+
+  Sys.sleep(.25)
+
+  expect_that(t$status(), equals(TASK_ORPHAN))
+  expect_that(obj$workers_list(), equals(character(0)))
+  expect_that(obj$workers_list_exited(), equals(wid))
+  log <- obj$workers_log_tail(wid, 5)
+  expect_that(log$command, equals(c("INTERRUPT", "TASK_ORPHAN",
+                                    "MESSAGE", "RESPONSE", "STOP")))
+  expect_that(log$message, equals(c("", t$id, "STOP", "STOP", "OK")))
+
+  res <- obj$workers_identify_lost()
+  expect_that(res, equals(list(workers=character(), tasks=character())))
+
+  expect_that(obj$workers_delete_exited(), equals(wid))
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+  expect_that(nrow(obj$workers_log_tail(wid, 1)), equals(0))
+})
+
+test_that("stop_workers (running, wait)", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile)
+
+  len <- 2
+  t <- obj$enqueue(slowdouble(len))
+  Sys.sleep(.25)
+  expect_that(t$status(), equals(TASK_RUNNING))
+  ok <- obj$stop_workers(wid, interrupt=FALSE)
+  expect_that(ok, equals(wid))
+
+  Sys.sleep(len + .25)
+  expect_that(t$status(), equals(TASK_COMPLETE))
+  expect_that(obj$workers_list(), equals(character(0)))
+  expect_that(obj$workers_list_exited(), equals(wid))
+  log <- obj$workers_log_tail(wid, 1)
+  expect_that(log$command, equals("STOP"))
+  expect_that(log$message, equals("OK"))
+
+  expect_that(obj$workers_delete_exited(), equals(wid))
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+  expect_that(nrow(obj$workers_log_tail(wid, 1)), equals(0))
+})
+
+test_that("stop_workers (blocking)", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  expire <- 3
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile,
+                      heartbeat_expire=expire, heartbeat_period=1)
+
+  t <- obj$enqueue(block(10))
+
+  ok <- obj$stop_workers(wid, wait=1)
+  expect_that(ok, equals(wid))
+  expect_that(t$status(), equals(TASK_RUNNING))
+
+  Sys.sleep(expire)
+  res <- obj$workers_identify_lost()
+  expect_that(res, equals(list(workers=wid, tasks=t$id)))
+  expect_that(t$status(), equals(TASK_ORPHAN))
+})

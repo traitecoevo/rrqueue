@@ -706,7 +706,7 @@ worker_stop <- function(queue, worker_id, type="message",
   if (type == "message") {
     queue_send_message(con, keys, "STOP", worker_ids=worker_id)
   } else {
-    queue_send_signal(con, keys, tools::SIGKILL, worker_id)
+    queue_send_signal(con, keys, tools::SIGTERM, worker_id)
   }
 }
 

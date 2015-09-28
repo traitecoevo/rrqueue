@@ -345,8 +345,7 @@ test_that("cleanup", {
   Sys.sleep(.5)
   expect_that(obj$workers_status(), equals(setNames("BUSY", wid)))
 
-  queue_clean(obj$con, "tmpjobs",
-              stop_workers=TRUE, kill_local=TRUE, wait_stop=0.1)
+  queue_clean(obj$con, "tmpjobs", stop_workers="kill")
   Sys.sleep(.5)
 
   expect_that(pid_exists(pid), is_false())
@@ -522,35 +521,6 @@ test_that("wait", {
   expect_that(t$wait(2), equals(2))
   obj$send_message("STOP")
   Sys.sleep(.5)
-})
-
-test_that("stop workers", {
-  test_cleanup()
-
-  obj <- queue("tmpjobs", sources="myfuns.R")
-  expect_that(obj$workers_list_exited(), equals(character(0)))
-  wid <- worker_spawn(obj$queue_name, tempfile())
-  expect_that(obj$workers_list(), equals(wid))
-  pid <- obj$workers_info()[[wid]]$pid
-  expect_that(pid_exists(pid), is_true())
-
-  ## Queue up a job that will outlive the test:
-  obj$enqueue(slowdouble(30))
-
-  Sys.sleep(.5)
-  expect_that(obj$workers_status(), equals(setNames("BUSY", wid)))
-
-  ## This is going to give nothing sensible here:
-  obj$stop_workers(wid)
-  Sys.sleep(.5)
-  expect_that(obj$workers_status(), equals(setNames("BUSY", wid)))
-  expect_that(pid_exists(pid), is_true())
-
-  obj$stop_workers(wid, kill_local=TRUE)
-  Sys.sleep(.2)
-  expect_that(pid_exists(pid), is_false())
-  expect_that(obj$workers_list(), equals(character(0)))
-  expect_that(obj$workers_list_exited(), equals(wid))
 })
 
 test_that("config", {
