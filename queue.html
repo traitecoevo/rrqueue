@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>queue. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Create an rrqueue queue</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>queue(queue_name, packages&nbsp;=&nbsp;NULL, sources&nbsp;=&nbsp;NULL, redis_host&nbsp;=&nbsp;"127.0.0.1", redis_port&nbsp;=&nbsp;6379, global&nbsp;=&nbsp;TRUE, config&nbsp;=&nbsp;NULL)</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>queue_name</dt>
+      <dd>Queue name (scalar character)</dd>
+      <dt>packages</dt>
+      <dd>Optional character vector of packages to load</dd>
+      <dt>sources</dt>
+      <dd>Optional character vector of files to source</dd>
+      <dt>redis_host</dt>
+      <dd>Redis hostname</dd>
+      <dt>redis_port</dt>
+      <dd>Redis port number</dd>
+      <dt>global</dt>
+      <dd>Source files into the global environment?  This is a
+good idea for working with the "user friendly" functions.  See
+issue 2 on github.</dd>
+      <dt>config</dt>
+      <dd>Configuration file of key/value pairs in yaml
+format.  See the package README for an example.  If given,
+additional arguments to this function override values in the
+file which in turn override defaults of this function.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Create an rrqueue queue.  A queue requires a queue name and a set
+of packages and sources to load.  The sources and packages
+together define an "environment"; on the worker these packages
+will be loaded and source files will be <code>source</code>-ed.</p>
+  
+    </div>
+
+    <div class="Details">
+      <h2>Details</h2>
+
+      <p>The default values for <code>redis_host</code> and <code>redis_port</code>
+correspond to Redis' defaults; if your Redis server is configured
+differently or available over an internet connection you will need
+to adjust these accordingly.</p>
+  
+      <p>The <code>queue</code> objects can be created and desroyed at will; all
+the data is stored on the server.  Once a queue is created it can
+also be connected to by the <code>observer</code> object for read-only
+access.</p>
+  
+    </div>
+
+    <div class="Methods">
+      <h2>Methods</h2>
+
+      <p></p>
+  
+      <p><dl>
+<dt><code>enqueue</code></dt><dd>
+  The main queuing function.</p>
+  
+      <p><em>Usage:</em>
+  <code>enqueue(expr = , envir = parent.frame(), key_complete = NULL,
+      group = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>expr</code></dt><dd>
+      An unevaluated expression to be evaluated
+    </dd></p>
+  
+      <p><dt><code>envir</code></dt><dd></p>
+  
+      <p>An environment in which local variables required to compute <code>expr</code> can be found.  These will be evaluated and added to the Redis database.
+    </dd></p>
+  
+      <p><dt><code>key_complete</code></dt><dd></p>
+  
+      <p>an optional string representing the Redis key to write to when the task is complete.  You generally don't need to modify this, but is used in some higher-level functions (such as <code>link{rrqlapply}</code>) to keep track of task completions efficiently.
+    </dd></p>
+  
+      <p><dt><code>group</code></dt><dd></p>
+  
+      <p>An optional human-readable "group" to add the task to. There are methods for addressing sets of tasks using this group.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Details:</em></p>
+  
+      <p>This method uses non standard evaluation and the <code>enqueue_</code> form may be prefereable for programming.</p>
+  
+      <p><em>Value</em>:</p>
+  
+      <p>invisibly, a <code>link{task}</code> object, which can be used to monitor the status of the task.
+</dd></p>
+  
+      <p><dt><code>enqueue_</code></dt><dd></p>
+  
+      <p>The workhorse version of <code>enqueue</code> which uses standard evaluation and is therefore more suitable for programming.  All arguments are the same as <code>enqueue_</code> except for <code>eval</code>.</p>
+  
+      <p><em>Usage:</em>
+  <code>enqueue_(expr = , envir = parent.frame(), key_complete = NULL,
+      group = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>expr</code></dt><dd>
+      Either a language object (quoted expression)
+    </dd></p>
+  
+      <p><dt><code>envir</code></dt><dd>
+      Environment to find locals (see `enqueue`)
+    </dd></p>
+  
+      <p><dt><code>key_complete</code></dt><dd>
+      See `enqueue`
+    </dd></p>
+  
+      <p><dt><code>group</code></dt><dd>
+      See `enqueue`
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>requeue</code></dt><dd></p>
+  
+      <p>Re-queue a task that has been orphaned by worker failure.</p>
+  
+      <p><em>Usage:</em>
+  <code>requeue(task_id = )</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_id</code></dt><dd>
+      Task id number
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Details:</em></p>
+  
+      <p>If a worker fails (either an unhandled exception, R crash, network loss or machine loss) then if the worker was running a heartbeat process the task will eventually be flagged as orphaned.  If this happens then the task can be requeued. Functions for fetching and querying tasks take a <code>follow_redirect</code> argument which can be set to <code>TRUE</code> so that this new, requeued, task is found instead of the old task.</p>
+  
+      <p><em>Value</em>:</p>
+  
+      <p>invisibly, a <code><a href='task.html'>task</a></code> object.
+</dd></p>
+  
+      <p><dt><code>send_message</code></dt><dd></p>
+  
+      <p>Send a message to one or more (or all) workers.  Messages can be used to retrieve information from workers, to shut them down and are useful in debugging.  See Details for possible messages and their action.</p>
+  
+      <p><em>Usage:</em>
+  <code>send_message(command = , args = NULL, worker_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>command</code></dt><dd></p>
+  
+      <p>Name of the command to run; one of "PING", "ECHO", "EVAL", "STOP", "INFO", "ENVIR", "PUSH", "PULL", "DIR".  See Details.
+    </dd></p>
+  
+      <p><dt><code>args</code></dt><dd></p>
+  
+      <p>Arguments to pass through to commands.  Some commands require arguments, others do not.  See Details.
+    </dd></p>
+  
+      <p><dt><code>worker_ids</code></dt><dd></p>
+  
+      <p>Optional vector of worker ids to send the message to.  If this is omitted (or <code>NULL</code> then try all workers that rrqueue knows about.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Details:</em></p>
+  
+      <p>The possible types of message are
+  <dl>
+<dt><code>PING</code></dt><dd>send a "PING" to the worker.  It will respond by replying PONG to its stderr, to its log (see <code>observer</code> for how to access) and to the response queue.  Ignores any argument.</dd></p>
+  
+      <p><dt><code>ECHO</code></dt><dd>Like "PING", but the worker responds by echoing the string given.  Requires one argument.</dd></p>
+  
+      <p><dt><code>INFO</code></dt><dd>Refresh the worker info (see <code>workers_info</code> in <code><a href='observer.html'>observer</a></code>.  Worker will print info to stderr, write it to the appropriate place in the database and return it in the response queue.  Ignores any argument.</dd></p>
+  
+      <p><dt><code>DIR</code></dt><dd>Tell the worker to return directory contents and md5 hashes of files.</dd></p>
+  
+      <p><dt><code>PUSH</code></dt><dd>Tell the worker to push files into the database.  The arguments should be a vector of filenames to copy.  The response queue will contain appropriate data for retrieving the files, but the interface here will change to make this nice to use.</dd></p>
+  
+      <p><dt><code>PULL</code></dt><dd>Tells the worker to pull files into its working directory.  Can be used to keep the worker in sync.</dd></p>
+  
+      <p><dt><code>EVAL</code></dt><dd>Evaluate an arbitrary R expression as a string (e.g., <code>run_message("EVAL", "sin(1)")</code>).  The output is printed to stdout, the worker log and to the response queue.  Requires a single argument.</dd></p>
+  
+      <p># the interface here is likely to change, so I'll withdraw the # documentation for now: # <code>ENVIR</code>: Tell the worker to try an load an environment, whose # id is given as a single argument.  Requires a single argument.
+  <dt><code>STOP</code></dt><dd>Tell the worker to stop cleanly.  Ignores any argument.</dd>
+ </dl></p>
+  
+      <p>After sending a message, there is no guarantee about how long it will take to process.  If the worker is involved in a long-running computation it will be unavailable to process the message. However, it will process the message before running any new task.
+  The message id is worth saving.  It can be passed to the method <code>get_respones</code> to wait for and retrieve responses from one or more workers.</p>
+  
+      <p><em>Value</em>:</p>
+  
+      <p>The "message id" which can be used to retrieve messages with <code>has_responses</code>, <code>get_responses</code> and <code>get_response</code>.
+</dd></p>
+  
+      <p><dt><code>has_responses</code></dt><dd></p>
+  
+      <p>Detect which workers have responses ready for a given message id.</p>
+  
+      <p><em>Usage:</em>
+  <code>has_responses(message_id = , worker_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>message_id</code></dt><dd>
+      id of the message (as returned by <code>send_message</code>
+    </dd></p>
+  
+      <p><dt><code>worker_ids</code></dt><dd></p>
+  
+      <p>Optional vector of worker ids to send the message to.  If this is omitted (or <code>NULL</code> then try all workers that rrqueue knows about.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:</p>
+  
+      <p>A named logical vector; names are worker ids, the value is <code>TRUE</code> for each worker for which a response is ready and <code>FALSE</code> for workers where a response is not ready.
+</dd></p>
+  
+      <p><dt><code>get_responses</code></dt><dd></p>
+  
+      <p>Retrieve responses to a give message id from one or more workers.</p>
+  
+      <p><em>Usage:</em>
+  <code>get_responses(message_id = , worker_ids = NULL, delete = FALSE,
+      wait = 0)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>message_id</code></dt><dd>
+      id of the message (as returned by <code>send_message</code>
+    </dd></p>
+  
+      <p><dt><code>worker_ids</code></dt><dd></p>
+  
+      <p>Optional vector of worker ids to send the message to.  If this is omitted (or <code>NULL</code> then try all workers that rrqueue knows about.
+    </dd></p>
+  
+      <p><dt><code>delete</code></dt><dd></p>
+  
+      <p>delete the response after a successful retrieval of <em>all</em> responses?
+    </dd></p>
+  
+      <p><dt><code>wait</code></dt><dd></p>
+  
+      <p>Number of seconds to wait for a response.  We poll the database repeatedly during this interval.  If 0, then a response is requested immediately.  If no response is recieved from all workers in time, an error is raised.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  Always returns a list, even if only one worker id is given.
+</dd></p>
+  
+      <p><dt><code>get_response</code></dt><dd></p>
+  
+      <p>As for <code>get_responses</code>, but only for a single worker id, and returns the value of the response rather than a list.</p>
+  
+      <p><em>Usage:</em>
+  <code>get_response(message_id = , worker_id = , delete = FALSE, wait = 0)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>message_id</code></dt><dd>
+      message id
+    </dd></p>
+  
+      <p><dt><code>worker_id</code></dt><dd>
+      single worker id
+    </dd></p>
+  
+      <p><dt><code>delete</code></dt><dd>
+      delete response after successful retrieval?
+    </dd></p>
+  
+      <p><dt><code>wait</code></dt><dd>
+      how long to wait for a message, in seconds
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>response_ids</code></dt><dd></p>
+  
+      <p>Get list of message ids that a given worker has responses for.</p>
+  
+      <p><em>Usage:</em>
+  <code>response_ids(worker_id = )</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_id</code></dt><dd>
+      single worker id
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>tasks_drop</code></dt><dd>
+  Drop tasks from the database</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_drop(task_ids = )</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_ids</code></dt><dd>
+      Vector of task ids to drop
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>files_pack</code></dt><dd>
+  Pack files into the Redis database</p>
+  
+      <p><em>Usage:</em>
+  <code>files_pack(... = , files = c(...))</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>...</code></dt><dd>
+      filenames
+    </dd></p>
+  
+      <p><dt><code>files</code></dt><dd>
+      a vector of filename, used in place of <code>...</code>
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>files_unpack</code></dt><dd>
+  Unpack files from the Redis database onto the filesystem.</p>
+  
+      <p><em>Usage:</em>
+  <code>files_unpack(pack = , path = tempfile())</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>pack</code></dt><dd>
+      a <code>files_pack</code> object, created by <code>files_pack</code> or returned as a response to a <code>PUSH</code> response.
+    </dd></p>
+  
+      <p><dt><code>path</code></dt><dd>
+      path to unpack files.  Files will be overwritten without warning, so using <code>tempfile()</code> (the default) guarantees not to overwrite anything.  This method returns <code>path</code> invisibly so you can move files around easily afterwards.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>tasks_set_group</code></dt><dd></p>
+  
+      <p>Set the group name for one or more tasks.  The tasks can be pending, running or completed, and the tasks can already have a group ir can be groupless.  Once tasks have been grouped they can be easier to work with as a set (see <code>tasks_in_groups</code> and <code>task_bundle_get</code> in <code><a href='observer.html'>observer</a></code>.</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_set_group(task_ids = , group = , exists_action = "stop")</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_ids</code></dt><dd>
+      Vector of task ids
+    </dd></p>
+  
+      <p><dt><code>group</code></dt><dd>
+      Single group name
+    </dd></p>
+  
+      <p><dt><code>exists_action</code></dt><dd></p>
+  
+      <p>Behaviour when a group name already exists for a given task. Options are <code>"stop"</code> (throw an error, the default), <code>"warn"</code> (warn, but don't rename), <code>"pass"</code> (don't warn, don't rename) and <code>"overwrite"</code> (replace the group name).
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>stop_workers</code></dt><dd></p>
+  
+      <p>Stop some or all rrqueue workers.</p>
+  
+      <p><em>Usage:</em>
+  <code>stop_workers(worker_ids = NULL, type = "message", interrupt = TRUE,
+      wait = 0)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_ids</code></dt><dd></p>
+  
+      <p>Optional vector of worker ids to send the message to.  If this is omitted (or <code>NULL</code> then try all workers that rrqueue knows about.
+    </dd></p>
+  
+      <p><dt><code>type</code></dt><dd></p>
+  
+      <p>way to stop workers; options are <code>"message"</code> (the default) or <code>"kill"</code>.  See Details for more information.
+    </dd></p>
+  
+      <p><dt><code>interrupt</code></dt><dd></p>
+  
+      <p>Should busy workers be interrupted after sending a message?  See Details.
+    </dd></p>
+  
+      <p><dt><code>wait</code></dt><dd></p>
+  
+      <p>How long to wait after sending a message for a response to be retrieved.  If this is greater than zero, any unresponsive workers will be killed.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Details:</em></p>
+  
+      <p>Stopping remote workers is fairly tricky because we can't really talk to them, they might be working on a task, or worse they might be working on a task that does not listen for interrupt (custom C/C++ code is a common culprit here).</p>
+  
+      <p>The default behaviour of this function is to send a <code>STOP</code> message and then immediately send an interrupt signal to all workers that have status <code>"BUSY"</code>.  This should work in most cases.  Wait a second or two and then check <code>workers_list_exited()</code> to make sure that all workers are listed.</p>
+  
+      <p>To let workers finish whatever task they are working on, specify <code>interrupt=FALSE</code>.  The <code>STOP</code> message will be the next thing the workers process, so they will shut down as soon as they finish the task.</p>
+  
+      <p>To ensure that workers do stop in some timeframe, specify a time. Passing <code>time=5</code> will send a <code>STOP</code> signal (and possibly an interrupt) and then poll for responses from all workers for 5 seconds.  Any worker that has not completed within this time will then be killed.  If all workers respond in time, the function will exit more quickly, so you can use an overestimate.</p>
+  
+      <p>If you just want to kill the workers outright, use <code>type="kill"</code> which will send a <code>SIGTERM</code> via the database.  No other checks are done as the worker will be unceremoniously halted.</p>
+  
+      <p>If you want to kill a local worker and just want it dead, you can use <code>type="kill_local"</code> which will use <code>tools::pskill</code> to terminate the process.  This is really a line of last resort.
+</dd></p>
+  
+      <p></dl></p>
+  
+      <p></p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>queue</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

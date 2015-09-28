@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>task. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Create a task handle</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>task(obj, task_id, key_complete&nbsp;=&nbsp;NULL)</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>obj</dt>
+      <dd>A <code>queue</code> or <code>observer</code> object.</dd>
+      <dt>task_id</dt>
+      <dd>Task identifier</dd>
+      <dt>key_complete</dt>
+      <dd>If known, specify the <code>key_complete</code>,
+otherwise we look it up on creation.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Create a task handle object.  This is a "pointer" to a task and
+can be used to retrieve information about status, running times,
+expression and the result of the task once complete.  Generally
+you do not need to make a task object as they will be created for
+you by things like the <code>task_get</code> method of the
+<code><a href='observer.html'>observer</a></code> and <code><a href='queue.html'>queue</a></code> objects.</p>
+  
+    </div>
+
+    <div class="Details">
+      <h2>Details</h2>
+
+      <p>Tasks have a <em>unique identifier</em>; these are unique within a
+queue and are implemented as an incrementing integer.  However,
+this is an implementation detail and should not be relied on.  The
+identifier is represented as a <em>character string</em> rather than
+an integer in most places.</p>
+  
+      <p>Tasks exist in one of a number of <em>statuses</em>.  See the
+<code>status</code> method below for a list of possible statuses and
+their interpretation.</p>
+  
+    </div>
+
+    <div class="Methods">
+      <h2>Methods</h2>
+
+      <p></p>
+  
+      <p><dl>
+<dt><code>status</code></dt><dd>
+  Returns a scalar character indicating the task status.</p>
+  
+      <p><em>Usage:</em>
+  <code>status(follow_redirect = FALSE)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>follow_redirect</code></dt><dd>
+      should we follow redirects to get the status of any requeued task?
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  Scalar character.  Possible values are
+  <dl>
+  <dt><code>PENDING</code></dt><dd>queued, but not run by a worker</dd></p>
+  
+      <p><dt><code>RUNNING</code></dt><dd>being run on a worker, but not complete</dd></p>
+  
+      <p><dt><code>COMPLETE</code></dt><dd>task completed successfully</dd></p>
+  
+      <p><dt><code>ERROR</code></dt><dd>task completed with an error</dd></p>
+  
+      <p><dt><code>ORPHAN</code></dt><dd>task orphaned due to loss of worker</dd></p>
+  
+      <p><dt><code>REDIRECT</code></dt><dd>orphaned task has been redirected</dd></p>
+  
+      <p><dt><code>MISSING</code></dt><dd>task not known (deleted, or never existed)</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>result</code></dt><dd>
+  Fetch the result of a task, so long as it has completed.</p>
+  
+      <p><em>Usage:</em>
+  <code>result(follow_redirect = FALSE, sanitise = FALSE)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>follow_redirect</code></dt><dd>
+      should we follow redirects to get the status of any requeued task?
+    </dd></p>
+  
+      <p><dt><code>sanitise</code></dt><dd></p>
+  
+      <p>If the task is not yet complete or is missing, return an <code>UnfetchabmeTask</code> object rather than throwing an error.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>wait</code></dt><dd>
+  Like <code>result</code>, but will wait until the task is complete.  In order to preserve the <code>key_complete</code> for anything that might be listening for it (and to avoid collision with anything else writing to that key), this function repeatedly polls the database. Over a slow connection you may want to increase the <code>every</code> parameter.</p>
+  
+      <p><em>Usage:</em>
+  <code>wait(timeout = , every = 0.05)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>timeout</code></dt><dd>
+      Length of time, in seconds, to wait.  A value of zero will not wait.  Infinite times are possible and can be escaped by pressing Ctrl-C or Escape (depending on platform).
+    </dd></p>
+  
+      <p><dt><code>every</code></dt><dd>
+      How often, in seconds, to poll for results
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>expr</code></dt><dd>
+  returns the expression stored in the task</p>
+  
+      <p><em>Usage:</em>
+  <code>expr(locals = FALSE)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>locals</code></dt><dd>
+      Logical, indicating if the local variables associated with the expression should also be retuned.  If <code>TRUE</code>, then local variables used in the expression will be returned in a <em>attribute</em> of the expression <code>envir</code>.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A quoted expression (a language object).  Turn this into a string with deparse.  If <code>locals</code> was <code>TRUE</code> there will be an environment attribute with local variables included.
+</dd></p>
+  
+      <p><dt><code>envir</code></dt><dd>
+  returns the environment identifier for the task</p>
+  
+      <p><em>Usage:</em>
+  <code>envir()</code>
+</dd></p>
+  
+      <p><dt><code>times</code></dt><dd>
+  returns a summar of times associated with this task.</p>
+  
+      <p><em>Usage:</em>
+  <code>times(unit_elapsed = "secs")</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>unit_elapsed</code></dt><dd>
+      Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to <code><a href='http://www.inside-r.org/r-doc/base/difftime'>difftime</a></code> so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A one row <code>data.frame</code> with columns
+  <dl>
+  <dt><code>submitted</code></dt><dd>Time the task was submitted</dd></p>
+  
+      <p><dt><code>started</code></dt><dd>Time the task was started, or <code>NA</code> if waiting</dd></p>
+  
+      <p><dt><code>finished</code></dt><dd>Time the task was completed, or <code>NA</code>
+  if waiting or running</dd></p>
+  
+      <p><dt><code>waiting</code></dt><dd>Elapsed time spent waiting</dd></p>
+  
+      <p><dt><code>running</code></dt><dd>Elapsed time spent running, or <code>NA</code> if waiting</dd></p>
+  
+      <p><dt><code>idle</code></dt><dd>Elapsed time since finished, or <code>NA</code>
+  if waiting or running</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p></dl></p>
+  
+      <p></p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>task</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

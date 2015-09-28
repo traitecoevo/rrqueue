@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="author" content="Rich FitzJohn" />
+
+<meta name="date" content="2015-09-28" />
+
+<title>rrqueue messages</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0A%7D%0Apre%20%7B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+<div id="header">
+<h1 class="title">rrqueue messages</h1>
+<h4 class="author"><em>Rich FitzJohn</em></h4>
+<h4 class="date"><em>2015-09-28</em></h4>
+</div>
+
+
+<p>In addition to passing tasks (and results) between a controller and workers, the controller can also send “messages” to workers. This vignette shows what the possible messages do.</p>
+<p>In order to do this, we’re going to need a queue and a worker:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj &lt;-<span class="st"> </span>rrqueue::<span class="kw">queue</span>(<span class="st">&quot;myqueue&quot;</span>, <span class="dt">sources=</span><span class="st">&quot;myfuns.R&quot;</span>)</code></pre></div>
+<pre><code>## creating new queue
+## 0 workers available</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">logfile &lt;-<span class="st"> </span><span class="kw">tempfile</span>()
+worker_id &lt;-<span class="st"> </span>rrqueue::<span class="kw">worker_spawn</span>(<span class="st">&quot;myqueue&quot;</span>, logfile)</code></pre></div>
+<pre><code>## new worker: Richs-MacBook-Pro.local::34833</code></pre>
+<p>On startup the worker log contains:</p>
+<pre class="plain"><code>                                                       __
+                ______________ ___  _____  __  _____  / /
+      ______   / ___/ ___/ __ `/ / / / _ \/ / / / _ \/ /  ______
+     /_____/  / /  / /  / /_/ / /_/ /  __/ /_/ /  __/_/  /_____/
+ ______      /_/  /_/   \__, /\__,_/\___/\__,_/\___(_)      ______
+/_____/                   /_/                              /_____/
+    version:          0.1.4 [LOCAL]
+    platform:         x86_64-apple-darwin13.4.0 (64-bit)
+    running:          OS X 10.10.4 (Yosemite)
+    hostname:         Richs-MacBook-Pro.local
+    pid:              34833
+    redis_host:       127.0.0.1
+    redis_port:       6379
+    worker:           Richs-MacBook-Pro.local::34833
+    queue_name:       myqueue
+    heartbeat_period: 30
+    heartbeat_expire: 90
+    message:          myqueue:workers:Richs-MacBook-Pro.local::34833:message
+    response:         myqueue:workers:Richs-MacBook-Pro.local::34833:response
+    log:              myqueue:workers:Richs-MacBook-Pro.local::34833:log
+    envir:            {}
+[2015-09-28 12:41:05] ALIVE
+[2015-09-28 12:41:05] ENVIR 9ba846cec2d2f060b336b9b90f8fd19d
+[2015-09-28 12:41:05] ENVIR PACKAGES (none)
+[2015-09-28 12:41:05] ENVIR SOURCES myfuns.R</code></pre>
+<p>Because one of the main effects of messages is to print to the worker logfile, we’ll print this fairly often.</p>
+<div id="messages-and-responses" class="section level2">
+<h2>Messages and responses</h2>
+<ol style="list-style-type: decimal">
+<li><p>The queue sends a message for one or more workers to process. The message has an <em>identifier</em> that is derived from the current time. Messages are written to a first-in-first-out queue, <em>per worker</em>, and are processed independently by workers who do not look to see if other workers have messages or are processing them.</p></li>
+<li><p>As soon as a worker has finished processing any current job it will process the message (it must wait to finish a current job but will not start any further jobs).</p></li>
+<li><p>Once the message has been processed (see below) a response will be written to a response list with the same identifier as the message.</p></li>
+</ol>
+</div>
+<div id="ping" class="section level2">
+<h2><code>PING</code></h2>
+<p>The <code>PING</code> message simply asks the worker to return <code>PONG</code>. It’s useful for diagnosing communication issues because it does so little</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;PING&quot;</span>)</code></pre></div>
+<p>The message id is going to be useful for getting responses:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id</code></pre></div>
+<pre><code>## [1] &quot;1443440465.46735&quot;</code></pre>
+<p>(this is derived from the current time, according to Redis which is the central reference point of time for the whole system).</p>
+<p>wait a little while:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">Sys.sleep</span>(.<span class="dv">5</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">reader</span>()</code></pre></div>
+<pre class="plain"><code>[2015-09-28 12:41:05] MESSAGE PING
+PONG
+[2015-09-28 12:41:05] RESPONSE PING</code></pre>
+<p>The logfile prints:</p>
+<ol style="list-style-type: decimal">
+<li>the request for the <code>PING</code> (<code>MESSAGE PING</code>)</li>
+<li>the value <code>PONG</code> to the R message stream</li>
+<li>logging a response (<code>RESPONSE PONG</code>), which means that something is written to the response stream.</li>
+</ol>
+<p>We can access the same bits of information in the worker log:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">workers_log_tail</span>(<span class="dt">n=</span><span class="ot">Inf</span>)[-<span class="dv">1</span>]</code></pre></div>
+<pre><code>##         time  command                          message
+## 1 1443440465    ALIVE                                 
+## 2 1443440465    ENVIR 9ba846cec2d2f060b336b9b90f8fd19d
+## 3 1443440465  MESSAGE                             PING
+## 4 1443440465 RESPONSE                             PING</code></pre>
+<p>This includes the <code>ALIVE</code> and <code>ENVIR</code> bits as the worker comes up.</p>
+<p>Inspecting the logs is fine for interactive use, but it’s going to be more useful often to poll for a response.</p>
+<p>We already know that our worker has a response, but we can ask anyway:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">has_responses</span>(message_id)</code></pre></div>
+<pre><code>## Richs-MacBook-Pro.local::34833 
+##                           TRUE</code></pre>
+<p>Or inversely we can as what messages a given worker has responses for:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">response_ids</span>(worker_id)</code></pre></div>
+<pre><code>## [1] &quot;1443440465.46735&quot;</code></pre>
+<p>To fetch the responses from all workers it was sent to (always returning a named list):</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">get_responses</span>(message_id)</code></pre></div>
+<pre><code>## $`Richs-MacBook-Pro.local::34833`
+## [1] &quot;PONG&quot;</code></pre>
+<p>or to fetch the response from a given worker:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">get_response</span>(message_id, worker_id)</code></pre></div>
+<pre><code>## [1] &quot;PONG&quot;</code></pre>
+<p>The response can be deleted by passing <code>delete=TRUE</code> to this method:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>## [1] &quot;PONG&quot;</code></pre>
+<p>after which recalling the message will throw an error:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>## Error in get_responses(self$con, self$keys, message_id, worker_ids, delete, : Response missing for workers: Richs-MacBook-Pro.local::34833</code></pre>
+<p>There is also a <code>wait</code> argument that lets you wait until a response is ready. The <code>slowdouble</code> command will take a few seconds, so to demonstrate:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">enqueue</span>(<span class="kw">slowdouble</span>(<span class="dv">2</span>))
+message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;PING&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] &quot;PONG&quot;</code></pre>
+<p>Looking at the log will show what went on here:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">workers_log_tail</span>(<span class="dt">n=</span><span class="dv">4</span>)[-<span class="dv">1</span>]</code></pre></div>
+<pre><code>##         time       command message
+## 1 1443440465    TASK_START       1
+## 2 1443440467 TASK_COMPLETE       1
+## 3 1443440467       MESSAGE    PING
+## 4 1443440467      RESPONSE    PING</code></pre>
+<ol style="list-style-type: decimal">
+<li>A task is recieved</li>
+<li>2s later the task is completed</li>
+<li>Then the message is recieved</li>
+<li>Then, basically instantaneously, the message is responded to</li>
+</ol>
+<p>However, because the message is only processed after the task is completed, the response takes a while to come back. Equivalently, from the worker log:</p>
+<pre class="plain"><code>[2015-09-28 12:41:05] TASK_START 1
+[2015-09-28 12:41:05] EXPR slowdouble(2)
+[2015-09-28 12:41:07] TASK_COMPLETE 1
+[2015-09-28 12:41:07] MESSAGE PING
+PONG
+[2015-09-28 12:41:07] RESPONSE PING</code></pre>
+</div>
+<div id="echo" class="section level2">
+<h2><code>ECHO</code></h2>
+<p>This is basically like <code>PING</code> and not very interesting; it prints an arbitrary string to the log. It always returns <code>&quot;OK&quot;</code> as a response.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;ECHO&quot;</span>, <span class="st">&quot;hello world!&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] &quot;OK&quot;</code></pre>
+<pre class="plain"><code>[2015-09-28 12:41:07] MESSAGE ECHO
+hello world!
+[2015-09-28 12:41:07] RESPONSE ECHO</code></pre>
+</div>
+<div id="info" class="section level2">
+<h2><code>INFO</code></h2>
+<p>The <code>INFO</code> command refreshes and returns the worker information.</p>
+<p>We already have a copy of the worker info; it was created when the worker started up:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">workers_info</span>()[[worker_id]]</code></pre></div>
+<pre><code>##     version:          0.1.4 [LOCAL]
+##     platform:         x86_64-apple-darwin13.4.0 (64-bit)
+##     running:          OS X 10.10.4 (Yosemite)
+##     hostname:         Richs-MacBook-Pro.local
+##     pid:              34833
+##     redis_host:       127.0.0.1
+##     redis_port:       6379
+##     worker:           Richs-MacBook-Pro.local::34833
+##     queue_name:       myqueue
+##     heartbeat_period: 30
+##     heartbeat_expire: 90
+##     message:          myqueue:workers:Richs-MacBook-Pro.local::34833:message
+##     response:         myqueue:workers:Richs-MacBook-Pro.local::34833:response
+##     log:              myqueue:workers:Richs-MacBook-Pro.local::34833:log
+##     envir:            {}</code></pre>
+<p>Note that the <code>envir</code> field is currently empty (<code>{}</code>) because when the worker started it did not know about any environments.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;INFO&quot;</span>)</code></pre></div>
+<p>Here’s the new worker information, complete with an updated <code>envir</code> field:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>##     version:          0.1.4 [LOCAL]
+##     platform:         x86_64-apple-darwin13.4.0 (64-bit)
+##     running:          OS X 10.10.4 (Yosemite)
+##     hostname:         Richs-MacBook-Pro.local
+##     pid:              34833
+##     redis_host:       127.0.0.1
+##     redis_port:       6379
+##     worker:           Richs-MacBook-Pro.local::34833
+##     queue_name:       myqueue
+##     heartbeat_period: 30
+##     heartbeat_expire: 90
+##     message:          myqueue:workers:Richs-MacBook-Pro.local::34833:message
+##     response:         myqueue:workers:Richs-MacBook-Pro.local::34833:response
+##     log:              myqueue:workers:Richs-MacBook-Pro.local::34833:log
+##     envir:            {9ba846cec2d2f060b336b9b90f8fd19d}</code></pre>
+<p>This has been updated on the database copy too:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">obj$<span class="kw">workers_info</span>()[[worker_id]]$envir</code></pre></div>
+<pre><code>## [1] &quot;9ba846cec2d2f060b336b9b90f8fd19d&quot;</code></pre>
+<p>and the same information is printed to the worker log:</p>
+<pre class="plain"><code>[2015-09-28 12:41:07] MESSAGE INFO
+                                                       __
+                ______________ ___  _____  __  _____  / /
+      ______   / ___/ ___/ __ `/ / / / _ \/ / / / _ \/ /  ______
+     /_____/  / /  / /  / /_/ / /_/ /  __/ /_/ /  __/_/  /_____/
+ ______      /_/  /_/   \__, /\__,_/\___/\__,_/\___(_)      ______
+/_____/                   /_/                              /_____/
+    version:          0.1.4 [LOCAL]
+    platform:         x86_64-apple-darwin13.4.0 (64-bit)
+    running:          OS X 10.10.4 (Yosemite)
+    hostname:         Richs-MacBook-Pro.local
+    pid:              34833
+    redis_host:       127.0.0.1
+    redis_port:       6379
+    worker:           Richs-MacBook-Pro.local::34833
+    queue_name:       myqueue
+    heartbeat_period: 30
+    heartbeat_expire: 90
+    message:          myqueue:workers:Richs-MacBook-Pro.local::34833:message
+    response:         myqueue:workers:Richs-MacBook-Pro.local::34833:response
+    log:              myqueue:workers:Richs-MacBook-Pro.local::34833:log
+    envir:            {9ba846cec2d2f060b336b9b90f8fd19d}
+[2015-09-28 12:41:07] RESPONSE INFO</code></pre>
+</div>
+<div id="dir" class="section level2">
+<h2><code>DIR</code></h2>
+<p>This is useful for listing directory contents, similar to the <code>dir</code> function in R. However, because file <em>contents</em> are usually more interesting (e.g., working out why something is not running on the remote machine), this is basically the result of passing the results of <code>dir</code> to <code>tools::md5sum</code> in order to get the md5sum of the file.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;DIR&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>##                  introduction.html                     introduction.R 
+## &quot;4a24f94f79ff6295e7ebd48b4a94fa75&quot; &quot;2c960b07e526b5184a52e23fc9f30464&quot; 
+##                   introduction.Rmd                         messages.R 
+## &quot;f87d11eaa23c90d6950a358612c5f6c2&quot; &quot;8f3f82d8c2d967e92e6c40d2b64fd6ff&quot; 
+##                       messages.Rmd                           myfuns.R 
+## &quot;31c1ff5d0f86684f4e4f9b863ecbf862&quot; &quot;ba6a3703d48d4686341a511559152b4c&quot; 
+##                                src 
+##                                 NA</code></pre>
+<p>Additional arguments to <code>dir</code> can be passed through:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;DIR&quot;</span>, <span class="kw">list</span>(<span class="dt">pattern=</span><span class="st">&quot;</span><span class="ch">\\</span><span class="st">.R$&quot;</span>))
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>##                     introduction.R                         messages.R 
+## &quot;2c960b07e526b5184a52e23fc9f30464&quot; &quot;c4b62ef9689e01828dac78765ad029ce&quot; 
+##                           myfuns.R 
+## &quot;ba6a3703d48d4686341a511559152b4c&quot;</code></pre>
+<p>If you pass in invalid arguments to <code>dir</code>, then a reasonably helpful message should be generated:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;DIR&quot;</span>, <span class="kw">list</span>(<span class="dt">foo=</span><span class="st">&quot;bar&quot;</span>))
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] &quot;Error in dir(foo = \&quot;bar\&quot;) : unused argument (foo = \&quot;bar\&quot;)\n&quot;
+## attr(,&quot;class&quot;)
+## [1] &quot;try-error&quot;
+## attr(,&quot;condition&quot;)
+## &lt;simpleError in dir(foo = &quot;bar&quot;): unused argument (foo = &quot;bar&quot;)&gt;</code></pre>
+<p>(note that this does not generate an error locally, but you can test to see if it did throw an error by checking the class of the returned value).</p>
+<p>and the same information is printed to the worker log:</p>
+<pre class="plain"><code>[2015-09-28 12:41:07] MESSAGE DIR
+[2015-09-28 12:41:07] RESPONSE DIR
+[2015-09-28 12:41:07] MESSAGE DIR
+[2015-09-28 12:41:07] RESPONSE DIR
+[2015-09-28 12:41:07] MESSAGE DIR
+Error in dir(foo = &quot;bar&quot;) : unused argument (foo = &quot;bar&quot;)
+[2015-09-28 12:41:07] RESPONSE DIR</code></pre>
+</div>
+<div id="push" class="section level2">
+<h2><code>PUSH</code></h2>
+<p>The commands <code>PUSH</code> and <code>PULL</code> move files from and to the worker. The command is interpreted as an instruction to the worker so <code>PUSH</code> pushes files from the worker into the database while <code>PULL</code> pulls files from the database into the worker. There are (will be) prefereable higher-level ways of dealing with this.</p>
+<p>Things to be aware of here: Redis is an in memory store and rrqueue is not at all agressive about deleting objects. If you push a 1GB file into Redis things <em>will</em> go badly. There are no checks for this at present!</p>
+<p><code>PUSH</code> takes a vector of filename as an argument. The response is not the file itself (how could it do that?) but instead the <em>hash</em> of that file. By the time the response is recieved the file contents are stored in the database and can be returned.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;PUSH&quot;</span>, <span class="st">&quot;myfuns.R&quot;</span>)
+res &lt;-<span class="st"> </span>obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)
+res</code></pre></div>
+<pre><code>##                           myfuns.R 
+## &quot;ba6a3703d48d4686341a511559152b4c&quot; 
+## attr(,&quot;class&quot;)
+## [1] &quot;files_pack&quot;</code></pre>
+<p>We can save the file onto a temporary directory in the filesystem using the  method of :</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">path &lt;-<span class="st"> </span>obj$<span class="kw">files_unpack</span>(res)
+<span class="kw">dir</span>(path)</code></pre></div>
+<pre><code>## [1] &quot;myfuns.R&quot;</code></pre>
+<p>And the files have the expected hash:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">tools::<span class="kw">md5sum</span>(<span class="kw">file.path</span>(path, <span class="kw">names</span>(res)))</code></pre></div>
+<pre><code>## /var/folders/3z/86tv450j7kb4w5y4wpxj6d5r0000gn/T//Rtmpy6z8pC/file87f33a28dbbc/myfuns.R 
+##                                                     &quot;ba6a3703d48d4686341a511559152b4c&quot;</code></pre>
+<pre class="plain"><code>[2015-09-28 12:41:08] MESSAGE PUSH
+[2015-09-28 12:41:08] PUSH
+[2015-09-28 12:41:08] RESPONSE PUSH</code></pre>
+</div>
+<div id="pull" class="section level2">
+<h2><code>PULL</code></h2>
+<p>This is the inverse of <code>PUSH</code> and takes files from the machine the queue is running on and copies them into the worker (from the view of the worker, the files in question are already in the database and it will “pull” them down locally.</p>
+<p>First, we need to save files into the database. Let’s rename the temporary file above and save that:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">file.rename</span>(<span class="kw">file.path</span>(path, <span class="st">&quot;myfuns.R&quot;</span>),
+            <span class="st">&quot;brandnewcode.R&quot;</span>)</code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">res &lt;-<span class="st"> </span>obj$<span class="kw">files_pack</span>(<span class="st">&quot;brandnewcode.R&quot;</span>)
+res</code></pre></div>
+<pre><code>##                     brandnewcode.R 
+## &quot;ba6a3703d48d4686341a511559152b4c&quot; 
+## attr(,&quot;class&quot;)
+## [1] &quot;files_pack&quot;</code></pre>
+<p>Note that the hash here is the same as above: <code>rrqueue</code> can tell this is the same file even though it has the same filename. Note also that filenames will be interepted relative to the working directory, because the directory layout on the worker outside of this point could be arbitrarily different.</p>
+<p>Now the the files have been packed, we can run the PULL command:</p>
+<p>(note that the <code>PULL</code> command <em>always</em> unpacks files into the workers working directory).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;PULL&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] &quot;OK&quot;</code></pre>
+<p>And the new file will be present in the directory:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;DIR&quot;</span>, <span class="kw">list</span>(<span class="dt">pattern=</span><span class="st">&quot;</span><span class="ch">\\</span><span class="st">.R$&quot;</span>))
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>##                     brandnewcode.R                     introduction.R 
+## &quot;ba6a3703d48d4686341a511559152b4c&quot; &quot;2c960b07e526b5184a52e23fc9f30464&quot; 
+##                         messages.R                           myfuns.R 
+## &quot;90a5682ad3203d07b35c511911d2d0e2&quot; &quot;ba6a3703d48d4686341a511559152b4c&quot;</code></pre>
+<pre class="plain"><code>[2015-09-28 12:41:08] MESSAGE PULL
+[2015-09-28 12:41:08] PULL
+[2015-09-28 12:41:08] RESPONSE PULL
+[2015-09-28 12:41:08] MESSAGE DIR
+[2015-09-28 12:41:08] RESPONSE DIR</code></pre>
+</div>
+<div id="eval" class="section level2">
+<h2><code>EVAL</code></h2>
+<p>Evaluate an arbitrary R expression, passed as a string (<em>not</em> as any sort of unevaluated or quoted expression). This expression is evaluated in the global environment, which is <em>not</em> the environment in which queued code is evaluated in.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;EVAL&quot;</span>, <span class="st">&quot;1 + 1&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] 2</code></pre>
+<p>We can delete the file created above:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;EVAL&quot;</span>, <span class="st">&quot;file.remove('brandnewcode.R')&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="plain"><code>[2015-09-28 12:41:08] MESSAGE EVAL
+[1] 2
+[2015-09-28 12:41:08] RESPONSE EVAL
+[2015-09-28 12:41:08] MESSAGE EVAL
+[1] TRUE
+[2015-09-28 12:41:08] RESPONSE EVAL</code></pre>
+<p>This could be used to evaluate code that has side effects, such as installing packages. However, due to limitations with how R loads packages the only way to update and reload a package is going to be to restart the worker.</p>
+</div>
+<div id="stop" class="section level2">
+<h2><code>STOP</code></h2>
+<p>Stop sends a shutdown message to the worker. Generally you should prefer the <code>stop_workers</code> method, which uses <code>STOP</code> behind the scenes.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">message_id &lt;-<span class="st"> </span>obj$<span class="kw">send_message</span>(<span class="st">&quot;STOP&quot;</span>)
+obj$<span class="kw">get_response</span>(message_id, worker_id, <span class="dt">delete=</span><span class="ot">TRUE</span>, <span class="dt">wait=</span><span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] &quot;BYE&quot;</code></pre>
+<pre class="plain"><code>[2015-09-28 12:41:08] MESSAGE STOP
+[2015-09-28 12:41:08] RESPONSE STOP
+[2015-09-28 12:41:08] STOP OK</code></pre>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

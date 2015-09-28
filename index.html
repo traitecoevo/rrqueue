@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>Index. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="&quot;Rich FitzJohn &lt;rich.fitzjohn@gmail.com&gt; [aut, cre]&quot;">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <div class="row">
+  <div class="span8">
+    <h1>rrqueue</h1>
+
+<p><code>rrqueue</code> is a <em>distributed task queue</em> for R, implemented on top of  <a href="http://redis.io">Redis</a>.  At the cost of a little more work it allows for more flexible parallelisation than afforded by <code>mclapply</code>.  The main goal is to support non-map style operations: submit some tasks, collect the completed results, queue more even while some tasks are still running.</p>
+
+<p>Other features include:</p>
+
+<ul>
+<li>Low-level task submission / retrieval has a simple API so that asynchronous task queues can be created.</li>
+<li>Objects representing tasks, workers, queues, etc can be queried.</li>
+<li>While blocking <code>mclapply</code>-like functions are available, the package is designed to be non-blocking so that intermediate results can be used.</li>
+<li>Automatic fingerprinting of environments so that code run on a remote machine will correspond to the code found locally.</li>
+<li>Works well connecting to a Redis database running on the cloud (e.g., on an AWS machine over an ssh tunnel).</li>
+<li>Local workers can be added to a remote pool, so long as everything can talk to the same Redis server.
+?</li>
+<li>The worker pool can be scaled at any time (up or down).</li>
+<li>Basic fault tolerance, supporting requeuing tasks lost on crashed workers.</li>
+</ul>
+
+<h1>Simple usage</h1>
+
+<p>The basic workflow is:</p>
+
+<ol>
+<li>Create a queue</li>
+<li>Submit tasks to the queue</li>
+<li>Start workers</li>
+<li>Collect results</li>
+</ol>
+
+<p>The workers can be started at any time between 1-3, though they do need to be started before results can be collected.</p>
+
+<h2>Create a queue</h2>
+
+<p>Start a queue that we will submit tasks to</p>
+
+<pre><code>con &lt;- rrqueue::queue(&quot;jobs&quot;)
+</code></pre>
+
+<p>Expressions can be queued using the <code>enqueue</code> method:</p>
+
+<pre><code>task &lt;- con$enqueue(sin(1))
+</code></pre>
+
+<p>Task objects can be inspected to find out (for example) how long they have been waiting for:</p>
+
+<pre><code>task$times()
+</code></pre>
+
+<p>or what their status is:</p>
+
+<pre><code>task$status()
+</code></pre>
+
+<p>To get workers to process jobs from this queue, interactively run (in a separate R instance)</p>
+
+<pre><code>w &lt;- rrqueue::worker(&quot;jobs&quot;)
+</code></pre>
+
+<p>or spawn a worker in the background with</p>
+
+<pre><code>logfile &lt;- tempfile()
+rrqueue::worker_spawn(&quot;jobs&quot;, logfile)
+</code></pre>
+
+<p>The task will complete:</p>
+
+<pre><code>task$status()
+</code></pre>
+
+<p>and the value can be retrieved:</p>
+
+<pre><code>task$result()
+</code></pre>
+
+<pre><code>con$send_message(&quot;STOP&quot;)
+</code></pre>
+
+<p>In contrast with many parallel approaches in R, workers can be added at at any time and will automatically start working on any remaining jobs.</p>
+
+<p>There&#39;s lots more in various stages of completion, including <code>mclapply</code>-like functions (<code>rrqlapply</code>), and lots of information gathering.</p>
+
+<h1>Installation</h1>
+
+<p>Redis must be installed, <code>redis-server</code> must be running.  If you are familiar with docker, the <a href="https://registry.hub.docker.com/_/redis/">redis</a> docker image might be a good idea here. Alternatively, <a href="http://redis.io/download">download redis</a>, unpack and then install by running <code>make install</code> in a terminal window within the downloaded folder.</p>
+
+<p>Once installed start <code>redis-server</code> by typing in a terminal window</p>
+
+<pre><code>redis-server
+</code></pre>
+
+<p>(On Linux the server will probably be running for you if you. On Mac OSX, you might like to set it up to run as a daemon &ndash; i.e. <a href="https://en.wikipedia.org/wiki/Daemon_(computing">background process</a>) &ndash; i f you end up using redis at lot, following <a href="http://naleid.com/blog/2011/03/05/running-redis-as-a-user-daemon-on-osx-with-launchd">these instructions</a>)</p>
+
+<p>Try <code>redis-server PING</code> to see if it is running.</p>
+
+<p>R packages:</p>
+
+<pre><code>install.packages(c(&quot;RcppRedis&quot;, &quot;R6&quot;, &quot;digest&quot;, &quot;docopt&quot;))
+devtools::install_github(c(&quot;ropensci/RedisAPI&quot;, &quot;richfitz/RedisHeartbeat&quot;, &quot;richfitz/storr&quot;, &quot;richfitz/ids&quot;))
+devtools::install_git(&quot;https://github.com/traitecoevo/rrqueue&quot;)
+</code></pre>
+
+<p>(<em>optional</em>) to see what is going on, in a terminal, run <code>redis-cli monitor</code> which will print all the Redis chatter, though it will impact on redis performance.</p>
+
+<h1>Starting workers</h1>
+
+<p>Workers can be started from within an R process using <code>rrqueue::worker_spawn</code> function.  This takes an optional argument <code>n</code> to start more than one worker at a time, and will block until all workers have appeared.</p>
+
+<p>From the command line, workers can be started using the <code>rrqueue_worker</code> script.  The script can be installed by running (from R)</p>
+
+<pre><code>rrqueue::install_scripts(&quot;~/bin&quot;)
+</code></pre>
+
+<p>replacing <code>&quot;~/bin&quot;</code> with a path that is in your executable search path and which is writeable.</p>
+
+<pre><code>$ rrqueue_worker --help
+Usage:
+  rrqueue_worker [options] &lt;queue_name&gt;
+  rrqueue_worker --config=FILENAME [options] [&lt;queue_name&gt;]
+  rrqueue_worker -h | --help
+
+Options:
+  --redis-host HOSTNAME   Hostname for Redis
+  --redis-port PORT       Port for Redis
+  --heartbeat-period T    Heartbeat period
+  --heartbeat-expire T    Heartbeat expiry time
+  --key-worker-alive KEY  Key to write to when the worker becomes alive
+  --config FILENAME       Optional YAML configuration filename
+
+  Arguments:
+  &lt;queue_name&gt;   Name of queue
+</code></pre>
+
+<p>the arguments correspond to the arguments documented in <code>?worker_spawn</code>.  The queue name is determined by position.</p>
+
+<p>The <code>config</code> argument is an optional path to a yml configuration file.  That configuration file contains values for any of the arguments to <code>worker_spawn</code>, for example:</p>
+
+<pre><code class="yaml">queue_name: tmpjobs
+redis_host: 127.0.0.1
+redis_port: 6379
+heartbeat_period: 30
+heartbeat_expire: 90
+</code></pre>
+
+<p>Arguments passed to <code>rrqueue_worker</code> in addition to the configuration will override values in the yaml.</p>
+
+<p>This file can also be passed to <code>queue</code> and <code>observer</code> as the <code>config</code> argument (e.g., <code>queue(config=&quot;config.yml&quot;)</code> rather than having to pass in lots of parameters.</p>
+
+<h1>Documentation</h1>
+
+<p>Reference documentation and vignettes are available on <a href="http://traitecoevo.github.io/rrqueue/">this website</a>.  If the vignettes are built (<code>make vignettes</code>), they will be avilable in the package, and this will be commited to github once things settle down.</p>
+
+<h1>Performance</h1>
+
+<p>So far, I&#39;ve done relatively little performance tuning.  In particular, the <em>workers</em> make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use <code>rrqueue</code> where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, <code>rrqueue</code> uses <a href="https://en.wikipedia.org/wiki/Lua_(programming_language">lua scripting</a>) to reduce the number of instruction round trips.</p>
+
+<h1>False warning errors</h1>
+
+<p>You may see a variant on errors like</p>
+
+<pre><code>Calls: &lt;Anonymous&gt; -&gt; .handleSimpleError -&gt; h -&gt; signalCondition
+Error in signalCondition(e) :
+  no function to return from, jumping to top level
+</code></pre>
+
+<p>This is an issue somewhere within Rcpp modules (which RcppRedis uses) and seems harmless.</p>
+
+
+    <h2>Help topics</h2>
+
+    <h3></h3>
+    
+    
+    <ul class="index">
+        
+      <li>
+        <code><a href="enqueue_bulk.html">enqueue_bulk</a></code>(enqueue_bulk_submit)<br />Bulk queuing</li>
+            
+      <li>
+        <code><a href="install_scripts.html">install_scripts</a></code><br />Install rrqueue scripts</li>
+            
+      <li>
+        <code><a href="observer.html">observer</a></code><br />Creates an observer for an rrqueue</li>
+            
+      <li>
+        <code><a href="queue.html">queue</a></code><br />Create an rrqueue queue</li>
+            
+      <li>
+        <code><a href="rrqlapply.html">rrqlapply</a></code>(rrqlapply_submit)<br />Parallel version of lapply using Redis queuing</li>
+            
+      <li>
+        <code><a href="task.html">task</a></code><br />Create a task handle</li>
+            
+      <li>
+        <code><a href="task_bundle.html">task_bundle</a></code><br />Create a task bundle</li>
+            
+      <li>
+        <code><a href="worker.html">worker</a></code><br />Create an rrqueue worker</li>
+            
+      <li>
+        <code><a href="worker_spawn.html">worker_spawn</a></code><br />Spawn a worker</li>
+            
+      <li>
+        <code><a href="worker_stop.html">worker_stop</a></code><br />Stop a worker</li>
+    
+    </ul>
+  </div>
+  
+  <div class="span3 offset1">
+    <h2>Vignettes</h2>
+    <ul>
+      <li><a href="vignettes/introduction.html">Introduction to rrqueue</a></li>
+      <li><a href="vignettes/messages.html">rrqueue messages</a></li>
+    </ul>
+        
+    <h2>Dependencies</h2>
+    <ul>
+      
+      <li><strong>Imports</strong>: crayon, RedisAPI, RedisHeartbeat, R6, digest, docopt, storr, progress, ids</li>
+      <li><strong>Suggests</strong>: testthat, tools, knitr, rmarkdown, yaml</li>
+      
+    </ul>
+    <h2>Authors</h2>
+    <ul>
+    </ul>
+
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>worker. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Create an rrqueue worker</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>worker(queue_name, redis_host&nbsp;=&nbsp;"127.0.0.1", redis_port&nbsp;=&nbsp;6379, heartbeat_period&nbsp;=&nbsp;30, heartbeat_expire&nbsp;=&nbsp;90, key_worker_alive&nbsp;=&nbsp;NULL)</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>queue_name</dt>
+      <dd>Queue name</dd>
+      <dt>redis_host</dt>
+      <dd>Host name/IP for the Redis server</dd>
+      <dt>redis_port</dt>
+      <dd>Port for the Redis server</dd>
+      <dt>heartbeat_period</dt>
+      <dd>Period between heartbeat pulses</dd>
+      <dt>heartbeat_expire</dt>
+      <dd>Time that heartbeat pulses will persist
+for (must be greater than <code>heartbeat_period</code>)</dd>
+      <dt>key_worker_alive</dt>
+      <dd>Optional key to write to when the worker
+becomes alive.  The worker will push onto this key so that
+another process can monitor it and determine when a worker has
+come up.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Create an rrqueue worker.  This blocks the main loop.</p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>worker</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

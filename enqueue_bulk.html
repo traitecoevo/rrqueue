@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>enqueue_bulk. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Bulk queuing</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>enqueue_bulk(X, FUN, rrq, do.call&nbsp;=&nbsp;FALSE, group&nbsp;=&nbsp;NULL, period&nbsp;=&nbsp;1, delete_tasks&nbsp;=&nbsp;FALSE, progress_bar&nbsp;=&nbsp;TRUE, env&nbsp;=&nbsp;parent.frame())</div>
+<div>enqueue_bulk_submit(X, FUN, rrq, do.call&nbsp;=&nbsp;FALSE, group&nbsp;=&nbsp;NULL, progress_bar&nbsp;=&nbsp;TRUE, env&nbsp;=&nbsp;parent.frame())</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>X</dt>
+      <dd>An object to loop over.  If a list, we'll loop over the
+  elements of the list, duplicating the behaviour of
+  <code><a href='rrqlapply.html'>rrqlapply</a></code> except for not handling dots.  If a
+  <code>data.frame</code> we'll loop over the <em>rows</em>.  Matrices are
+  not supported.</dd>
+      <dt>FUN</dt>
+      <dd>A function.  Will be found in the same way as
+  <code>FUN</code> within <code><a href='rrqlapply.html'>rrqlapply</a></code>.</dd>
+      <dt>rrq</dt>
+      <dd>An rrq object</dd>
+      <dt>do.call</dt>
+      <dd>Behave like (but not via) <code><a href='http://www.inside-r.org/r-doc/base/do.call'>do.call</a></code>;
+  given an element <code>el</code>, rather than run <code>FUN(el)</code> run
+  <code>FUN(el[[1]], el[[2]], ...)</code>.</dd>
+      <dt>group</dt>
+      <dd>Name of a group for generated task ids.  If not
+  included, an ID will be generated.</dd>
+      <dt>period</dt>
+      <dd>Period to poll for completed tasks.  Affects how
+  responsive the function is to quiting, mostly.</dd>
+      <dt>delete_tasks</dt>
+      <dd>Delete tasks on successful finish?</dd>
+      <dt>progress_bar</dt>
+      <dd>Display a progress bar?</dd>
+      <dt>env</dt>
+      <dd>Environment to look in</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Bulk queuing.  Similar in some respects to things like
+<code><a href='http://www.inside-r.org/r-doc/base/apply'>apply</a></code>.  This is an experiment to deal with the
+pattern where you have a big pile of parameters in a data.frame to
+loop over, by applying a function to each row.</p>
+  
+    </div>
+
+    <div class="Details">
+      <h2>Details</h2>
+
+      <p>There are two modes here; selected with <code>do.call</code>.  With
+<code>do.call=FALSE</code>, the default, the function behaves similarly
+to <code>apply(X, FUN, 1)</code>; that is the function is applied to
+each row of the data.frame (as a list):
+<code>FUN(as.list(X[1,]))</code>, <code>FUN(as.list(X[2,]))</code>, and so on.
+The alternative mode (<code>do.call=TRUE</code>) is where the
+<code>data.frame</code> contains <em>parameters</em> to the function
+<code>FUN</code> so equivalent to <code>FUN(X[1,1], X[1,2], ...</code>.  This
+is similar (but not implemented as) running: <code>do.call("FUN",
+as.list(X[1,]))</code>.</p>
+  
+      <p>Be careful, this one is going to change, including the name
+probably.  You have been warned.</p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>enqueue_bulk</li><li>enqueue_bulk_submit</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>rrqlapply. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Parallel version of lapply using Redis queuing</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>rrqlapply(X, FUN, rrq, ..., group&nbsp;=&nbsp;NULL, period&nbsp;=&nbsp;1, delete_tasks&nbsp;=&nbsp;FALSE, progress_bar&nbsp;=&nbsp;TRUE, env&nbsp;=&nbsp;parent.frame())</div>
+<div>rrqlapply_submit(X, FUN, rrq, ..., group&nbsp;=&nbsp;NULL, progress_bar&nbsp;=&nbsp;TRUE, env&nbsp;=&nbsp;parent.frame())</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>X</dt>
+      <dd>A vector</dd>
+      <dt>FUN</dt>
+      <dd>The name of a function to apply to each element of the
+list.  <em>this will change!</em>.</dd>
+      <dt>rrq</dt>
+      <dd>An rrq object</dd>
+      <dt>...</dt>
+      <dd>Additional arguments passed to <code>FUN</code></dd>
+      <dt>group</dt>
+      <dd>Name of a group for generated task ids.  If not
+included, an ID will be generated.</dd>
+      <dt>period</dt>
+      <dd>Period to poll for completed tasks.  Affects how
+responsive the function is to quiting, mostly.</dd>
+      <dt>delete_tasks</dt>
+      <dd>Delete tasks on successful finish?</dd>
+      <dt>progress_bar</dt>
+      <dd>Display a progress bar?</dd>
+      <dt>env</dt>
+      <dd>Environment to look in.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Parallel version of lapply using Redis queuing</p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>rrqlapply</li><li>rrqlapply_submit</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>worker_spawn. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Spawn a worker</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>worker_spawn(queue_name, logfile, redis_host&nbsp;=&nbsp;"127.0.0.1", redis_port&nbsp;=&nbsp;6379, n&nbsp;=&nbsp;1, timeout&nbsp;=&nbsp;20, time_poll&nbsp;=&nbsp;1, heartbeat_period&nbsp;=&nbsp;NULL, heartbeat_expire&nbsp;=&nbsp;NULL, path&nbsp;=&nbsp;".")</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>queue_name</dt>
+      <dd>Name of the queue to connect to</dd>
+      <dt>logfile</dt>
+      <dd>Name of a log file to write to (consider
+<code>tempfile()</code>).  If <code>n</code> > 1, then <code>n</code> log files
+must be provided.</dd>
+      <dt>redis_host</dt>
+      <dd>Host name/IP for the Redis server</dd>
+      <dt>redis_port</dt>
+      <dd>Port for the Redis server</dd>
+      <dt>n</dt>
+      <dd>Number of workers to spawn</dd>
+      <dt>timeout</dt>
+      <dd>Time to wait for the worker to appear</dd>
+      <dt>time_poll</dt>
+      <dd>Period to poll for the worker (must be in
+seconds)</dd>
+      <dt>heartbeat_period</dt>
+      <dd>Period between heartbeat pulses</dd>
+      <dt>heartbeat_expire</dt>
+      <dd>Time that heartbeat pulses will persist</dd>
+      <dt>path</dt>
+      <dd>Path to start the worker in.  By default workers will
+start in the current working directory, but you can start them
+elsewhere by providing a path here.  If the path does not exist,
+an error will be thrown.  If <code>n</code> is greater than 1, all
+workers will start in the same working directory.  The
+<code>logfile</code> argument will be interpreted relative to current
+working directory (not the worker working directory); use
+<code><a href='http://www.inside-r.org/r-doc/base/normalizePath'>normalizePath</a></code> to convert into an absolute path
+name to prevent this.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Spawn a worker in the background</p>
+  
+    </div>
+
+    <div class="Details">
+      <h2>Details</h2>
+
+      <p>Spawning multiple workers.  If <code>n</code> is greater than one,
+multiple workers will be spawned.  This happens in parallel so it
+does not take n times longer than spawing a single worker.</p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>worker_spawn</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

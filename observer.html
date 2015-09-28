@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>observer. rrqueue 0.1.4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">rrqueue 0.1.4</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Creates an observer for an rrqueue</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>observer(queue_name, redis_host&nbsp;=&nbsp;"127.0.0.1", redis_port&nbsp;=&nbsp;6379, config&nbsp;=&nbsp;NULL)</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>queue_name</dt>
+      <dd>Name of the queue</dd>
+      <dt>redis_host</dt>
+      <dd>Redis hostname</dd>
+      <dt>redis_port</dt>
+      <dd>Redis port number</dd>
+      <dt>config</dt>
+      <dd>Configuration file of key/value pairs in yaml
+format.  See the package README for an example.  If given,
+additional arguments to this function override values in the
+file which in turn override defaults of this function.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>Creates an observer for an rrqueue.  This is the "base class" for
+a couple of different objects in rrqueue; notably the
+<code><a href='queue.html'>queue</a></code> object.  So any method listed here also works
+within <code>queue</code> objects.</p>
+  
+    </div>
+
+    <div class="Details">
+      <h2>Details</h2>
+
+      <p>Most of the methods of the <code>observer</code> object are extremely
+simple and involve fetching information from the database about
+the state of tasks, environments and workers.</p>
+  
+      <p>The method and argument names try to give hints about the sort of
+things they expect; a method asking for <code>task_id</code> expects a
+single task identifier, while those asking for <code>task_ids</code>
+expect a vector of task identifiers (and if they have a default
+<code>NULL</code> then will default to returning information for
+<em>all</em> task identifiers).  Similarly, a method starting
+<code>task_</code> applies to one task while a method starting
+<code>tasks_</code> applies to multiple.</p>
+  
+    </div>
+
+    <div class="Methods">
+      <h2>Methods</h2>
+
+      <p></p>
+  
+      <p><dl>
+<dt><code>tasks_list</code></dt><dd>
+  Return a vector of known task ids.</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_list()</code></p>
+  
+      <p><em>Value</em>:
+  A character vector
+</dd></p>
+  
+      <p><dt><code>tasks_status</code></dt><dd>
+  Returns a named character vector indicating the task status.</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_status(task_ids = NULL, follow_redirect = FALSE)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_ids</code></dt><dd>
+      Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+    </dd></p>
+  
+      <p><dt><code>follow_redirect</code></dt><dd>
+      should we follow redirects to get the status of any requeued tasks?
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A named character vector; the names will be the task ids, and the
+  values are the status of each task.  Possible status values are
+  <dl>
+  <dt><code>PENDING</code></dt><dd>queued, but not run by a worker</dd></p>
+  
+      <p><dt><code>RUNNING</code></dt><dd>being run on a worker, but not complete</dd></p>
+  
+      <p><dt><code>COMPLETE</code></dt><dd>task completed successfully</dd></p>
+  
+      <p><dt><code>ERROR</code></dt><dd>task completed with an error</dd></p>
+  
+      <p><dt><code>ORPHAN</code></dt><dd>task orphaned due to loss of worker</dd></p>
+  
+      <p><dt><code>REDIRECT</code></dt><dd>orphaned task has been redirected</dd></p>
+  
+      <p><dt><code>MISSING</code></dt><dd>task not known (deleted, or never existed)</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>tasks_overview</code></dt><dd>
+  High-level overview of the tasks in the queue; the number of tasks in each status.</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_overview()</code>
+</dd></p>
+  
+      <p><dt><code>tasks_times</code></dt><dd>
+  returns a summary of times for a set of tasks</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_times(task_ids = NULL, unit_elapsed = "secs")</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_ids</code></dt><dd>
+      Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+    </dd></p>
+  
+      <p><dt><code>unit_elapsed</code></dt><dd>
+      Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to <code><a href='http://www.inside-r.org/r-doc/base/difftime'>difftime</a></code> so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A <code>data.frame</code>, one row per task, with columns
+  <dl>
+  <dt><code>submitted</code></dt><dd>Time the task was submitted</dd></p>
+  
+      <p><dt><code>started</code></dt><dd>Time the task was started, or <code>NA</code> if waiting</dd></p>
+  
+      <p><dt><code>finished</code></dt><dd>Time the task was completed, or <code>NA</code>
+  if waiting or running</dd></p>
+  
+      <p><dt><code>waiting</code></dt><dd>Elapsed time spent waiting</dd></p>
+  
+      <p><dt><code>running</code></dt><dd>Elapsed time spent running, or <code>NA</code> if waiting</dd></p>
+  
+      <p><dt><code>idle</code></dt><dd>Elapsed time since finished, or <code>NA</code>
+  if waiting or running</dd></p>
+  
+      <p></dl></p>
+  
+      <p>The row names of the data.frame will be the task ids.
+</dd></p>
+  
+      <p><dt><code>tasks_envir</code></dt><dd>
+  returns the mapping of tasks to environmen</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_envir(task_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_ids</code></dt><dd>
+      Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A named character vector; names are the task ids and the value is the environment id associated with that task.
+</dd></p>
+  
+      <p><dt><code>task_get</code></dt><dd>
+  returns a <code><a href='task.html'>task</a></code> object associated with a given task identifier.  This can be used to interrogate an individual task. See the help for <code><a href='task.html'>task</a></code> objects for more about these objects.</p>
+  
+      <p><em>Usage:</em>
+  <code>task_get(task_id = )</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_id</code></dt><dd>
+      A single task identifier
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>task_result</code></dt><dd>
+  Get the result for a single task</p>
+  
+      <p><em>Usage:</em>
+  <code>task_result(task_id = , follow_redirect = FALSE, sanitise = FALSE)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_id</code></dt><dd>
+      A single task identifier
+    </dd></p>
+  
+      <p><dt><code>follow_redirect</code></dt><dd>
+      should we follow redirects to get the status of any requeued task?
+    </dd></p>
+  
+      <p><dt><code>sanitise</code></dt><dd>
+      If the task is not yet complete or is missing, return an <code>UnfetchabmeTask</code> object rather than throwing an error.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>tasks_groups_list</code></dt><dd>
+  Returns list of <em>groups</em> known to rrqueue.  Groups are assigned during task creation, or through the <code>tasks_set_group</code> method of <code>link{queue}</code>.</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_groups_list()</code>
+</dd></p>
+  
+      <p><dt><code>tasks_in_groups</code></dt><dd>
+  Returns a list of tasks belonging to any of the groups listed.</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_in_groups(groups = )</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>groups</code></dt><dd>
+      A character vector of one or more groups (use <code>tasks_groups_list</code> to get a list of valid groups).
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>tasks_lookup_group</code></dt><dd>
+  Look up the group for a set of tasks</p>
+  
+      <p><em>Usage:</em>
+  <code>tasks_lookup_group(task_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>task_ids</code></dt><dd>
+      Optional vector of task identifiers.  If omitted all tasks known to rrqueue will be used.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A named character vector; names refer to task ids and the value is the group (or <code>NA</code> if no group is set for that task id).
+</dd></p>
+  
+      <p><dt><code>task_bundle_get</code></dt><dd>
+  Return a "bundle" of tasks that can be operated on together; see <code><a href='task_bundle.html'>task_bundle</a></code></p>
+  
+      <p><em>Usage:</em>
+  <code>task_bundle_get(groups = NULL, task_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>groups</code></dt><dd>
+      A vector of groups to include in the bundle
+    </dd></p>
+  
+      <p><dt><code>task_ids</code></dt><dd>
+      A vector of task ids in the bundle.  Unlike all other uses of <code>task_ids</code> here, only one of <code>groups</code> or <code>task_ids</code> can be provided, so if <code>task_ids=NULL</code> then <code>task_ids</code> is ignored and <code>groups</code> is used.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>envirs_list</code></dt><dd>
+  Return a vector of all known environment ids in this queue.</p>
+  
+      <p><em>Usage:</em>
+  <code>envirs_list()</code>
+</dd></p>
+  
+      <p><dt><code>envirs_contents</code></dt><dd>
+  Return a vector of the environment contents</p>
+  
+      <p><em>Usage:</em>
+  <code>envirs_contents(envir_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>envir_ids</code></dt><dd>
+      Vector of environment ids.  If omitted then all environments in this queue are used.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A list, each element of which is a list of elements
+  <dl>
+  <dt><code>packages</code></dt><dd>a vector of packages loaded</dd></p>
+  
+      <p><dt><code>sources</code></dt><dd>a vector of files explicitly sourced</dd></p>
+  
+      <p><dt><code>source_files</code></dt><dd>a vector of files sourced including
+  their hashes.  This includes and files detected to be sourced
+  by another file</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>envir_workers</code></dt><dd>
+  Determine which workers are known to be able to process tasks in a particular environment.</p>
+  
+      <p><em>Usage:</em>
+  <code>envir_workers(envir_id = , worker_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>envir_id</code></dt><dd>
+      A single environment id
+    </dd></p>
+  
+      <p><dt><code>worker_ids</code></dt><dd>
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A named logical vector; <code>TRUE</code> if a worker can use an environment, named by the worker identifers.
+</dd></p>
+  
+      <p><dt><code>workers_len</code></dt><dd>
+  Number of workers that have made themselves known to rrqueue. There are situations where this is an overestimate and that may get fixed at some point.</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_len()</code>
+</dd></p>
+  
+      <p><dt><code>workers_list</code></dt><dd>
+  Returns a vector of all known worker identifiers (may include workers that have crashed).</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_list()</code>
+</dd></p>
+  
+      <p><dt><code>workers_list_exited</code></dt><dd>
+  Returns a vector of workers that are known to have exited. Workers leave behind most of the interesting bits of logs, times, etc, so these identifiers are useful for asking what they worked on.</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_list_exited()</code>
+</dd></p>
+  
+      <p><dt><code>workers_status</code></dt><dd>
+  Returns a named character vector indicating the task status.</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_status(worker_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_ids</code></dt><dd>
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A named character vector; the names will be the task ids, and the
+  values are the status of each task.  Possible status values are
+  <dl>
+  <dt><code>IDLE</code></dt><dd>worker is idle</dd></p>
+  
+      <p><dt><code>BUSY</code></dt><dd>worker is running a task</dd></p>
+  
+      <p><dt><code>LOST</code></dt><dd>worker has been lost; this is only currently
+  detectable via detecting orphan jobs</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>workers_times</code></dt><dd>
+  returns a summary of times for a set of workers.  This only returns useful information if the workers are running a heartbeat process, which requires the <code>RedisHeartbeat</code> package.</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_times(worker_ids = NULL, unit_elapsed = "secs")</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_ids</code></dt><dd>
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    </dd></p>
+  
+      <p><dt><code>unit_elapsed</code></dt><dd>
+      Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to <code><a href='http://www.inside-r.org/r-doc/base/difftime'>difftime</a></code> so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A <code>data.frame</code>, one row per worker, with columns
+  <dl>
+  <dt><code>worker_id</code></dt><dd>Worker identifier</dd></p>
+  
+      <p><dt><code>expire_max</code></dt><dd>Maximum length of time before worker can
+    be declared missing, in seconds</dd></p>
+  
+      <p><dt><code>expire</code></dt><dd>Time until the worker will expire, in seconds</dd></p>
+  
+      <p><dt><code>last_seen</code></dt><dd>Time since the worker was last seen</dd></p>
+  
+      <p><dt><code>last_action</code></dt><dd>Time since the last worker action</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>workers_log_tail</code></dt><dd>
+  Return the last few entries in the worker logs.</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_log_tail(worker_ids = NULL, n = 1)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_ids</code></dt><dd>
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    </dd></p>
+  
+      <p><dt><code>n</code></dt><dd>
+      Number of log entries to return.  Use <code>0</code> or <code>Inf</code> to return all entries.
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:</p>
+  
+      <p>A <code>data.frame</code> with columns
+  <dl>
+  <dt><code>worker_id</code></dt><dd>the worker identifier</dd></p>
+  
+      <p><dt><code>time</code></dt><dd>time of the event</dd></p>
+  
+      <p><dt><code>command</code></dt><dd>the command (e.g., MESSAGE, ALIVE)</dd></p>
+  
+      <p><dt><code>message</code></dt><dd>The message associated with the command</dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p><dt><code>workers_info</code></dt><dd>
+  Returns a set of key/value information about workers.  Includes things like hostnames, process ids, environments that can be run, etc.  Note that this information is from the last time that the worker process registered an <code>INFO</code> command.  This is registered at startup and after recieving a <code>INFO</code> message from a <code><a href='queue.html'>queue</a></code> object.  So the information may be out of date.</p>
+  
+      <p><em>Usage:</em>
+  <code>workers_info(worker_ids = NULL)</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_ids</code></dt><dd>
+      Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p><em>Value</em>:
+  A list, each element of which is a <code>worker_info</code>
+</dd></p>
+  
+      <p><dt><code>worker_envir</code></dt><dd>
+  Returns an up-to-date list of environments a worker is capable of using (in contrast to the entry in <code>workers_info</code> that might be out of date.</p>
+  
+      <p><em>Usage:</em>
+  <code>worker_envir(worker_id = )</code></p>
+  
+      <p><em>Arguments:</em>
+  <dl>
+    <dt><code>worker_id</code></dt><dd>
+      Single worker identifier
+    </dd></p>
+  
+      <p></dl></p>
+  
+      <p></dd></p>
+  
+      <p></dl></p>
+  
+      <p></p>
+  
+    </div>
+      </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>observer</li>
+    </ul>
+    <ul>
+      
+    </ul> -->
+      
+        
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="http://twitter.github.com/bootstrap">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>
