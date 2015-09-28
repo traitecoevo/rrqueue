@@ -115,15 +115,15 @@
 ##'   \emph{Details:}
 ##'
 ##'   The possible types of message are
-##'   \code{PING}: send a "PING" to the worker.  It will respond by replying PONG to its stderr, to its log (see \code{observer} for how to access) and to the response queue.  Ignores any argument.
-##'   \code{ECHO}: Like "PING", but the worker responds by echoing the string given.  Requires one argument.
-##'   \code{INFO}: Refresh the worker info (see \code{workers_info} in \code{\link{observer}}.  Worker will print info to stderr, write it to the appropriate place in the database and return it in the response queue.  Ignores any argument.
-##'   \code{DIR}: Tell the worker to return directory contents and md5 hashes of files.
-##'   \code{PUSH}: Tell the worker to push files into the database.  The arguments should be a vector of filenames to copy.  The response queue will contain appropriate data for retrieving the files, but the interface here will change to make this nice to use.
-##'   \code{PULL}: Tells the worker to pull files into its working directory.  Can be used to keep the worker in sync.
-##'   \code{EVAL}: Evaluate an arbitrary R expression as a string (e.g., \code{run_message("EVAL", "sin(1)")}).  The output is printed to stdout, the worker log and to the response queue.  Requires a single argument.
+##'   \describe{ \item{\code{PING}}{send a "PING" to the worker.  It will respond by replying PONG to its stderr, to its log (see \code{observer} for how to access) and to the response queue.  Ignores any argument.}
+##'   \item{\code{ECHO}}{Like "PING", but the worker responds by echoing the string given.  Requires one argument.}
+##'   \item{\code{INFO}}{Refresh the worker info (see \code{workers_info} in \code{\link{observer}}.  Worker will print info to stderr, write it to the appropriate place in the database and return it in the response queue.  Ignores any argument.}
+##'   \item{\code{DIR}}{Tell the worker to return directory contents and md5 hashes of files.}
+##'   \item{\code{PUSH}}{Tell the worker to push files into the database.  The arguments should be a vector of filenames to copy.  The response queue will contain appropriate data for retrieving the files, but the interface here will change to make this nice to use.}
+##'   \item{\code{PULL}}{Tells the worker to pull files into its working directory.  Can be used to keep the worker in sync.}
+##'   \item{\code{EVAL}}{Evaluate an arbitrary R expression as a string (e.g., \code{run_message("EVAL", "sin(1)")}).  The output is printed to stdout, the worker log and to the response queue.  Requires a single argument.}
 ##'   # the interface here is likely to change, so I'll withdraw the # documentation for now: # \code{ENVIR}: Tell the worker to try an load an environment, whose # id is given as a single argument.  Requires a single argument.
-##'   \code{STOP}: Tell the worker to stop cleanly.  Ignores any argument.
+##'   \item{\code{STOP}}{Tell the worker to stop cleanly.  Ignores any argument.} }
 ##'   After sending a message, there is no guarantee about how long it will take to process.  If the worker is involved in a long-running computation it will be unavailable to process the message. However, it will process the message before running any new task.
 ##'   The message id is worth saving.  It can be passed to the method \code{get_respones} to wait for and retrieve responses from one or more workers.
 ##'
