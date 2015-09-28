@@ -194,3 +194,39 @@ test_that("requeue orphaned jobs", {
 
   obj$send_message("STOP")
 })
+
+
+test_that("workers stop", {
+  expire <- 3
+
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  logfile <- "worker_heartbeat.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile,
+                      heartbeat_period=1, heartbeat_expire=expire)
+  ## worker("tmpjobs", heartbeat_expire=3, heartbeat_period=1)
+  ## wid <- obj$workers_list()
+  pid <- obj$workers_info()[[wid]]$pid
+  expect_that(pid_exists(pid), is_true())
+
+  ## TODO: worker handles could help avoid this bit of mock up:
+  expect_that(msg <- worker_stop_message(
+                       list(con=obj$con,
+                            keys=list(queue_name=obj$queue_name),
+                            name=wid,
+                            styles=worker_styles())),
+              shows_message())
+  cmp <- bquote(rrqueue::worker_stop(.(obj$queue_name), .(wid)))
+  expect_that(parse(text=msg[[length(msg)]])[[1]],
+              equals(cmp))
+  eval(cmp, .GlobalEnv)
+
+  Sys.sleep(.5)
+  expect_that(pid_exists(pid), is_false())
+  log <- obj$workers_log_tail(wid, 1)
+  expect_that(log$command, equals("STOP"))
+  expect_that(log$message, equals("OK"))
+})

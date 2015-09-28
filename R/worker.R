@@ -689,7 +689,15 @@ envir_workers <- function(con, keys, envir_id, worker_ids=NULL) {
   ret
 }
 
-## Designed to be used as a standalone function:
+##' Try to stop a worker.  You won't need to call this very often, hopefully.
+##' @title Stop a worker
+##' @param queue Name of the queue
+##' @param worker_id Name of a single worker
+##' @param type Either "message" to send a message or "kill" or kill the
+##'   worker.
+##' @param host Redis hostname
+##' @param port Redis port
+##' @export
 worker_stop <- function(queue, worker_id, type="message",
                         host="127.0.0.1", port=6379) {
   type <- match_value(type, c("message", "kill"))
@@ -703,24 +711,22 @@ worker_stop <- function(queue, worker_id, type="message",
 }
 
 worker_stop_message <- function(worker) {
-  if (interactive()) {
-    args <- list(worker$keys$queue_name, worker$name)
-    if (!(worker$con$host %in% c("127.0.0.1", "localhost"))) {
-      args <- c(args, list(host=worker$con$host))
-    }
-    if (worker$con$port != 6379) {
-      args <- c(args, list(port=worker$con$port))
-    }
-    str <- deparse(as.call(c(list(quote(worker_stop)),
-                             args)),
-                   width.cutoff=getOption("width") - 2L)
-    msg <- c("If you're trying to exit with Escape/Ctrl-C that won't work",
-             "Instead, run this from an R instance on this machine:",
-             "",
-             paste("  ", str))
-    message(paste(c(worker$styles$value(msg[1:3]),
-                    worker$styles$key(msg[-(1:3)])),
-                  collapse="\n"))
-    invisible(msg)
+  args <- list(worker$keys$queue_name, worker$name)
+  if (!(worker$con$host %in% c("127.0.0.1", "localhost"))) {
+    args <- c(args, list(host=worker$con$host))
   }
+  if (worker$con$port != 6379) {
+    args <- c(args, list(port=worker$con$port))
+  }
+  fun <- call("::", quote(rrqueue), quote(worker_stop))
+  str <- deparse(as.call(c(list(fun), args)),
+                 width.cutoff=getOption("width") - 2L)
+  msg <- c("If you're trying to exit with Escape/Ctrl-C that won't work",
+           "Instead, run this from an R instance on this machine:",
+           "",
+           paste("  ", str))
+  message(paste(c(worker$styles$value(msg[1:3]),
+                  worker$styles$key(msg[-(1:3)])),
+                collapse="\n"))
+  invisible(msg)
 }
