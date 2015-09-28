@@ -16,6 +16,14 @@ roxygen:
 	@mkdir -p man
 	${RSCRIPT} -e "library(methods); devtools::document()"
 
+staticdocs:
+	@mkdir -p inst/staticdocs
+	Rscript -e "library(methods); staticdocs::build_site()"
+	rm -f vignettes/*.html
+
+website: staticdocs
+	./update_web.sh
+
 install:
 	R CMD INSTALL .
 

@@ -8,3 +8,5 @@
 ^man-roxygen$
 ^autodoc.R$
 ^vignettes/src$
+^inst/staticdocs$
+^inst/web$

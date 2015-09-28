@@ -153,6 +153,10 @@ Arguments passed to `rrqueue_worker` in addition to the configuration will overr
 
 This file can also be passed to `queue` and `observer` as the `config` argument (e.g., `queue(config="config.yml")` rather than having to pass in lots of parameters.
 
+# Documentation
+
+Reference documentation and vignettes are available on [this website](http://traitecoevo.github.io/rrqueue/).  If the vignettes are built (`make vignettes`), they will be avilable in the package, and this will be commited to github once things settle down.
+
 # Performance
 
 So far, I've done relatively little performance tuning.  In particular, the *workers* make no effort to minimise the number of calls to Redis and assumes that this is fast connection.  On the other hand, we use `rrqueue` where the controller many hops across the internet (controlling a queue on AWS).  To reduce the time involved, `rrqueue` uses [lua scripting](https://en.wikipedia.org/wiki/Lua_(programming_language)) to reduce the number of instruction round trips.
@@ -168,11 +172,3 @@ Error in signalCondition(e) :
 ```
 
 This is an issue somewhere within Rcpp modules (which RcppRedis uses) and seems harmless.
-
-# Vignette
-
-There is a vignette with code examples. Once installed, run the following in an R session to open the vignette
-
-```
- vignette("introduction", package="rrqueue")
-```

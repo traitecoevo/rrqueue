@@ -6,3 +6,5 @@ tmp.R
 *.log
 ignore
 inst/doc
+inst/staticdocs
+inst/web
