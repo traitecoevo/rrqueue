@@ -84,8 +84,8 @@ observer <- function(queue_name,
     task_get=function(task_id) {
       task(self, task_id)
     },
-    task_result=function(task_id, follow_redirect=FALSE, sanitise=FALSE) {
-      task_result(self$con, self$keys, task_id, follow_redirect, sanitise)
+    task_result=function(task_id, follow_redirect=FALSE) {
+      task_result(self$con, self$keys, task_id, follow_redirect)
     },
 
     ## (task groups)

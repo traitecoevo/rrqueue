@@ -72,12 +72,8 @@ TASK_MISSING  <- "MISSING"
       unname(tasks_status(self$con, self$keys, self$id, follow_redirect))
     },
 
-    ## NOTE: sanitise is used here for the case where we want to
-    ## collect results from a lot of tasks, some might have been
-    ## dropped, but we don't want things to stop.  It's used in the
-    ## rrqlapply and enqueue_bulk interfaces.
-    result=function(follow_redirect=FALSE, sanitise=FALSE) {
-      task_result(self$con, self$keys, self$id, follow_redirect, sanitise)
+    result=function(follow_redirect=FALSE) {
+      task_result(self$con, self$keys, self$id, follow_redirect)
     },
 
     expr=function(locals=FALSE) {

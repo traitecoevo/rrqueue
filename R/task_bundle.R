@@ -64,19 +64,19 @@ task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
         invisible(task_ids)
       },
 
-      status=function() {
-        self$obj$tasks_status(self$ids(), follow_redirect=TRUE)
+      status=function(follow_redirect=FALSE) {
+        self$obj$tasks_status(self$ids(), follow_redirect=follow_redirect)
       },
-      results=function() {
-        self$wait(0, 0, FALSE)
+      results=function(follow_redirect=FALSE) {
+        self$wait(0, 0, FALSE, follow_redirect)
+      },
+      wait=function(timeout=60, time_poll=1, progress_bar=TRUE, follow_redirect=FALSE) {
+        task_bundle_wait(self, timeout, time_poll, progress_bar, follow_redirect)
       },
       times=function(unit_elapsed="secs") {
         obj$task_times(self$ids(), unit_elapsed)
       },
 
-      wait=function(timeout=60, time_poll=1, progress_bar=TRUE) {
-        task_bundle_wait(self, timeout, time_poll, progress_bar)
-      },
 
       delete_tasks=function() {
         invisible(self$obj$tasks_drop(self$ids()))
@@ -100,7 +100,7 @@ task_bundle_get <- function(obj, groups=NULL, task_ids=NULL) {
 }
 
 
-task_bundle_wait <- function(obj, timeout, time_poll, progress_bar) {
+task_bundle_wait <- function(obj, timeout, time_poll, progress_bar, follow_redirect) {
   assert_integer_like(time_poll)
   task_ids <- obj$ids()
   status <- obj$status()
@@ -111,7 +111,7 @@ task_bundle_wait <- function(obj, timeout, time_poll, progress_bar) {
   results <- named_list(task_ids)
   if (any(done)) {
     results[done] <- lapply(obj$tasks[done],
-                            function(t) t$result(TRUE, TRUE))
+                            function(t) t$result(follow_redirect))
   }
 
   cleanup <- function(results, names) {
@@ -137,7 +137,7 @@ task_bundle_wait <- function(obj, timeout, time_poll, progress_bar) {
       stop(sprintf("Exceeded maximum time (%d / %d tasks pending)",
                    sum(!done), length(done)))
     }
-    res <- task_bundle_fetch1(obj, time_poll)
+    res <- task_bundle_fetch1(obj, time_poll, follow_redirect)
     if (is.null(res)) {
       p(0)
     } else {
@@ -156,15 +156,16 @@ task_bundle_wait <- function(obj, timeout, time_poll, progress_bar) {
   cleanup(results, obj$names)
 }
 
-task_bundle_fetch1 <- function(obj, timeout) {
+task_bundle_fetch1 <- function(bundle, timeout, follow_redirect) {
   if (as.integer(timeout) > 0) {
-    res <- obj$con$BLPOP(obj$key_complete, timeout)
+    res <- bundle$con$BLPOP(bundle$key_complete, timeout)
   } else {
-    res <- lpop_mult(obj$con, obj$key_complete)
+    res <- lpop_mult(bundle$con, bundle$key_complete)
   }
   if (!is.null(res)) {
     id <- res[[2]]
-    list(id, obj$obj$task_result(id, follow_redirect=TRUE, sanitise=TRUE))
+    list(id, bundle$obj$task_result(id, follow_redirect=follow_redirect))
+
   } else {
     NULL
   }
