@@ -94,9 +94,15 @@ redis-server
 ```
 (On Linux the server will probably be running for you if you. On Mac OSX, you might like to set it up to run as a daemon -- i.e. [background process](https://en.wikipedia.org/wiki/Daemon_(computing)) -- i f you end up using redis at lot, following [these instructions](http://naleid.com/blog/2011/03/05/running-redis-as-a-user-daemon-on-osx-with-launchd))
 
- Try `redis-server PING` to see if it is running.
+Try `redis-server PING` to see if it is running.
 
-R packages:
+We'll also need to install some R packages (beflow), which will require installing [hiredis](https://github.com/redis/hiredis) (download, run `make && make install`).  On OS X, you may need to run (or set in `~/.profile`)
+
+```
+export DYLD_LIBRARY_PATH=/usr/local/lib
+```
+
+You can then install the required R packages:
 
 ```
 install.packages(c("RcppRedis", "R6", "digest", "docopt"))
