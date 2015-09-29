@@ -10,3 +10,4 @@
 ^vignettes/src$
 ^inst/staticdocs$
 ^inst/web$
+^update_web\.sh$

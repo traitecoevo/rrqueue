@@ -25,11 +25,6 @@ result:
   params:
     follow_redirect: *follow_redirect
 
-    sanitise: >-
-
-      If the task is not yet complete or is missing, return an
-      \code{UnfetchabmeTask} object rather than throwing an error.
-
 wait:
   short: >-
     Like \code{result}, but will wait until the task is complete.  In

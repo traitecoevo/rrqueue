@@ -5,7 +5,7 @@
 \alias{rrqlapply_submit}
 \title{Parallel version of lapply using Redis queuing}
 \usage{
-rrqlapply(X, FUN, rrq, ..., group = NULL, period = 1,
+rrqlapply(X, FUN, rrq, ..., group = NULL, timeout = Inf, time_poll = 1,
   delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
 
 rrqlapply_submit(X, FUN, rrq, ..., group = NULL, progress_bar = TRUE,
@@ -24,8 +24,13 @@ list.  \emph{this will change!}.}
 \item{group}{Name of a group for generated task ids.  If not
 included, an ID will be generated.}
 
-\item{period}{Period to poll for completed tasks.  Affects how
-responsive the function is to quiting, mostly.}
+\item{timeout}{Total length of time to wait for tasks to be
+  completed.  The default is to wait forever (like \code{lapply}).}
+
+\item{time_poll}{Time to poll for tasks.  Must be an integer.
+Because of how the function is implemented, R will be
+unresponsive for this long each iteration (unless results are
+returned), so the default of 1s should be reasonable.}
 
 \item{delete_tasks}{Delete tasks on successful finish?}
 

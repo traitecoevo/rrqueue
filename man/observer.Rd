@@ -152,7 +152,7 @@ expect a vector of task identifiers (and if they have a default
   Get the result for a single task
 
   \emph{Usage:}
-  \code{task_result(task_id = , follow_redirect = FALSE, sanitise = FALSE)}
+  \code{task_result(task_id = , follow_redirect = FALSE)}
 
   \emph{Arguments:}
   \describe{
@@ -162,10 +162,6 @@ expect a vector of task identifiers (and if they have a default
 
     \item{\code{follow_redirect}}{
       should we follow redirects to get the status of any requeued task?
-    }
-
-    \item{\code{sanitise}}{
-      If the task is not yet complete or is missing, return an \code{UnfetchabmeTask} object rather than throwing an error.
     }
   }
 }

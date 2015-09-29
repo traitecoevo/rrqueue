@@ -1,0 +1,71 @@
+ids:
+  short: >-
+    Return the vector of ids for the bundle (will return
+    \code{character(0)} if the bundle is empty).
+
+status:
+  short: >-
+    Fetch the current task status (see \code{\link{task}}).
+
+  params:
+    follow_redirect: &follow_redirect >-
+      should we follow redirects to get the status of any requeued task?
+
+results:
+  short: >-
+    Fetch results for all tasks, immediately (unlike \code{wait}).
+  params:
+    follow_redirect: *follow_redirect
+
+  value: >-
+
+    Always returns a list, regardless of how many tasks are in the
+    bundle \code{list()} for zero tasks, \code{list(x1)} for one task,
+    \code{list(x1, x2)} for two, etc).  This list will be named with
+    the ids (see \code{ids()}) unless the bundles has a \code{names}
+    attribute that has not been invalidated by using
+    \code{update_groups()} (this interface may change).
+
+wait:
+  short: >-
+    Like \code{results}, but block until results are returned.
+
+  params:
+    timeout: >-
+
+      Total time to wait, in seconds.  If the tasks have not returned
+      by this point an error willl be thrown.
+
+    time_poll: >-
+
+      Interval, in seconds, to poll for new results.  Increasing this
+      time will reduce the number of Redis roundtrips but decrease the
+      responsiveness to an interrupt.
+
+    progress_bar: >-
+
+      Display a progress bar while waiting?  Includes a spinner for
+      reassurance that the process has not died.
+
+    follow_redirect: *follow_redirect
+
+times:
+  short: >-
+    Like times in \code{\link{observer}}, but limited to the ids in the bundle.
+
+  params:
+    unit_elapsed: >-
+      Unit to use in computing elapsed times.  The default is to use
+      "secs".  This is passed through to \code{\link{difftime}} so the
+      units there are available and are "auto", "secs", "mins",
+      "hours", "days", "weeks".
+
+update_groups:
+  short: >-
+
+    Check for new tasks that have been added to the groups included in
+    this bunddle and add these tasks to the bundle.
+
+  value: >-
+
+    Invisibly, the ids of tasks that have been added to the bundle.

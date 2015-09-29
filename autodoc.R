@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 ## Dirty hack to compile docs in the absence of proper Roxygen R6 support.
-library(rrqueue)
+devtools::load_all(".")
 
 add_usage <- function(dat, generator) {
   capture_usage <- function(name) {

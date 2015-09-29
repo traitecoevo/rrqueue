@@ -67,6 +67,7 @@ test_that("simple", {
 
   ## Add an new task:
   t <- obj$enqueue(sin(1), group=group)
+  Sys.sleep(.5)
 
   ## Nothing has changed in the bundle:
   expect_that(x$results(), equals(cmp))

@@ -75,9 +75,6 @@ task_result:
     task_id: *task_id
     follow_redirect: &follow_redirect >-
       should we follow redirects to get the status of any requeued task?
-    sanitise:
-      If the task is not yet complete or is missing, return an
-      \code{UnfetchabmeTask} object rather than throwing an error.
 
 tasks_groups_list:
   short: >-

@@ -11,12 +11,112 @@ task_bundle(obj, tasks, groups = NULL, names = NULL)
 
 \item{tasks}{A list of tasks}
 
-\item{groups}{Optional vector of groups, may be dropped soon}
+\item{groups}{Optional vector of groups.  If given, then additional
+tasks can be added to the bundle if they share the same group names.}
 
 \item{names}{Optional vector of names to label output with.}
 }
 \description{
 Create a task bundle.  Generally these are not created manually,
-but this page serves to document methods that bundles have.
+but this page serves to document what task bundles are and the
+methods that they have.
+}
+\details{
+A task bundle exists to group together tasks that are related.  It
+is possible for a task to belong to multiple bundles.
+}
+\section{Methods}{
+
+
+\describe{
+\item{\code{ids}}{
+  Return the vector of ids for the bundle (will return \code{character(0)} if the bundle is empty).
+
+  \emph{Usage:}
+  \code{ids()}
+}
+\item{\code{status}}{
+  Fetch the current task status (see \code{\link{task}}).
+
+  \emph{Usage:}
+  \code{status(follow_redirect = FALSE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{follow_redirect}}{
+      should we follow redirects to get the status of any requeued task?
+    }
+  }
+}
+\item{\code{results}}{
+  Fetch results for all tasks, immediately (unlike \code{wait}).
+
+  \emph{Usage:}
+  \code{results(follow_redirect = FALSE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{follow_redirect}}{
+      should we follow redirects to get the status of any requeued task?
+    }
+  }
+
+  \emph{Value}:
+
+  Always returns a list, regardless of how many tasks are in the bundle \code{list()} for zero tasks, \code{list(x1)} for one task, \code{list(x1, x2)} for two, etc).  This list will be named with the ids (see \code{ids()}) unless the bundles has a \code{names} attribute that has not been invalidated by using \code{update_groups()} (this interface may change).
+}
+\item{\code{wait}}{
+  Like \code{results}, but block until results are returned.
+
+  \emph{Usage:}
+  \code{wait(timeout = 60, time_poll = 1, progress_bar = TRUE, follow_redirect = FALSE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{timeout}}{
+
+      Total time to wait, in seconds.  If the tasks have not returned by this point an error willl be thrown.
+    }
+
+    \item{\code{time_poll}}{
+
+      Interval, in seconds, to poll for new results.  Increasing this time will reduce the number of Redis roundtrips but decrease the responsiveness to an interrupt.
+    }
+
+    \item{\code{progress_bar}}{
+
+      Display a progress bar while waiting?  Includes a spinner for reassurance that the process has not died.
+    }
+
+    \item{\code{follow_redirect}}{
+      should we follow redirects to get the status of any requeued task?
+    }
+  }
+}
+\item{\code{times}}{
+  Like times in \code{\link{observer}}, but limited to the ids in the bundle.
+
+  \emph{Usage:}
+  \code{times(unit_elapsed = "secs")}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{unit_elapsed}}{
+      Unit to use in computing elapsed times.  The default is to use "secs".  This is passed through to \code{\link{difftime}} so the units there are available and are "auto", "secs", "mins", "hours", "days", "weeks".
+    }
+  }
+}
+\item{\code{update_groups}}{
+
+  Check for new tasks that have been added to the groups included in this bunddle and add these tasks to the bundle.
+
+  \emph{Usage:}
+  \code{update_groups()}
+
+  \emph{Value}:
+
+  Invisibly, the ids of tasks that have been added to the bundle.
+}
+}
 }
 

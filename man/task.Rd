@@ -66,17 +66,12 @@ their interpretation.
   Fetch the result of a task, so long as it has completed.
 
   \emph{Usage:}
-  \code{result(follow_redirect = FALSE, sanitise = FALSE)}
+  \code{result(follow_redirect = FALSE)}
 
   \emph{Arguments:}
   \describe{
     \item{\code{follow_redirect}}{
       should we follow redirects to get the status of any requeued task?
-    }
-
-    \item{\code{sanitise}}{
-
-      If the task is not yet complete or is missing, return an \code{UnfetchabmeTask} object rather than throwing an error.
     }
   }
 }
