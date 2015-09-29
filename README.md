@@ -94,20 +94,26 @@ redis-server
 ```
 (On Linux the server will probably be running for you if you. On Mac OSX, you might like to set it up to run as a daemon -- i.e. [background process](https://en.wikipedia.org/wiki/Daemon_(computing)) -- i f you end up using redis at lot, following [these instructions](http://naleid.com/blog/2011/03/05/running-redis-as-a-user-daemon-on-osx-with-launchd))
 
-Try `redis-server PING` to see if it is running.
+Try `redis-cli PING` to see if it is running; it should return `PONG` and not give an error.
 
-We'll also need to install some R packages (beflow), which will require installing [hiredis](https://github.com/redis/hiredis) (download, run `make && make install`).  On OS X, you may need to run (or set in `~/.profile`)
+We'll also need to install some R packages (before), which will require installing the [hiredis](https://github.com/redis/hiredis) library.  See the details on the [https://github.com/richfitz/RedisHeartbeat](RedisHeartbeat) page, but briefly:
+
+* Download the archive from the [https://github.com/redis/hiredis/releases/latest](hiredis release  page)
+* install with `tar -zxvf hiredis-0.XX.Y.tar.gz && cd hiredis-0.XX.Y && make && sudo make install`
+* On OS/X, add to your `~/.profile`
 
 ```
 export DYLD_LIBRARY_PATH=/usr/local/lib
 ```
+
+On debian/ubuntu, install the `libhiredis-dev` package in `apt-get`.
 
 You can then install the required R packages:
 
 ```
 install.packages(c("RcppRedis", "R6", "digest", "docopt"))
 devtools::install_github(c("ropensci/RedisAPI", "richfitz/RedisHeartbeat", "richfitz/storr", "richfitz/ids"))
-devtools::install_git("https://github.com/traitecoevo/rrqueue")
+devtools::install_github("traitecoevo/rrqueue")
 ```
 
 (*optional*) to see what is going on, in a terminal, run `redis-cli monitor` which will print all the Redis chatter, though it will impact on redis performance.
