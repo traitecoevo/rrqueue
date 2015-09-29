@@ -93,6 +93,34 @@ is possible for a task to belong to multiple bundles.
     }
   }
 }
+\item{\code{wait1}}{
+
+  Wait for a single task to complete,a nd return its result.
+
+  \emph{Usage:}
+  \code{wait1(timeout = 60, time_poll = 1, follow_redirect = FALSE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{timeout}}{
+
+      Total time to wait, in seconds.  If the tasks have not returned by this point an error willl be thrown.
+    }
+
+    \item{\code{time_poll}}{
+
+      Interval, in seconds, to poll for new results.  Increasing this time will reduce the number of Redis roundtrips but decrease the responsiveness to an interrupt.
+    }
+
+    \item{\code{follow_redirect}}{
+      should we follow redirects to get the status of any requeued task?
+    }
+  }
+
+  \emph{Value}:
+
+  If a task as available, either because all tasks are complete or because the waiting time was too short, \code{NULL} is returned. Otherwise a list of length 2 is returned, with elements \code{id} (the id of the task that completed) and \code{value} the value of that that task.  This interface is inspired by Redis' \code{BLPOP} operation.
+}
 \item{\code{times}}{
   Like times in \code{\link{observer}}, but limited to the ids in the bundle.
 

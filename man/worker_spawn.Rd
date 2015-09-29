@@ -47,5 +47,10 @@ Spawn a worker in the background
 Spawning multiple workers.  If \code{n} is greater than one,
 multiple workers will be spawned.  This happens in parallel so it
 does not take n times longer than spawing a single worker.
+
+Beware that signals like Ctrl-C passed to \emph{this} R instance
+can still propagate to the child processes and can result in them
+dying unexpectedly.  It is probably safer to start processes in a
+standalone session.
 }
 

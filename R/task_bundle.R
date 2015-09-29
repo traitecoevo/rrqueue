@@ -75,6 +75,9 @@ task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
       wait=function(timeout=60, time_poll=1, progress_bar=TRUE, follow_redirect=FALSE) {
         task_bundle_wait(self, timeout, time_poll, progress_bar, follow_redirect)
       },
+      wait1=function(timeout=60, time_poll=1, follow_redirect=FALSE) {
+        task_bundle_wait1(self, timeout, time_poll, follow_redirect)
+      },
       times=function(unit_elapsed="secs") {
         obj$task_times(self$ids(), unit_elapsed)
       },
@@ -145,17 +148,39 @@ task_bundle_wait <- function(obj, timeout, time_poll, progress_bar, follow_redir
     } else {
       p(1)
       task_id <- res[[1]]
-      value <- res[[2]]
+      result <- res[[2]]
       done[[task_id]] <- TRUE
       ## NOTE: This conditional is needed to avoid deleting the
-      ## element in results if we get a NULL value.
-      if (!is.null(value)) {
-        results[[task_id]] <- value
+      ## element in results if we get a NULL result.
+      if (!is.null(result)) {
+        results[[task_id]] <- result
       }
     }
 
   }
   cleanup(results, obj$names)
+}
+
+task_bundle_wait1 <- function(obj, timeout, time_poll, follow_redirect) {
+  status <- obj$status(follow_redirect)
+  done <- !(status == TASK_PENDING | status == TASK_RUNNING |
+              status == TASK_ORPHAN)
+  if (all(done)) {
+    done <- vnapply(obj$key_complete, obj$obj$con$LLEN) == 0
+  }
+  if (all(done)) {
+    return(NULL)
+  }
+  times_up <- time_checker(timeout)
+  repeat {
+    if (times_up()) {
+      return(NULL)
+    }
+    res <- task_bundle_fetch1(obj, time_poll, follow_redirect)
+    if (!is.null(res)) {
+      return(res)
+    }
+  }
 }
 
 task_bundle_fetch1 <- function(bundle, timeout, follow_redirect) {
@@ -166,7 +191,8 @@ task_bundle_fetch1 <- function(bundle, timeout, follow_redirect) {
   }
   if (!is.null(res)) {
     id <- res[[2]]
-    list(id, bundle$obj$task_result(id, follow_redirect=follow_redirect))
+    list(id=id,
+         result=bundle$obj$task_result(id, follow_redirect=follow_redirect))
 
   } else {
     NULL

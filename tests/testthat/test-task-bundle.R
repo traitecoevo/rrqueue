@@ -5,7 +5,7 @@ test_that("simple", {
   on.exit(test_cleanup())
 
   existing <- queues()
-  expect_that(existing, equals(character(0)))
+  ## expect_that(existing, equals(character(0)))
 
   obj <- queue("tmpjobs", sources="myfuns.R")
 
@@ -94,6 +94,27 @@ test_that("simple", {
   expect_that(r, equals(cmp))
   expect_that(x$status(),
               equals(setNames(rep(TASK_COMPLETE, length(r)), names(r))))
+
+  expect_that(x$wait1(1), equals(NULL))
+  expect_that(x$wait1(1), takes_less_than(1))
+
+  t1 <- obj$enqueue(slowdouble(1), group=group)
+  t2 <- obj$enqueue(slowdouble(2), group=group)
+  x$update_groups()
+  res <- x$wait1(60)
+  expect_that(res[[1]], equals(t1$id))
+  expect_that(res[[2]], equals(2))
+  res <- x$wait1(60)
+  expect_that(res[[1]], equals(t2$id))
+  expect_that(res[[2]], equals(4))
+  expect_that(x$wait1(), is_null())
+
+  t3 <- obj$enqueue(slowdouble(3), group=group)
+  x$update_groups()
+  res0 <- x$wait1(1)
+  expect_that(res0, is_null())
+  res <- x$wait1(10)
+  expect_that(res, equals(list(id=t3$id, result=t3$result())))
 
   ## Get the bundle again:
   y <- obj$task_bundle_get(group)

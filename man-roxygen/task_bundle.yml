@@ -31,12 +31,12 @@ wait:
     Like \code{results}, but block until results are returned.
 
   params:
-    timeout: >-
+    timeout: &timeout >-
 
       Total time to wait, in seconds.  If the tasks have not returned
       by this point an error willl be thrown.
 
-    time_poll: >-
+    time_poll: &time_poll >-
 
       Interval, in seconds, to poll for new results.  Increasing this
       time will reduce the number of Redis roundtrips but decrease the
@@ -48,6 +48,26 @@ wait:
       reassurance that the process has not died.
 
     follow_redirect: *follow_redirect
+
+wait1:
+  short: >-
+
+    Wait for a single task to complete,a nd return its result.
+
+  params:
+
+    timeout: *timeout
+    time_poll: *time_poll
+    follow_redirect: *follow_redirect
+
+  value: >-
+
+    If a task as available, either because all tasks are complete or
+    because the waiting time was too short, \code{NULL} is returned.
+    Otherwise a list of length 2 is returned, with elements \code{id}
+    (the id of the task that completed) and \code{value} the value of
+    that that task.  This interface is inspired by Redis' \code{BLPOP}
+    operation.
 
 times:
   short: >-

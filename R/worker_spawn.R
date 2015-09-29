@@ -58,6 +58,11 @@ Options:
 ##' multiple workers will be spawned.  This happens in parallel so it
 ##' does not take n times longer than spawing a single worker.
 ##'
+##' Beware that signals like Ctrl-C passed to \emph{this} R instance
+##' can still propagate to the child processes and can result in them
+##' dying unexpectedly.  It is probably safer to start processes in a
+##' standalone session.
+##'
 ##' @title Spawn a worker
 ##' @param queue_name Name of the queue to connect to
 ##' @param logfile Name of a log file to write to (consider
