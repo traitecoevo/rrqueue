@@ -1,9 +1,15 @@
 ##' Create a task bundle.  Generally these are not created manually,
-##' but this page serves to document methods that bundles have.
+##' but this page serves to document what task bundles are and the
+##' methods that they have.
+##'
+##' A task bundle exists to group together tasks that are related.  It
+##' is possible for a task to belong to multiple bundles.
+##'
 ##' @title Create a task bundle
 ##' @param obj An observer or queue object
 ##' @param tasks A list of tasks
-##' @param groups Optional vector of groups, may be dropped soon
+##' @param groups Optional vector of groups.  If given, then additional
+##'    tasks can be added to the bundle if they share the same group names.
 ##' @param names Optional vector of names to label output with.
 ##' @export
 task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
@@ -11,6 +17,7 @@ task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
   .R6_task_bundle$new(obj, tasks, groups, names)
 }
 
+## TODO: Next, make an automatically updating version.
 .R6_task_bundle <- R6::R6Class(
   "task_bundle",
 
@@ -18,111 +25,61 @@ task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
     list(
       obj=NULL,
       tasks=NULL,
-      task_ids=NULL,
       key_complete=NULL,
       groups=NULL,
       names=NULL,
       con=NULL,
       keys=NULL,
-      results=NULL,
-      done=NULL,
 
       initialize=function(obj, tasks, groups, names) {
         self$con <- obj$con
         self$keys <- obj$keys
         self$obj <- obj
-
-        n <- length(tasks)
-        self$task_ids <- vcapply(tasks, "[[", "id")
-        self$tasks <- setNames(tasks, self$task_ids)
+        self$tasks <- setNames(tasks, vcapply(tasks, "[[", "id"))
 
         self$key_complete <- unique(vcapply(tasks, "[[", "key_complete"))
-
-        if (is.null(groups)) {
-          groups <- obj$tasks_lookup_group(self$task_ids)
-        }
         self$groups <- groups
 
+        if (!is.null(names) && length(names) != length(tasks)) {
+          stop("Incorrect length names")
+        }
         self$names <- names
-        self$results <- setNames(vector("list", n), self$task_ids)
-        self$update_results()
+      },
+
+      ids=function() {
+        names(self$tasks)
+      },
+
+      update_groups=function() {
+        task_ids <- setdiff(tasks_in_groups(self$con, self$keys, self$groups),
+                            self$ids())
+        if (length(task_ids)) {
+          tasks <- setNames(lapply(task_ids, self$obj$task_get), task_ids)
+          self$tasks <- c(self$tasks, tasks)
+          self$key_complete <- union(self$key_complete,
+                                     unique(vcapply(tasks, "[[", "key_complete")))
+          ## Can't deal with this for now :(
+          self$names <- NULL
+        }
+        invisible(task_ids)
       },
 
       status=function() {
-        self$obj$tasks_status(self$task_ids, follow_redirect=TRUE)
+        self$obj$tasks_status(self$ids(), follow_redirect=TRUE)
+      },
+      results=function() {
+        self$wait(0, 0, FALSE)
+      },
+      times=function(unit_elapsed="secs") {
+        obj$task_times(self$ids(), unit_elapsed)
       },
 
-      update_results=function() {
-        status <- self$status()
-        self$done <- !(status == TASK_PENDING | status == TASK_RUNNING |
-                         status == TASK_ORPHAN)
-        if (any(self$done)) {
-          get1 <- function(id) {
-            self$obj$task_result(id, follow_redirect=TRUE, sanitise=TRUE)
-          }
-          ids <- self$task_ids[self$done]
-          self$results[self$done] <- lapply(ids, get1)
-        }
-      },
-
-      wait=function(timeout=1, progress_bar=TRUE, maxit=Inf) {
-        if (timeout < 1) {
-          stop("timeout must be at least 1")
-        }
-        self$update_results()
-        p <- progress(total=length(self$tasks), show=progress_bar)
-
-        p(sum(self$done))
-        i <- 1L
-        while (!all(self$done)) {
-          id <- self$fetch1(timeout)
-          if (is.null(id)) {
-            p(0)
-          } else {
-            p(1)
-          }
-
-          i <- i + 1L
-          if (i > maxit) {
-            stop("Exceeded maximum number of iterations")
-          }
-        }
-
-        setNames(self$results, self$names)
-      },
-
-      fetch1=function(timeout) {
-        if (as.integer(timeout) > 0) {
-          task_id <- self$con$BLPOP(self$key_complete, timeout)
-          if (!is.null(task_id)) {
-            task_id <- task_id[[2]]
-          }
-        } else {
-          ## Way more complicated, simulation of BLPOP with no timeout
-          ## on multiple lists.  Not anything safe.
-          for (k in self$key_complete) {
-            task_id <- self$con$LPOP(k)
-            if (!is.null(task_id)) {
-              break
-            }
-          }
-        }
-
-        if (!is.null(task_id)) {
-          res <- self$tasks[[task_id]]$result(follow_redirect=TRUE,
-                                              sanitise=TRUE)
-          ## NOTE: This conditional is needed to avoid deleting the
-          ## element in results if we get a NULL results.
-          if (!is.null(res)) {
-            self$results[[task_id]] <- res
-          }
-          self$done[[task_id]] <- TRUE
-        }
-        task_id
+      wait=function(timeout=60, time_poll=1, progress_bar=TRUE) {
+        task_bundle_wait(self, timeout, time_poll, progress_bar)
       },
 
       delete_tasks=function() {
-        invisible(self$obj$tasks_drop(self$task_ids))
+        invisible(self$obj$tasks_drop(self$ids()))
       }))
 
 
@@ -139,6 +96,76 @@ task_bundle_get <- function(obj, groups=NULL, task_ids=NULL) {
 
   tasks <- lapply(task_ids, obj$task_get)
   names(tasks) <- task_ids
-  key_complete <- unique(vcapply(tasks, "[[", "key_complete"))
   task_bundle(obj, tasks, groups)
+}
+
+
+task_bundle_wait <- function(obj, timeout, time_poll, progress_bar) {
+  assert_integer_like(time_poll)
+  task_ids <- obj$ids()
+  status <- obj$status()
+  done <- !(status == TASK_PENDING | status == TASK_RUNNING |
+              status == TASK_ORPHAN)
+
+  ## Immediately collect all results:
+  results <- named_list(task_ids)
+  if (any(done)) {
+    results[done] <- lapply(obj$tasks[done],
+                            function(t) t$result(TRUE, TRUE))
+  }
+
+  cleanup <- function(results, names) {
+    if (!is.null(names)) {
+      names(results) <- names
+    }
+    results
+  }
+  if (all(done)) {
+    return(cleanup(results, obj$names))
+  } else if (timeout == 0) {
+    stop("Tasks not yet completed; can't be immediately returned")
+  }
+
+  p <- progress(total=length(obj$tasks), show=progress_bar)
+  t0 <- Sys.time()
+  timeout <- as.difftime(timeout, units="secs")
+
+  p(sum(done))
+  i <- 1L
+  while (!all(done)) {
+    if (Sys.time() - t0 > timeout) {
+      stop(sprintf("Exceeded maximum time (%d / %d tasks pending)",
+                   sum(!done), length(done)))
+    }
+    res <- task_bundle_fetch1(obj, time_poll)
+    if (is.null(res)) {
+      p(0)
+    } else {
+      p(1)
+      task_id <- res[[1]]
+      value <- res[[2]]
+      done[[task_id]] <- TRUE
+      ## NOTE: This conditional is needed to avoid deleting the
+      ## element in results if we get a NULL value.
+      if (!is.null(value)) {
+        results[[task_id]] <- value
+      }
+    }
+
+  }
+  cleanup(results, obj$names)
+}
+
+task_bundle_fetch1 <- function(obj, timeout) {
+  if (as.integer(timeout) > 0) {
+    res <- obj$con$BLPOP(obj$key_complete, timeout)
+  } else {
+    res <- lpop_mult(obj$con, obj$key_complete)
+  }
+  if (!is.null(res)) {
+    id <- res[[2]]
+    list(id, obj$obj$task_result(id, follow_redirect=TRUE, sanitise=TRUE))
+  } else {
+    NULL
+  }
 }

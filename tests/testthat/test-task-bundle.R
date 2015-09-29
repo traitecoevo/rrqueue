@@ -1,0 +1,104 @@
+context("task_bundle")
+
+test_that("simple", {
+  test_cleanup()
+  on.exit(test_cleanup())
+
+  existing <- queues()
+  expect_that(existing, equals(character(0)))
+
+  obj <- queue("tmpjobs", sources="myfuns.R")
+
+  group <- "mygroup"
+  x <- obj$task_bundle_get(group)
+
+  expect_that(x, is_a("task_bundle"))
+  expect_that(x$ids(), equals(character(0)))
+  expect_that(x$groups, equals(group))
+  expect_that(x$update_groups(), equals(character(0)))
+  expect_that(x$results(), equals(empty_named_list()))
+  expect_that(x$wait(), equals(empty_named_list()))
+
+  ## Queue up a job:
+  t <- obj$enqueue(sin(1), group=group)
+
+  expect_that(x$update_groups(), equals(t$id))
+  expect_that(x$update_groups(), equals(character(0)))
+
+  ids <- t$id
+  for (i in 1:3) {
+    t <- obj$enqueue(sin(1), group=group)
+    ids <- c(ids, t$id)
+  }
+
+  expect_that(x$update_groups(), equals(ids[-1]))
+  expect_that(x$update_groups(), equals(character(0)))
+
+  expect_that(x$ids(), equals(ids))
+
+  expect_that(x$status(),
+              equals(setNames(rep(TASK_PENDING, length(ids)), ids)))
+
+  expect_that(x$results(), throws_error("Tasks not yet completed"))
+  expect_that(x$wait(0), throws_error("Tasks not yet completed"))
+  expect_that(x$wait(1), throws_error("Exceeded maximum time"))
+
+  expect_that(x$status(),
+              equals(setNames(rep(TASK_PENDING, length(ids)), ids)))
+
+  ## Start a worker:
+  logfile <- "worker.log"
+  Sys.setenv("R_TESTS" = "")
+  wid <- worker_spawn(obj$queue_name, logfile)
+
+  Sys.sleep(.5)
+
+  expect_that(x$status(),
+              equals(setNames(rep(TASK_COMPLETE, length(ids)), ids)))
+
+  cmp <- setNames(rep(list(sin(1)), length(ids)), ids)
+  expect_that(x$results(), equals(cmp))
+
+  ## Set some names and watch them come out too:
+  x$names <- letters[1:4]
+  x$results()
+  cmp <- setNames(rep(list(sin(1)), length(ids)), letters[1:4])
+  expect_that(x$results(), equals(cmp))
+
+  ## Add an new task:
+  t <- obj$enqueue(sin(1), group=group)
+
+  ## Nothing has changed in the bundle:
+  expect_that(x$results(), equals(cmp))
+
+  id <- x$update_groups()
+  expect_that(id, equals(t$id))
+  ids <- c(ids, id)
+
+  ## Names have been removed:
+  expect_that(x$names, equals(NULL))
+
+  cmp <- setNames(rep(list(sin(1)), length(ids)), ids)
+  expect_that(x$results(), equals(cmp))
+
+  t <- obj$enqueue(slowdouble(2), group=group)
+  x$update_groups()
+  st <- setNames(rep(c(TASK_COMPLETE, TASK_RUNNING), c(length(ids), 1)),
+                 c(ids, t$id))
+  Sys.sleep(.2)
+  expect_that(x$status(), equals(st))
+  r <- x$wait(3)
+
+  cmp <- c(cmp, setNames(list(4), t$id))
+  expect_that(r, equals(cmp))
+  expect_that(x$status(),
+              equals(setNames(rep(TASK_COMPLETE, length(r)), names(r))))
+
+  ## Get the bundle again:
+  y <- obj$task_bundle_get(group)
+  expect_that(y$ids(),     equals(x$ids()))
+  expect_that(y$status(),  equals(x$status()))
+  expect_that(y$results(), equals(x$results()))
+
+  obj$stop_workers(wid)
+})

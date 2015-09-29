@@ -293,3 +293,10 @@ with_wd <- function(path, expr) {
 dir_create <- function(paths) {
   invisible(vlapply(unique(paths), dir.create, FALSE, TRUE))
 }
+
+named_list <- function(names) {
+  setNames(vector("list", length(names)), names)
+}
+named_logical <- function(names) {
+  setNames(logical(length(names)), names)
+}

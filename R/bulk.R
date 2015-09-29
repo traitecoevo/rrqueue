@@ -36,8 +36,13 @@
 ##' @param group Name of a group for generated task ids.  If not
 ##'   included, an ID will be generated.
 ##'
-##' @param period Period to poll for completed tasks.  Affects how
-##'   responsive the function is to quiting, mostly.
+##' @param timeout Total length of time to wait for tasks to be
+##'   completed.  The default is to wait forever (like \code{lapply}).
+##'
+##' @param time_poll Time to poll for tasks.  Must be an integer.
+##'   Because of how the function is implemented, R will be
+##'   unresponsive for this long each iteration (unless results are
+##'   returned), so the default of 1s should be reasonable.
 ##'
 ##' @param delete_tasks Delete tasks on successful finish?
 ##'
@@ -48,10 +53,10 @@
 ##' @export
 enqueue_bulk <- function(X, FUN, rrq,
                          do.call=FALSE, group=NULL,
-                         period=1, delete_tasks=FALSE,
+                         timeout=Inf, time_poll=1, delete_tasks=FALSE,
                          progress_bar=TRUE, env=parent.frame()) {
   obj <- enqueue_bulk_submit(X, FUN, rrq, do.call, group, progress_bar, env)
-  tryCatch(obj$wait(period, progress_bar),
+  tryCatch(obj$wait(timeout, time_poll, progress_bar),
            interrupt=function(e) obj)
 }
 
@@ -65,7 +70,8 @@ enqueue_bulk <- function(X, FUN, rrq,
 
 ##' @export
 ##' @rdname enqueue_bulk
-enqueue_bulk_submit <- function(X, FUN, rrq, do.call=FALSE, group=NULL,
+enqueue_bulk_submit <- function(X, FUN, rrq,
+                                do.call=FALSE, group=NULL,
                                 progress_bar=TRUE, env=parent.frame()) {
   if (is.data.frame(X)) {
     X <- df_to_list(X)

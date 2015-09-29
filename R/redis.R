@@ -56,3 +56,15 @@ clean_pttl <- function(x) {
   x[i] <- x[i] / 1000
   x
 }
+
+## Way more complicated, simulation of BLPOP with no timeout on
+## multiple lists.  Not anything safe.
+lpop_mult <- function(con, keys) {
+  for (k in keys) {
+    res <- con$LPOP(k)
+    if (!is.null(res)) {
+      return(list(k, res))
+    }
+  }
+  NULL
+}

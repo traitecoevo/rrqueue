@@ -17,7 +17,7 @@ test_that("Basic use", {
 
   expect_that(grp, equals(rrql$groups))
   expect_that(obj$tasks_in_groups(grp),
-              equals(rrql$task_ids))
+              equals(rrql$ids()))
   expect_that(rrql$names, equals(names(x)))
 
   tmp <- task_bundle_get(obj, groups=grp)
@@ -26,14 +26,10 @@ test_that("Basic use", {
   expect_that(tmp$names, equals(NULL))
   expect_that(tmp$key_complete, equals(rrql$key_complete))
 
-  expect_that(rrql$fetch1(0), is_null())
-  expect_that(tmp$wait(progress_bar=FALSE, maxit=1),
-              throws_error("Exceeded maximum number of iterations"))
-
   ## TODO: This would be nice to do filtering by jobs in the bundle...
   monitor_status(obj)
 
-  task_ids <- rrql$task_ids
+  task_ids <- rrql$ids()
   expect_that(obj$tasks_status(task_ids),
               equals(setNames(rep(TASK_PENDING, length(x)), task_ids)))
 
@@ -41,12 +37,12 @@ test_that("Basic use", {
   ## w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 
   ## TODO:
-  Sys.sleep(1.0)
+  Sys.sleep(0.5)
   expect_that(obj$tasks_status(task_ids),
               equals(setNames(rep(TASK_COMPLETE, length(x)), task_ids)))
 
   res <- rrql$wait()
-  cmp <- lapply(x, sin)
+  cmp <- setNames(lapply(x, sin), rrql$ids())
   expect_that(res, equals(cmp, tolerance=1e-15))
 
   expect_that(obj$tasks_status(task_ids),
@@ -59,7 +55,8 @@ test_that("Basic use", {
               equals(setNames(rep(TASK_MISSING, length(x)), task_ids)))
 
   res <- rrqlapply(x, "sin", obj, progress_bar=FALSE)
-  expect_that(res, equals(cmp, tolerance=1e-15))
+  ## NOTE: hardcoded name here:
+  expect_that(res, equals(setNames(cmp, 21:40), tolerance=1e-15))
 
   obj$send_message("STOP")
 })
@@ -73,7 +70,7 @@ test_that("null return", {
   rrql <- rrqlapply_submit(x, "ret_null", obj)
   monitor_status(obj)
 
-  task_ids <- rrql$task_ids
+  task_ids <- rrql$ids()
   expect_that(obj$tasks_status(task_ids),
               equals(setNames(rep(TASK_PENDING, length(x)), task_ids)))
 
@@ -86,7 +83,7 @@ test_that("null return", {
               equals(setNames(rep(TASK_COMPLETE, length(x)), task_ids)))
 
   res <- rrql$wait(progress_bar=FALSE)
-  cmp <- rep(list(NULL), length(x))
+  cmp <- named_list(rrql$ids())
   expect_that(res, equals(cmp))
 
   ## And again:
@@ -98,12 +95,13 @@ test_that("null return", {
               equals(setNames(rep(TASK_MISSING, length(x)), task_ids)))
 
   res <- rrqlapply(x, "ret_null", obj, progress_bar=FALSE)
-  expect_that(res, equals(cmp))
+  expect_that(res, equals(setNames(cmp, 21:40)))
 
   obj$send_message("STOP")
 })
 
 test_that("bulk", {
+  test_cleanup()
   x <- expand.grid(a=1:4, b=runif(3))
 
   obj <- queue("tmpjobs", sources="myfuns.R")
@@ -114,11 +112,15 @@ test_that("bulk", {
 
   wid <- worker_spawn(obj$queue_name, "rrqlapply.log")
 
-  res <- enqueue_bulk(x, suml, obj)
-  expect_that(res, equals(cmp_sum))
+  res <- enqueue_bulk_submit(x, suml, obj)
+  expect_that(res$groups, is_a("character"))
 
+  ans <- res$wait()
+  expect_that(ans, equals(setNames(cmp_sum, res$ids())))
+
+  ## All at once:
   res <- enqueue_bulk(x, prod2, obj, do.call=TRUE)
-  expect_that(res, equals(cmp_prod))
+  expect_that(unname(res), equals(cmp_prod))
 
   obj$send_message("STOP")
   test_cleanup()

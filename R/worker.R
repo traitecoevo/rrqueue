@@ -8,10 +8,6 @@ WORKER_LOST <- "LOST"
 ## the idle phase?  That could be done with a multiplier on the
 ## heartbeat.
 
-## TODO: Printing WAITING every 30 seconds is going to get annoying
-## really quickly; might be worth working out how convey this
-## information more politely.
-
 ##' @importFrom R6 R6Class
 .R6_worker <- R6::R6Class(
   "worker",
@@ -218,7 +214,7 @@ WORKER_LOST <- "LOST"
         tryCatch({
           task <- con$BLPOP(self$key_queue, self$heartbeat_period)
           if (is.null(task)) {
-            self$log("WAITING", push=FALSE)
+            ## self$log("WAITING", push=FALSE)
           } else {
             if (task[[1]] == self$keys$message) {
               self$run_message(task[[2]])
