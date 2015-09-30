@@ -1,6 +1,6 @@
 Package: rrqueue
 Title: Scalable Job Queues for R with 'Redis'
-Version: 0.2.0
+Version: 0.2.1
 Author: "Rich FitzJohn <rich.fitzjohn@gmail.com> [aut, cre]"
 Maintainer: Richard G. FitzJohn <rich.fitzjohn@gmail.com>
 Description: Scalable queuing system for R, using 'Redis'.
