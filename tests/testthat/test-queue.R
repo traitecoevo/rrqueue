@@ -17,6 +17,9 @@ test_that("queue", {
 
   expect_that(setdiff(queues(), existing), equals("tmpjobs"))
 
+  expect_that(obj$workers_list(), equals(character(0)))
+  expect_that(obj$workers_list(TRUE), equals(character(0)))
+
   con <- obj$con
   keys <- rrqueue_keys(obj$queue_name)
 
@@ -194,6 +197,7 @@ test_that("queue", {
   w <- obj$workers_list()
   expect_that(length(w), equals(1L))
   expect_that(w, is_identical_to(wid))
+  expect_that(obj$workers_list(envir_only=TRUE), equals(wid))
 
   ww <- parse_worker_name(w)
   expect_that(ww$host, equals(Sys.info()[["nodename"]]))
@@ -251,6 +255,7 @@ test_that("queue", {
   expect_that(obj$workers_list(), equals(character(0)))
 
   expect_that(obj$workers_list_exited(), equals(wid))
+  expect_that(obj$workers_list_exited(TRUE), equals(wid))
   expect_that(obj$workers_log_tail(wid)[["command"]], equals("STOP"))
   expect_that(obj$workers_status(wid), equals(setNames("EXITED", wid)))
 

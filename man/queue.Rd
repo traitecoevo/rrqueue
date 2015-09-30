@@ -49,6 +49,42 @@ access.
 
 
 \describe{
+\item{\code{workers_list}}{
+
+  Generalises the \code{workers_list} method in \code{\link{observer}} by adding optional support for listing workers that can work on the queue's environment.
+
+  \emph{Usage:}
+  \code{workers_list(envir_only = FALSE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{envir_only}}{
+
+      List workers that can carry out tasks in this queue's environment (see Details below for limitations).  By default this is \code{FALSE} and this method is identical in behaviour to the observer \code{workers_list} method.
+    }
+  }
+
+  \emph{Details:}
+
+  Workers that are started \emph{after} the queue will be listed here immediately as they start; by the time they have started they will report if they can work on this environment.
+
+  Workers that are started \emph{before} the queue will only be listed after they finish working on any current task and have cleared any messages in the message queue.  Practically this should be very quick.
+}
+\item{\code{workers_list_exited}}{
+
+  Generalises the \code{workers_list_exited} method in \code{\link{observer}} by adding optional support for listing workers that use to work on the queue's environment.  See \code{workers_list} for further details
+
+  \emph{Usage:}
+  \code{workers_list_exited(envir_only = FALSE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{envir_only}}{
+
+      List workers that could have carried out tasks in this queue's environment before exiting.  By default this is \code{FALSE} and this method is identical in behaviour to the observer \code{workers_list_exited} method.
+    }
+  }
+}
 \item{\code{enqueue}}{
   The main queuing function.
 

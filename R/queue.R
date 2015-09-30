@@ -114,6 +114,25 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
       }
     },
 
+    workers_list=function(envir_only=FALSE) {
+      if (envir_only) {
+        res <- self$envir_workers(self$envir_id)
+        names(res)[res]
+      } else {
+        super$workers_list()
+      }
+    },
+
+    workers_list_exited=function(envir_only=FALSE) {
+      if (envir_only) {
+        worker_ids <- self$workers_list_exited()
+        res <- self$envir_workers(self$envir_id, worker_ids)
+        names(res)[res]
+      } else {
+        super$workers_list_exited()
+      }
+    },
+
     ## TODO: envir should be parent.frame?
     enqueue=function(expr, envir=parent.frame(), key_complete=NULL, group=NULL) {
       self$enqueue_(substitute(expr), envir, key_complete, group=group)
