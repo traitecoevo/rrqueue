@@ -11,6 +11,10 @@ rrqueue_keys <- function(queue_name=NULL, worker_name=NULL) {
   }
 }
 
+rrqueue_protocol <- function() {
+  packageVersion("rrqueue")[1, c(1:2)]
+}
+
 rrqueue_keys_global <- function() {
   list(rrqueue_queues  = "rrqueue:queues")
 }

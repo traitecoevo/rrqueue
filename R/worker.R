@@ -94,32 +94,44 @@ WORKER_LOST <- "LOST"
     },
 
     initialize_environment=function(envir_id) {
-      ## TODO: for now, this assumes that all files are found in the
-      ## appropriate directory and will just go for it.  Future
-      ## versions will be more clever here and load files from Redis
-      ## into a temporary directory and source from there.  At the
-      ## same time deal with the error here; it's no longer a deal
-      ## breaker.
       self$log("ENVIR", envir_id)
+
       dat_str <- self$con$HGET(self$keys$envirs_contents, envir_id)
       dat <- string_to_object(dat_str)
+      protocol <- rrqueue_protocol()
+
+      if (protocol != dat$protocol) {
+        self$log("ENVIR ERROR",
+                 sprintf("protocol mismatch (queue: %s, worker: %s)",
+                         dat$protocol, protocol))
+        return(FALSE)
+      }
 
       ## TODO: Probably refactor this into something easily testable...
-      ## TODO: avoid the failure here
       ## Check the hashes of the files
       hash_expected <- dat$source_files
       if (compare_hash(hash_expected)) {
-        e <- create_environment(dat$packages, dat$sources)
+        e <- tryCatch(create_environment(dat$packages, dat$sources),
+                      error=identity)
       } else {
         tmp <- tempfile("rrqueue_")
         files_unpack(self$files, hash_expected, tmp)
         owd <- setwd(tmp)
         e <- tryCatch(create_environment(dat$packages, dat$sources),
+                      error=identity,
                       finally=setwd(owd))
       }
 
+      ## TODO: a stack trace here would be great, but requires some
+      ## withCallingHandlers magic in the above code.
+      if (inherits(e, "error")) {
+        msg <- sprintf("%s (in %s)", e$message,
+                       paste(deparse(e$call), collapse="\n"))
+        self$log("ENVIR ERROR", msg)
+        return(FALSE)
+      }
+
       self$envir[[envir_id]] <- e
-      ## Here; can do a bit better:
       fmt <- function(x) {
         if (is.null(x)) {
           "(none)"
@@ -568,6 +580,7 @@ worker_banner_text <- function() {
 worker_info <- function(worker) {
   sys <- sessionInfo()
   dat <- list(version=version_string(),
+              protocol=rrqueue_protocol(),
               platform=sys$platform,
               running=sys$running,
               hostname=Sys.info()[["nodename"]],

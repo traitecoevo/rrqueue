@@ -93,7 +93,8 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
       envir <- new.env(parent=baseenv())
       source_files <- create_environment2(packages, sources, envir, global)
 
-      dat <- list(packages=packages,
+      dat <- list(protocol=rrqueue_protocol(),
+                  packages=packages,
                   sources=sources,
                   source_files=source_files)
 
@@ -103,6 +104,7 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
 
       is_new <- self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str)
       if (is_new == 1) {
+        message("Initialising environment ", self$envir_id)
         ## Only store files and send message if the environment is new
         ## to the queue:
         file_info <- object_to_string(files_pack(self$files,
