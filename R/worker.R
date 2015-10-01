@@ -2,6 +2,7 @@ WORKER_IDLE <- "IDLE"
 WORKER_BUSY <- "BUSY"
 WORKER_EXITED <- "EXITED"
 WORKER_LOST <- "LOST"
+WORKER_PAUSED <- "PAUSED"
 
 ## TODO: Part way through restructuring the task timeout / heartbeat
 ## thing, but it might be wise to have the timeout be slower during
@@ -25,6 +26,7 @@ WORKER_LOST <- "LOST"
     files=NULL,
     objects=NULL,
     styles=NULL,
+    paused=FALSE,
 
     initialize=function(queue_name, redis_host, redis_port,
       heartbeat_period, heartbeat_expire, key_worker_alive) {
@@ -78,7 +80,7 @@ WORKER_LOST <- "LOST"
       ## Always listen to the message queue, even if no environments
       ## will be loaded (this could be merged with the loop below for
       ## better robustness).
-      self$key_queue <- self$keys$message
+      self$key_queue <- self$set_key_queue(clear=TRUE)
 
       ## load *existing* environments that the controller knows about.
       envir_ids <- as.character(self$con$HKEYS(self$keys$envirs_contents))
@@ -142,13 +144,23 @@ WORKER_LOST <- "LOST"
 
       ## Read from the message queue *first* as that allows a STOP
       ## command to prevent the worker continuing with job.
-      self$key_queue <- c(self$keys$message,
-                          rrqueue_key_queue(self$queue_name, names(self$envir)))
+      if (!self$paused) {
+        self$key_queue <- self$set_key_queue()
+      }
       self$con$SADD(self$keys$envir, envir_id)
 
       self$log("ENVIR PACKAGES", fmt(dat$packages), push=FALSE)
       self$log("ENVIR SOURCES",  fmt(dat$sources),  push=FALSE)
       TRUE
+    },
+
+    set_key_queue=function(clear=FALSE) {
+      if (clear) {
+        keys <- character(0)
+      } else {
+        keys <- rrqueue_key_queue(self$queue_name, names(self$envir))
+      }
+      self$key_queue <- c(self$keys$message, keys)
     },
 
     get_environment=function(envir_id) {
@@ -303,6 +315,9 @@ WORKER_LOST <- "LOST"
                     PUSH=run_message_PUSH(self, args),
                     PULL=run_message_PULL(self, args),
                     DIR=run_message_DIR(args),
+                    PAUSE=run_message_PAUSE(self, args),
+                    RESUME=run_message_RESUME(self, args),
+                    ## FINISH=run_message_FINISH(args),
                     run_message_unknown(cmd, args))
 
       self$send_response(message_id, cmd, res)
@@ -548,10 +563,24 @@ run_message_DIR <- function(args) {
   res
 }
 
+run_message_PAUSE <- function(worker, args) {
+  worker$paused <- TRUE
+  worker$set_key_queue(clear=TRUE)
+  worker$con$HSET(worker$keys$workers_status, worker$name, WORKER_PAUSED)
+  "OK"
+}
+
+run_message_RESUME <- function(worker, args) {
+  worker$paused <- FALSE
+  worker$set_key_queue()
+  worker$con$HSET(worker$keys$workers_status, worker$name, WORKER_IDLE)
+  "OK"
+}
+
 run_message_unknown <- function(cmd, args) {
-  msg <- sprintf("Recieved unknown message: [%s] [%s]", cmd, args)
+  msg <- sprintf("Recieved unknown message: [%s]", cmd)
   message(msg)
-  structure(list(message=msg, cmd=cmd, args=args),
+  structure(list(message=msg, command=cmd, args=args),
             class=c("condition"))
 }
 

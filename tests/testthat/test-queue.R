@@ -583,3 +583,93 @@ test_that("refresh_environent", {
 
   obj$send_message("STOP")
 })
+
+test_that("pause", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  wid <- worker_spawn(obj$queue_name, tempfile())
+
+  expect_that(obj$workers_status(),
+              equals(setNames(WORKER_IDLE, wid)))
+
+  id <- obj$send_message("PAUSE")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, equals("OK"))
+
+  expect_that(obj$workers_status(),
+              equals(setNames(WORKER_PAUSED, wid)))
+  ## Can still read the current environment:
+  expect_that(obj$worker_envir(wid), equals(obj$envir_id))
+
+  t <- obj$enqueue(sin(1))
+  ## should have been queued by now if the worker was interested:
+  Sys.sleep(.5)
+  expect_that(t$status(), equals(TASK_PENDING))
+
+  id <- obj$send_message("RESUME")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, equals("OK"))
+  Sys.sleep(.5)
+  expect_that(t$status(), equals(TASK_COMPLETE))
+
+  log <- obj$workers_log_tail(wid, 0)
+
+  expect_that(log$command, equals(c("ALIVE", "ENVIR",
+                                    "MESSAGE", "RESPONSE",
+                                    "MESSAGE", "RESPONSE",
+                                    "TASK_START", "TASK_COMPLETE")))
+  expect_that(log$message, equals(c("", obj$envir_id,
+                                    "PAUSE", "PAUSE",
+                                    "RESUME", "RESUME",
+                                    t$id, t$id)))
+
+  ## Pausing twice is fine:
+  id <- obj$send_message("PAUSE")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, equals("OK"))
+
+  id <- obj$send_message("PAUSE")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, equals("OK"))
+
+  ## Will stop when paused:
+  id <- obj$send_message("STOP")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, equals("BYE"))
+
+  expect_that(obj$workers_list_exited(), equals(wid))
+})
+
+test_that("unknown command", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  wid <- worker_spawn(obj$queue_name, tempfile())
+
+  expect_that(obj$workers_status(),
+              equals(setNames(WORKER_IDLE, wid)))
+
+  id <- obj$send_message("XXXX")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, is_a("condition"))
+  expect_that(res$message, matches("Recieved unknown message"))
+  expect_that(res$command, equals("XXXX"))
+  expect_that(res$args, equals(NULL))
+
+  id <- obj$send_message("YYYY", "ZZZZ")
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, is_a("condition"))
+  expect_that(res$message, matches("Recieved unknown message"))
+  expect_that(res$command, equals("YYYY"))
+  expect_that(res$args, equals("ZZZZ"))
+
+  ## Complex arguments are supported:
+  d <- data.frame(a=1, b=2)
+  id <- obj$send_message("YYYY", d)
+  res <- obj$get_response(id, wid, wait=1)
+  expect_that(res, is_a("condition"))
+  expect_that(res$message, matches("Recieved unknown message"))
+  expect_that(res$command, equals("YYYY"))
+  expect_that(res$args, equals(d))
+
+  obj$stop_workers()
+})
