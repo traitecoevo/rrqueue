@@ -5,13 +5,21 @@ devtools::load_all(".")
 
 add_usage <- function(dat, generator) {
   capture_usage <- function(name) {
-    cl <- as.call(c(pairlist(as.symbol(name)),
-                    formals(generator$public_methods[[name]])))
-    paste(capture.output(print(cl)), collapse="\n")
+    tmp <- capture.output(args(generator$public_methods[[name]]))
+    tmp <- strip_trailing_whitespace(paste(tmp[-length(tmp)], collapse="\n"))
+    sub("^function\\s*", name, tmp)
+  }
+
+  valid <- names(generator$public_methods)
+  extra <- setdiff(names(dat), valid)
+  if (length(extra) > 0L) {
+    warning(sprintf("In '%s', extra methods: %s",
+                    generator$classname,
+                    paste(extra, collapse=", ")),
+            immediate.=TRUE, call.=FALSE)
   }
 
   for (name in names(dat)) {
-    ## TODO: check for exactly all parameters and the order.
     dat[[name]]$method_name <- name
     dat[[name]]$usage <- capture_usage(name)
     dat[[name]]$order <- names(formals(generator$public_methods[[name]]))
@@ -37,7 +45,6 @@ format_params <- function(xp) {
 }
 
 format_method <- function(x) {
-  ## if (x$method_name == "files_pack") browser()
   title <- sprintf("\\item{\\code{%s}}{", x$method_name)
   end <- "}"
 
