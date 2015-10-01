@@ -332,6 +332,7 @@ test_that("stop_workers (blocking)", {
                       heartbeat_expire=expire, heartbeat_period=1)
 
   t <- obj$enqueue(block(10))
+  Sys.sleep(.5)
 
   ok <- obj$stop_workers(wid, wait=1)
   expect_that(ok, equals(wid))
