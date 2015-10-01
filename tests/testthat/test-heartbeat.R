@@ -342,3 +342,42 @@ test_that("stop_workers (blocking)", {
   expect_that(res, equals(list(workers=wid, tasks=t$id)))
   expect_that(t$status(), equals(TASK_ORPHAN))
 })
+
+test_that("clean up multiple workers", {
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="myfuns.R")
+  expect_that(obj$workers_list_exited(), equals(character(0)))
+
+  expire <- 3
+  n <- 4
+  logfile <- sprintf("worker_%d.log", seq_len(n))
+  wid <- worker_spawn(obj$queue_name, logfile, n=n,
+                      heartbeat_expire=expire, heartbeat_period=1)
+
+  expect_that(sort(obj$workers_list()), equals(sort(wid)))
+  for (i in seq_len(n)) {
+    obj$enqueue(slowdouble(1000))
+  }
+  Sys.sleep(.5)
+  ids <- obj$workers_task_id()
+
+  ## Kill two savagely:
+  wkill <- obj$workers_list()[2:3]
+  pid <- viapply(obj$workers_info()[wkill], "[[", "pid")
+  ok <- tools::pskill(pid, tools::SIGTERM) == PSKILL_SUCCESS
+  Sys.sleep(expire + 1)
+
+  expect_that(sort(obj$workers_list()), equals(sort(wid)))
+  x <- obj$workers_identify_lost()
+
+  expect_that(sort(x$workers), equals(sort(wkill)))
+  expect_that(sort(x$tasks), equals(sort(unname(ids[wkill]))))
+
+  expect_that(obj$tasks_status(x$tasks),
+              equals(setNames(c(TASK_ORPHAN, TASK_ORPHAN),
+                              x$tasks)))
+  expect_that(obj$workers_status(x$workers),
+              equals(setNames(c(WORKER_LOST, WORKER_LOST), wkill)))
+
+  obj$stop_workers()
+})

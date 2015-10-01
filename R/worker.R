@@ -635,9 +635,11 @@ workers_identify_lost <- function(con, keys, worker_ids=NULL) {
   if (any(lost)) {
     lost_worker_ids <- names(lost)[lost]
     con$SREM(keys$workers_name,   lost_worker_ids)
-    con$HSET(keys$workers_status, lost_worker_ids, WORKER_LOST)
+
+    con$HMSET(keys$workers_status, lost_worker_ids, WORKER_LOST)
     ## Also pick up the *tasks* that are lost here.
-    task_ids <- con$HGET(keys$workers_task, lost_worker_ids)
+    task_ids <- con$HMGET(keys$workers_task, lost_worker_ids)
+    task_ids <- as.character(unlist(task_ids))
 
     if (length(task_ids) > 0L) {
       time <- RedisAPI::redis_time(con)
