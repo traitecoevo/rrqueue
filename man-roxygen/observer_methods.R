@@ -66,6 +66,7 @@
 ##'   \emph{Value}:
 ##'   A \code{data.frame}, one row per task, with columns
 ##'   \describe{
+##'   \item{\code{task_id}}{The task id}
 ##'   \item{\code{submitted}}{Time the task was submitted}
 ##'   \item{\code{started}}{Time the task was started, or \code{NA} if waiting}
 ##'   \item{\code{finished}}{Time the task was completed, or \code{NA}
@@ -75,7 +76,6 @@
 ##'   \item{\code{idle}}{Elapsed time since finished, or \code{NA}
 ##'   if waiting or running}
 ##'   }
-##'   The row names of the data.frame will be the task ids.
 ##' }
 ##' \item{\code{tasks_envir}}{
 ##'   returns the mapping of tasks to environmen

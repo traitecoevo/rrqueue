@@ -180,9 +180,11 @@ tasks_times <- function(con, keys, task_ids=NULL, unit_elapsed="secs") {
   if (is.null(task_ids)) {
     task_ids <- tasks_list(con, keys)
   }
-  ret <- data.frame(submitted = f(keys$tasks_time_sub),
+  ret <- data.frame(task_id   = task_ids,
+                    submitted = f(keys$tasks_time_sub),
                     started   = f(keys$tasks_time_beg),
-                    finished  = f(keys$tasks_time_end))
+                    finished  = f(keys$tasks_time_end),
+                    stringsAsFactors=FALSE)
   now <- redis_time_to_r(redis_time(con))
   started2  <- ret$started
   finished2 <- ret$finished

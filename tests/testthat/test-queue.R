@@ -78,11 +78,13 @@ test_that("queue", {
   t <- obj$tasks_times()
   expect_that(t, is_a("data.frame"))
   now <- RedisAPI::redis_time_to_r(RedisAPI::redis_time(obj$con))
+  expect_that(t$task_id, equals(obj$tasks_list()))
   expect_that(all(t$submitted <= now), is_true())
   expect_that(all(t$waiting >= 0.0), is_true())
   expect_that(all(is.na(t$started)), is_true())
   expect_that(t$started, is_a("POSIXct"))
-  expect_that(names(t), equals(c("submitted", "started", "finished",
+  expect_that(names(t), equals(c("task_id",
+                                 "submitted", "started", "finished",
                                  "waiting", "running", "idle")))
 
   key_queue <- rrqueue_key_queue(obj$queue_name, obj$envir_id)
