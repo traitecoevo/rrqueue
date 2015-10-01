@@ -41,7 +41,7 @@
 ##'   The main queuing function.
 ##'
 ##'   \emph{Usage:}
-##'   \code{enqueue(expr = , envir = parent.frame(), key_complete = NULL,
+##'   \code{enqueue(expr, envir = parent.frame(), key_complete = NULL,
 ##'       group = NULL)}
 ##'
 ##'   \emph{Arguments:}
@@ -79,7 +79,7 @@
 ##'   The workhorse version of \code{enqueue} which uses standard evaluation and is therefore more suitable for programming.  All arguments are the same as \code{enqueue_} except for \code{eval}.
 ##'
 ##'   \emph{Usage:}
-##'   \code{enqueue_(expr = , envir = parent.frame(), key_complete = NULL,
+##'   \code{enqueue_(expr, envir = parent.frame(), key_complete = NULL,
 ##'       group = NULL)}
 ##'
 ##'   \emph{Arguments:}
@@ -106,7 +106,7 @@
 ##'   Re-queue a task that has been orphaned by worker failure.
 ##'
 ##'   \emph{Usage:}
-##'   \code{requeue(task_id = )}
+##'   \code{requeue(task_id)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -128,7 +128,7 @@
 ##'   Send a message to one or more (or all) workers.  Messages can be used to retrieve information from workers, to shut them down and are useful in debugging.  See Details for possible messages and their action.
 ##'
 ##'   \emph{Usage:}
-##'   \code{send_message(command = , args = NULL, worker_ids = NULL)}
+##'   \code{send_message(command, args = NULL, worker_ids = NULL)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -172,7 +172,7 @@
 ##'   Detect which workers have responses ready for a given message id.
 ##'
 ##'   \emph{Usage:}
-##'   \code{has_responses(message_id = , worker_ids = NULL)}
+##'   \code{has_responses(message_id, worker_ids = NULL)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -195,8 +195,7 @@
 ##'   Retrieve responses to a give message id from one or more workers.
 ##'
 ##'   \emph{Usage:}
-##'   \code{get_responses(message_id = , worker_ids = NULL, delete = FALSE,
-##'       wait = 0)}
+##'   \code{get_responses(message_id, worker_ids = NULL, delete = FALSE, wait = 0)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -228,7 +227,7 @@
 ##'   As for \code{get_responses}, but only for a single worker id, and returns the value of the response rather than a list.
 ##'
 ##'   \emph{Usage:}
-##'   \code{get_response(message_id = , worker_id = , delete = FALSE, wait = 0)}
+##'   \code{get_response(message_id, worker_id, delete = FALSE, wait = 0)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -254,7 +253,7 @@
 ##'   Get list of message ids that a given worker has responses for.
 ##'
 ##'   \emph{Usage:}
-##'   \code{response_ids(worker_id = )}
+##'   \code{response_ids(worker_id)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -267,7 +266,7 @@
 ##'   Drop tasks from the database
 ##'
 ##'   \emph{Usage:}
-##'   \code{tasks_drop(task_ids = )}
+##'   \code{tasks_drop(task_ids)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -280,7 +279,7 @@
 ##'   Pack files into the Redis database
 ##'
 ##'   \emph{Usage:}
-##'   \code{files_pack(... = , files = c(...))}
+##'   \code{files_pack(..., files = c(...))}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -297,7 +296,7 @@
 ##'   Unpack files from the Redis database onto the filesystem.
 ##'
 ##'   \emph{Usage:}
-##'   \code{files_unpack(pack = , path = tempfile())}
+##'   \code{files_unpack(pack, path = tempfile())}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -315,7 +314,7 @@
 ##'   Set the group name for one or more tasks.  The tasks can be pending, running or completed, and the tasks can already have a group ir can be groupless.  Once tasks have been grouped they can be easier to work with as a set (see \code{tasks_in_groups} and \code{task_bundle_get} in \code{\link{observer}}.
 ##'
 ##'   \emph{Usage:}
-##'   \code{tasks_set_group(task_ids = , group = , exists_action = "stop")}
+##'   \code{tasks_set_group(task_ids, group, exists_action = "stop")}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{

@@ -97,7 +97,7 @@
 ##'   returns a \code{\link{task}} object associated with a given task identifier.  This can be used to interrogate an individual task. See the help for \code{\link{task}} objects for more about these objects.
 ##'
 ##'   \emph{Usage:}
-##'   \code{task_get(task_id = )}
+##'   \code{task_get(task_id)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -110,7 +110,7 @@
 ##'   Get the result for a single task
 ##'
 ##'   \emph{Usage:}
-##'   \code{task_result(task_id = , follow_redirect = FALSE)}
+##'   \code{task_result(task_id, follow_redirect = FALSE)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -133,7 +133,7 @@
 ##'   Returns a list of tasks belonging to any of the groups listed.
 ##'
 ##'   \emph{Usage:}
-##'   \code{tasks_in_groups(groups = )}
+##'   \code{tasks_in_groups(groups)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -208,7 +208,7 @@
 ##'   Determine which workers are known to be able to process tasks in a particular environment.
 ##'
 ##'   \emph{Usage:}
-##'   \code{envir_workers(envir_id = , worker_ids = NULL)}
+##'   \code{envir_workers(envir_id, worker_ids = NULL)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{
@@ -264,6 +264,22 @@
 ##'   \item{\code{LOST}}{worker has been lost; this is only currently
 ##'   detectable via detecting orphan jobs}
 ##'   }
+##' }
+##' \item{\code{workers_task_id}}{
+##'   Returns the tasks that workers are currently processing (or \code{NA} for workers that are not known to be working on a task)
+##'
+##'   \emph{Usage:}
+##'   \code{workers_task_id(worker_ids = NULL)}
+##'
+##'   \emph{Arguments:}
+##'   \describe{
+##'     \item{\code{worker_ids}}{
+##'       Optional vector of worker identifiers.  If omitted all workers known to rrqueue will be used (currently running workers only).
+##'     }
+##'   }
+##'
+##'   \emph{Value}:
+##'   A named character vector.  Names are the worker ids and value is the task id, or \code{NA} if no task is being worked on.
 ##' }
 ##' \item{\code{workers_times}}{
 ##'   returns a summary of times for a set of workers.  This only returns useful information if the workers are running a heartbeat process, which requires the \code{RedisHeartbeat} package.
@@ -340,7 +356,7 @@
 ##'   Returns an up-to-date list of environments a worker is capable of using (in contrast to the entry in \code{workers_info} that might be out of date.
 ##'
 ##'   \emph{Usage:}
-##'   \code{worker_envir(worker_id = )}
+##'   \code{worker_envir(worker_id)}
 ##'
 ##'   \emph{Arguments:}
 ##'   \describe{

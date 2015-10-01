@@ -176,6 +176,18 @@ workers_status:
     detectable via detecting orphan jobs}
     }
 
+workers_task_id:
+  short: >-
+    Returns the tasks that workers are currently processing (or
+    \code{NA} for workers that are not known to be working on a task)
+
+  params:
+    worker_ids: *worker_ids
+
+  value: >-
+    A named character vector.  Names are the worker ids and value is
+    the task id, or \code{NA} if no task is being worked on.
+
 workers_times:
   short: >-
     returns a summary of times for a set of workers.  This only

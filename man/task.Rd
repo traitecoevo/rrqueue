@@ -79,7 +79,7 @@ their interpretation.
   Like \code{result}, but will wait until the task is complete.  In order to preserve the \code{key_complete} for anything that might be listening for it (and to avoid collision with anything else writing to that key), this function repeatedly polls the database. Over a slow connection you may want to increase the \code{every} parameter.
 
   \emph{Usage:}
-  \code{wait(timeout = , every = 0.05)}
+  \code{wait(timeout, every = 0.05)}
 
   \emph{Arguments:}
   \describe{
