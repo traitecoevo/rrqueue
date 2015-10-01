@@ -303,8 +303,10 @@ expect a vector of task identifiers (and if they have a default
   \describe{
   \item{\code{IDLE}}{worker is idle}
   \item{\code{BUSY}}{worker is running a task}
-  \item{\code{LOST}}{worker has been lost; this is only currently
-  detectable via detecting orphan jobs}
+  \item{\code{LOST}}{worker has been identified as lost by the
+  \code{workers_identify_lost} of \code{\link{queue}}.}
+  \item{\code{EXITED}}{worker has exited}
+  \item{\code{PAUSED}}{worker is paused}
   }
 }
 \item{\code{workers_task_id}}{

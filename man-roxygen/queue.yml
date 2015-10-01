@@ -135,7 +135,8 @@ send_message:
     command: >-
 
       Name of the command to run; one of "PING", "ECHO", "EVAL",
-      "STOP", "INFO", "ENVIR", "PUSH", "PULL", "DIR".  See Details.
+      "STOP", "PAUSE", "RESUME", "INFO", "ENVIR", "PUSH", "PULL",
+      "DIR".  See Details.
 
     args: >-
 
@@ -154,7 +155,7 @@ send_message:
     \code{has_responses}, \code{get_responses} and
     \code{get_response}.
 
-  details: >-
+  details: |
 
     The possible types of message are
 
@@ -165,6 +166,14 @@ send_message:
 
     \item{\code{ECHO}}{Like "PING", but the worker responds by echoing the
     string given.  Requires one argument.}
+
+    \item{\code{PAUSE}}{Tell the worker to stop polling for new jobs,
+    but continue polling for new messages.  Calling \code{PAUSE}
+    multiple times in a row is not an error and leaves the worker in a
+    paused state.  A paused worker will report "PAUSED" for its status.}
+
+    \item{\code{RESUME}}{Tell the worker to resume polling for new
+    jobs, if paused.  All previous environments will be polled.}
 
     \item{\code{INFO}}{Refresh the worker info (see \code{workers_info} in
     \code{\link{observer}}.  Worker will print info to stderr, write
