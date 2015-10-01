@@ -87,7 +87,15 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
 
     initialize_environment=function(packages, sources, global=TRUE) {
       if (!is.null(self$envir)) {
-        stop("objects environments are immutable(-ish)")
+        ## This might be relaxed later on, I think.  But for now this
+        ## is useful.
+        if (!is.null(packages) && !is.null(sources)) {
+          stop("objects environments are immutable(-ish)")
+        }
+        dat_str <- self$con$HGET(self$keys$envirs_contents, self$envir_id)
+        dat <- string_to_object(dat_str)
+        packages <- dat$packages
+        sources <- dat$sources
       }
       ## First, we need to load this environment ourselves.
       envir <- new.env(parent=baseenv())
@@ -99,11 +107,10 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
                   source_files=source_files)
 
       dat_str <- object_to_string(dat)
-      self$envir <- envir
       self$envir_id <- hash_string(dat_str)
+      is_new <- self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str) == 1
 
-      is_new <- self$con$HSET(self$keys$envirs_contents, self$envir_id, dat_str)
-      if (is_new == 1) {
+      if (is_new) {
         message("Initialising environment ", self$envir_id)
         ## Only store files and send message if the environment is new
         ## to the queue:
@@ -112,6 +119,16 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
         self$con$HSET(self$keys$envirs_files, self$envir_id, file_info)
         self$send_message("ENVIR", self$envir_id)
       }
+
+      ## Set this *last* as it's the test condition at the top of the
+      ## function.
+      self$envir <- envir
+
+      invisible(is_new)
+    },
+
+    refresh_environment=function(global=TRUE) {
+      self$initialize_environment(NULL, NULL, global)
     },
 
     workers_list=function(envir_only=FALSE) {

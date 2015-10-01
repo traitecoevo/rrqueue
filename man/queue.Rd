@@ -311,7 +311,7 @@ access.
   }
 }
 \item{\code{tasks_drop}}{
-  Drop tasks from the database
+  Drop tasks from the database.
 
   \emph{Usage:}
   \code{tasks_drop(task_ids)}
@@ -424,6 +424,23 @@ access.
   If you just want to kill the workers outright, use \code{type="kill"} which will send a \code{SIGTERM} via the database.  No other checks are done as the worker will be unceremoniously halted.
 
   If you want to kill a local worker and just want it dead, you can use \code{type="kill_local"} which will use \code{tools::pskill} to terminate the process.  This is really a line of last resort.
+}
+\item{\code{refresh_environment}}{
+
+  Refresh environment contents and inform workers of the update.  If the environment has not changed (i.e., no changes to source files) then nothing happens.  All \emph{new} tasks will be started with the new environment but all \code{old} tasks will continue to use the previous environment.  If you want old tasks to use the new environment you will need to drop and requeue them (there is no support for this automatically).
+
+  \emph{Usage:}
+  \code{refresh_environment(global = TRUE)}
+
+  \emph{Arguments:}
+  \describe{
+    \item{\code{global}}{
+      logical, indicating if environment contents should be sourced locally.  Ideally, use the same value as you did when creating the original queue object.
+    }
+  }
+
+  \emph{Value}:
+  Invisibly returns \code{TRUE} if the environment was updated or \code{FALSE} if not.
 }
 }
 }

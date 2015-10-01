@@ -549,3 +549,37 @@ test_that("config observer", {
   expect_that(obj$con$host, equals(dat$redis_host))
   expect_that(obj$con$port, equals(dat$redis_port))
 })
+
+test_that("refresh_environent", {
+  writeLines("f <- function(x) 1", "update.R")
+  on.exit(file.remove("update.R"))
+
+  test_cleanup()
+  obj <- queue("tmpjobs", sources="update.R")
+  envir_id <- obj$envir_id
+
+  wid <- worker_spawn(obj$queue_name, tempfile())
+
+  r1 <- obj$enqueue(f(1))$wait(60)
+  expect_that(r1, equals(1))
+
+  writeLines("f <- function(x) 2", "update.R")
+
+  r2 <- obj$enqueue(f(2))$wait(60)
+  expect_that(r2, equals(1))
+
+  expect_that(val <- obj$refresh_environment(),
+              shows_message("Initialising environment"))
+  expect_that(val, is_true())
+  expect_that(obj$envir_id, not(equals(envir_id)))
+  expect_that(val <- obj$refresh_environment(), not(shows_message()))
+  expect_that(val, is_false())
+
+  r3 <- obj$enqueue(f(2))$wait(60)
+  expect_that(r3, equals(2))
+
+  expect_that(sort(obj$worker_envir(wid)),
+              equals(sort(c(envir_id, obj$envir_id))))
+
+  obj$send_message("STOP")
+})
