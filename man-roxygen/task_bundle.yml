@@ -11,6 +11,11 @@ status:
     follow_redirect: &follow_redirect >-
       should we follow redirects to get the status of any requeued task?
 
+overview:
+  short: >-
+    High-level overview of the tasks in the bundle; the number of tasks
+    in each status.
+
 results:
   short: >-
     Fetch results for all tasks, immediately (unlike \code{wait}).

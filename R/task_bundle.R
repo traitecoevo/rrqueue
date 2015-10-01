@@ -66,6 +66,9 @@ task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
         invisible(task_ids)
       },
 
+      overview=function() {
+        tasks_overview(self$con, self$keys, self$ids())
+      },
       status=function(follow_redirect=FALSE) {
         self$obj$tasks_status(self$ids(), follow_redirect=follow_redirect)
       },

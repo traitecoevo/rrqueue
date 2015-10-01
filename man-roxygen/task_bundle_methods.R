@@ -20,6 +20,12 @@
 ##'     }
 ##'   }
 ##' }
+##' \item{\code{overview}}{
+##'   High-level overview of the tasks in the bundle; the number of tasks in each status.
+##'
+##'   \emph{Usage:}
+##'   \code{overview()}
+##' }
 ##' \item{\code{results}}{
 ##'   Fetch results for all tasks, immediately (unlike \code{wait}).
 ##'

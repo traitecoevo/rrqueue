@@ -160,9 +160,9 @@ tasks_status <- function(con, keys, task_ids=NULL, follow_redirect=FALSE) {
   ret
 }
 
-tasks_overview <- function(con, keys) {
+tasks_overview <- function(con, keys, task_ids=NULL) {
   lvls <- c(TASK_PENDING, TASK_RUNNING, TASK_COMPLETE, TASK_ERROR)
-  status <- tasks_status(con, keys)
+  status <- tasks_status(con, keys, task_ids)
   lvls <- c(lvls, setdiff(unique(status), lvls))
   table(factor(status, lvls))
 }

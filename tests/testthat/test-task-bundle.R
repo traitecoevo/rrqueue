@@ -18,6 +18,8 @@ test_that("simple", {
   expect_that(x$update_groups(), equals(character(0)))
   expect_that(x$results(), equals(empty_named_list()))
   expect_that(x$wait(), equals(empty_named_list()))
+  expect_that(as.list(x$overview()),
+              equals(list(PENDING=0, RUNNING=0, COMPLETE=0, ERROR=0)))
 
   ## Queue up a job:
   t <- obj$enqueue(sin(1), group=group)
@@ -115,6 +117,9 @@ test_that("simple", {
   expect_that(res0, is_null())
   res <- x$wait1(10)
   expect_that(res, equals(list(id=t3$id, result=t3$result())))
+
+  expect_that(as.list(x$overview()),
+              equals(list(PENDING=0, RUNNING=0, COMPLETE=9, ERROR=0)))
 
   ## Get the bundle again:
   y <- obj$task_bundle_get(group)
