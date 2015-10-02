@@ -82,7 +82,7 @@ task_bundle <- function(obj, tasks, groups=NULL, names=NULL) {
         task_bundle_wait1(self, timeout, time_poll, follow_redirect)
       },
       times=function(unit_elapsed="secs") {
-        obj$task_times(self$ids(), unit_elapsed)
+        tasks_times(self$con, self$keys, self$ids(), unit_elapsed)
       },
 
 

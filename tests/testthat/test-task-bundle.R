@@ -121,6 +121,9 @@ test_that("simple", {
   expect_that(as.list(x$overview()),
               equals(list(PENDING=0, RUNNING=0, COMPLETE=9, ERROR=0)))
 
+  expect_that(x$times(), is.a("data.frame"))
+  expect_that(x$times(), equals(obj$tasks_times(x$ids())))
+
   ## Get the bundle again:
   y <- obj$task_bundle_get(group)
   expect_that(y$ids(),     equals(x$ids()))
