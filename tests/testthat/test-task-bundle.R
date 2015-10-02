@@ -121,8 +121,14 @@ test_that("simple", {
   expect_that(as.list(x$overview()),
               equals(list(PENDING=0, RUNNING=0, COMPLETE=9, ERROR=0)))
 
-  expect_that(x$times(), is.a("data.frame"))
-  expect_that(x$times(), equals(obj$tasks_times(x$ids())))
+  ## Yeah, this is not going to work.
+  xt <- x$times()
+  expect_that(xt, is_a("data.frame"))
+  cols <- c("task_id", "submitted", "started", "finished",
+            "waiting", "running", "idle")
+  expect_that(names(xt), equals(cols))
+  cols <- setdiff(cols, "idle")
+  expect_that(xt[cols], equals(obj$tasks_times(x$ids())[cols]))
 
   ## Get the bundle again:
   y <- obj$task_bundle_get(group)
