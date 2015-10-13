@@ -632,6 +632,7 @@ worker_info <- function(worker) {
 print.worker_info <- function(x, banner=FALSE, styles=worker_styles(), ...) {
   xx <- x
   xx$envir <- sprintf("{%s}", paste(x$envir, collapse=", "))
+  xx$protocol <- as.character(xx$protocol)
   n <- nchar(names(xx))
   pad <- vcapply(max(n) - n, strrep, str=" ")
   ret <- sprintf("    %s:%s %s",
