@@ -18,7 +18,10 @@
 ##'
 ##' @template observer_methods
 ##' @title Creates an observer for an rrqueue
-##' @param queue_name Name of the queue
+##' @param queue_name Name of the queue, if not given then it will
+##'   check with the given Redis server to see if there is just a
+##'   single queue known.  In that case we connect to that queue.
+##'   Otherwise we error and list possible queues.
 ##' @param redis_host Redis hostname
 ##' @param redis_port Redis port number
 ##' @param config Configuration file of key/value pairs in yaml
@@ -26,7 +29,7 @@
 ##'   additional arguments to this function override values in the
 ##'   file which in turn override defaults of this function.
 ##' @export
-observer <- function(queue_name,
+observer <- function(queue_name=NULL,
                      redis_host="127.0.0.1", redis_port=6379,
                      config=NULL) {
   if (!is.null(config)) {
@@ -37,6 +40,18 @@ observer <- function(queue_name,
     }
     observer(dat$queue_name, dat$redis_host, dat$redis_port, NULL)
   } else {
+    if (is.null(queue_name)) {
+      queue_names <- queues(redis_host, redis_port)
+      if (length(queue_names) == 1L) {
+        queue_name <- queue_names
+        message("Connecting to queue: ", queue_name)
+      } else if (length(queue_names) == 0L) {
+        stop("No queues found")
+      } else {
+        stop("More than 1 queue found: specify one of ",
+             paste(queue_names, collapse=", "))
+      }
+    }
     .R6_observer$new(queue_name, redis_host, redis_port)
   }
 }

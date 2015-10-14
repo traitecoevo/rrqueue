@@ -4,11 +4,14 @@
 \alias{observer}
 \title{Creates an observer for an rrqueue}
 \usage{
-observer(queue_name, redis_host = "127.0.0.1", redis_port = 6379,
+observer(queue_name = NULL, redis_host = "127.0.0.1", redis_port = 6379,
   config = NULL)
 }
 \arguments{
-\item{queue_name}{Name of the queue}
+\item{queue_name}{Name of the queue, if not given then it will
+check with the given Redis server to see if there is just a
+single queue known.  In that case we connect to that queue.
+Otherwise we error and list possible queues.}
 
 \item{redis_host}{Redis hostname}
 
