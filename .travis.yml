@@ -12,8 +12,10 @@ before_install:
   - chmod 755 ./travis-tool.sh
   - ./travis-tool.sh bootstrap
 
+# NOTE: libhiredis-dev is for RedisHeartbeat until I get linking working
 install:
   - ./travis-tool.sh install_deps
+  - ./travis-tool.sh install_aptget libhiredis-dev
   - ./travis-tool.sh github_package gaborcsardi/progress
   - ./travis-tool.sh github_package ropensci/RedisAPI
   - ./travis-tool.sh github_package richfitz/RedisHeartbeat
