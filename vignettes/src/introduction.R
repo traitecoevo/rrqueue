@@ -51,7 +51,7 @@
 ## twice the number.  It's useful for testing.
 
 ##+ echo=FALSE, results="hide"
-rrqueue:::queue_clean(RedisAPI::hiredis(), "myqueue",
+rrqueue:::queue_clean(redux::hiredis(), "myqueue",
                       purge=TRUE, stop_workers="kill")
 lang_output <- function(x, lang) {
   cat(c(sprintf("```%s", lang), x, "```"), sep="\n")
@@ -63,7 +63,7 @@ plain_output <- function(x) lang_output(x, "plain")
 
 ## You'll also need a running Redis server.  I have one operating with
 ## the default parameters, so this works:
-RedisAPI::hiredis()$PING()
+redux::hiredis()$PING()
 
 ## Create queue called "myqueue", tell it to load the source file
 ## "myfuns.R".  If it was to load packages, then passing

@@ -34,7 +34,8 @@ observer <- function(queue_name=NULL,
                      config=NULL) {
   if (!is.null(config)) {
     given <- as.list(sys.call())[-1] # -1 is the function name
-    dat <- modifyList(load_config(config), given)
+    cfg <- tmp_fix_redis_config(load_config(config))
+    dat <- modifyList(cfg, given)
     if (is.null(dat$queue_name)) {
       stop("queue_name must be given or specified in config")
     }

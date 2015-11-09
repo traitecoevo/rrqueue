@@ -1,1 +1,2 @@
-redis_host: redis.mesos.marathon
+redis:
+  host: redis.mesos.marathon

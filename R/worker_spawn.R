@@ -9,7 +9,8 @@
 ## TODO: autogenerate this in the same way that we do for the args
 rrqueue_worker_main <- function(args=commandArgs(TRUE)) {
   opts <- rrqueue_worker_args(args)
-  con <- RedisAPI::hiredis(opts$redis_host, as.integer(opts$redis_port))
+  con <- redux::hiredis(host=opts$redis_host,
+                        port=as.integer(opts$redis_port))
   worker(opts$queue_name, con,
          heartbeat_period=opts$heartbeat_period,
          heartbeat_expire=opts$heartbeat_expire,
@@ -40,10 +41,13 @@ Options:
   defaults <- as.list(formals(worker))
   nms <- names(defaults)
   defaults$queue_name <- NULL
+
+  ## This will be an issue for docopt interface to the main queue too.
   if (is.null(given$config)) {
     ret <- modifyList(defaults, given)[nms]
   } else {
-    ret <- modifyList(load_config(given$config), given)[nms]
+    cfg <- tmp_fix_redis_config(load_config(given$config))
+    ret <- modifyList(modifyList(defaults, cfg), given)[nms]
     ## Check that we did get a queue_name
     if (is.null(ret$queue_name)) {
       stop("queue name must be given")
@@ -103,7 +107,7 @@ worker_spawn <- function(queue_name, logfile,
   }
   assert_integer_like(time_poll)
 
-  con <- RedisAPI::hiredis(redis_host, redis_port)
+  con <- redux::hiredis(host=redis_host, port=redis_port)
   key_worker_alive <- rrqueue_key_worker_alive(queue_name)
 
   opts <- character(0)

@@ -98,14 +98,15 @@ test_that("queue", {
   expect_that(tmp,
               equals(sort(c(keys_startup, keys_tasks))))
 
-  expect_that(con$TYPE(key_queue),           equals("list"))
-  expect_that(con$TYPE(keys$tasks_expr),     equals("hash"))
-  expect_that(con$TYPE(keys$tasks_counter),  equals("string"))
-  expect_that(con$TYPE(keys$tasks_status),   equals("hash"))
-  expect_that(con$TYPE(keys$tasks_complete), equals("hash"))
-  expect_that(con$TYPE(keys$tasks_group),    equals("hash"))
-  expect_that(con$TYPE(keys$tasks_envir),    equals("hash"))
-  expect_that(con$TYPE(keys$tasks_time_sub), equals("hash"))
+  redis_status <- function(x) structure(x, class="redis_status")
+  expect_that(con$TYPE(key_queue),           equals(redis_status("list")))
+  expect_that(con$TYPE(keys$tasks_expr),     equals(redis_status("hash")))
+  expect_that(con$TYPE(keys$tasks_counter),  equals(redis_status("string")))
+  expect_that(con$TYPE(keys$tasks_status),   equals(redis_status("hash")))
+  expect_that(con$TYPE(keys$tasks_complete), equals(redis_status("hash")))
+  expect_that(con$TYPE(keys$tasks_group),    equals(redis_status("hash")))
+  expect_that(con$TYPE(keys$tasks_envir),    equals(redis_status("hash")))
+  expect_that(con$TYPE(keys$tasks_time_sub), equals(redis_status("hash")))
 
   ids <- con$LRANGE(key_queue, 0, -1)
   expect_that(ids, equals(list("1", "2")))
@@ -193,8 +194,8 @@ test_that("queue", {
 
   expect_that(obj$workers_len(), equals(1))
 
-  expect_that(con$TYPE(keys$workers_status), equals("hash"))
-  expect_that(con$TYPE(keys$workers_name),   equals("set"))
+  expect_that(con$TYPE(keys$workers_status), equals(redis_status("hash")))
+  expect_that(con$TYPE(keys$workers_name),   equals(redis_status("set")))
 
   w <- obj$workers_list()
   expect_that(length(w), equals(1L))
@@ -534,8 +535,9 @@ test_that("config", {
   obj <- queue(sources="myfuns.R", config="config.yml")
   dat <- load_config("config.yml")
   expect_that(obj$queue_name, equals(dat$queue_name))
-  expect_that(obj$con$host, equals(dat$redis_host))
-  expect_that(obj$con$port, equals(dat$redis_port))
+  cfg <- obj$con$config()
+  expect_that(cfg$host, equals(dat$redis$host))
+  expect_that(cfg$port, equals(dat$redis$port))
 
   env <- obj$envirs_contents()[[obj$envir_id]]
   expect_that(env$packages, equals(dat$packages))
@@ -546,8 +548,9 @@ test_that("config observer", {
   obj <- observer(config="config.yml")
   dat <- load_config("config.yml")
   expect_that(obj$queue_name, equals(dat$queue_name))
-  expect_that(obj$con$host, equals(dat$redis_host))
-  expect_that(obj$con$port, equals(dat$redis_port))
+  cfg <- obj$con$config()
+  expect_that(cfg$host, equals(dat$redis$host))
+  expect_that(cfg$port, equals(dat$redis$port))
 })
 
 test_that("refresh_environent", {

@@ -60,8 +60,8 @@ WORKER_PAUSED <- "PAUSED"
     ## gracefully; it's only called by initialize()
     initialize_worker=function(key_worker_alive) {
       info <- object_to_string(self$print_info())
-
-      self$heartbeat <- heartbeat(self$con, self$keys$heartbeat,
+      self$heartbeat <- heartbeat(self$con,
+                                  self$keys$heartbeat,
                                   self$heartbeat_period,
                                   self$heartbeat_expire)
 
@@ -373,7 +373,11 @@ WORKER_PAUSED <- "PAUSED"
     },
 
     shutdown=function(status="OK") {
-      self$heartbeat$stop()
+      ## Conditional here because the heartbeat can fail to start, in
+      ## which case we can't run the heartbeat shutdown.
+      if (!is.null(self$heartbeat$stop)) {
+        self$heartbeat$stop()
+      }
       self$con$DEL(self$keys$heartbeat)
       self$con$SREM(self$keys$workers_name,   self$name)
       self$con$HSET(self$keys$workers_status, self$name, WORKER_EXITED)
@@ -608,14 +612,15 @@ worker_banner_text <- function() {
 
 worker_info <- function(worker) {
   sys <- sessionInfo()
+  redis_config <- worker$con$config()
   dat <- list(version=version_string(),
               protocol=rrqueue_protocol(),
               platform=sys$platform,
               running=sys$running,
               hostname=Sys.info()[["nodename"]],
               pid=Sys.getpid(),
-              redis_host=worker$con$host,
-              redis_port=worker$con$port,
+              redis_host=redis_config$host,
+              redis_port=redis_config$port,
               worker=worker$name,
               queue_name=worker$queue_name,
               heartbeat_period=worker$heartbeat_period,
@@ -666,15 +671,18 @@ workers_identify_lost <- function(con, keys, worker_ids=NULL) {
     lost_worker_ids <- names(lost)[lost]
     con$SREM(keys$workers_name,   lost_worker_ids)
 
-    con$HMSET(keys$workers_status, lost_worker_ids, WORKER_LOST)
+    ## TODO: Not sure; perhaps this should be allowed?
+    con$HMSET(keys$workers_status, lost_worker_ids,
+              rep_len(WORKER_LOST, length(lost_worker_ids)))
     ## Also pick up the *tasks* that are lost here.
     task_ids <- con$HMGET(keys$workers_task, lost_worker_ids)
     task_ids <- as.character(unlist(task_ids))
 
     if (length(task_ids) > 0L) {
       time <- RedisAPI::redis_time(con)
-      con$HMSET(keys$tasks_time_end, task_ids, time)
-      con$HMSET(keys$tasks_status,   task_ids, TASK_ORPHAN)
+      n <- length(task_ids)
+      con$HMSET(keys$tasks_time_end, task_ids, rep_len(time, n))
+      con$HMSET(keys$tasks_status,   task_ids, rep_len(TASK_ORPHAN, n))
       con$HDEL(keys$workers_task,    lost_worker_ids)
     }
 
@@ -742,7 +750,7 @@ envir_workers <- function(con, keys, envir_id, worker_ids=NULL) {
 worker_stop <- function(queue, worker_id, type="message",
                         host="127.0.0.1", port=6379) {
   type <- match_value(type, c("message", "kill"))
-  con <- RedisAPI::hiredis(host, port)
+  con <- redux::hiredis(host=host, port=port)
   keys <- rrqueue_keys(queue)
   if (type == "message") {
     queue_send_message(con, keys, "STOP", worker_ids=worker_id)
@@ -753,11 +761,12 @@ worker_stop <- function(queue, worker_id, type="message",
 
 worker_stop_message <- function(worker) {
   args <- list(worker$keys$queue_name, worker$name)
-  if (!(worker$con$host %in% c("127.0.0.1", "localhost"))) {
-    args <- c(args, list(host=worker$con$host))
+  redis_config <- worker$con$config()
+  if (!(redis_config$host %in% c("127.0.0.1", "localhost"))) {
+    args <- c(args, list(host=redis_config$host))
   }
-  if (worker$con$port != 6379) {
-    args <- c(args, list(port=worker$con$port))
+  if (redis_config$port != 6379) {
+    args <- c(args, list(port=redis_config$port))
   }
   fun <- call("::", quote(rrqueue), quote(worker_stop))
   str <- deparse(as.call(c(list(fun), args)),

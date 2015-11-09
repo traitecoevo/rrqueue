@@ -247,10 +247,12 @@ tasks_set_group <- function(con, keys, task_ids, group,
       task_ids <- task_ids[ok]
     }
   }
-  if (is.null(group)) {
-    con$HDEL(keys$tasks_group, task_ids)
-  } else {
-    con$HMSET(keys$tasks_group, task_ids, group)
+  if (length(task_ids) > 0L) {
+    if (is.null(group)) {
+      con$HDEL(keys$tasks_group, task_ids)
+    } else {
+      con$HMSET(keys$tasks_group, task_ids, group)
+    }
   }
   invisible(NULL)
 }

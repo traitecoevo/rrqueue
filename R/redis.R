@@ -3,9 +3,9 @@ redis_connection <- function(con, port=6379) {
   if (inherits(con, "redis_api")) {
     con
   } else if (is.null(con)) {
-    RedisAPI::hiredis("127.0.0.1", port)
+    redux::hiredis(host="127.0.0.1", port=port)
   } else if (is.character(con)) {
-    RedisAPI::hiredis(con, port)
+    redux::hiredis(host=con, port=port)
   } else {
     stop("Cannot create a Redis connection from object")
   }

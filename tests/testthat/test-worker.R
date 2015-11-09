@@ -17,8 +17,8 @@ test_that("config", {
   opts <- rrqueue_worker_args(c("--config", "config.yml"))
   dat <- yaml_read("config.yml")
   expect_that(opts$queue_name, equals(dat$queue_name))
-  expect_that(opts$redis_host, equals(dat$redis_host))
-  expect_that(opts$redis_port, equals(dat$redis_port))
+  expect_that(opts$redis_host, equals(dat$redis$host))
+  expect_that(opts$redis_port, equals(dat$redis$port))
   expect_that(opts$heartbeat_period, equals(dat$heartbeat_period))
   expect_that(opts$heartbeat_expire, equals(dat$heartbeat_expire))
   expect_that(opts$key_worker_alive, is_null())
@@ -39,7 +39,7 @@ test_that("config", {
   opts <- rrqueue_worker_args(c("--config", "config2.yml",
                                 "--key-worker-alive", "mykey"))
   expect_that(opts$key_worker_alive, equals("mykey"))
-  expect_that(opts$redis_host, equals(yaml_read("config2.yml")$redis_host))
+  expect_that(opts$redis_host, equals(yaml_read("config2.yml")$redis$host))
   expect_that(opts$redis_port, equals(6379))
 
   expect_that(rrqueue_worker_args(c("--config", "config3.yml")),

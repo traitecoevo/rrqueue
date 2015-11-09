@@ -33,7 +33,8 @@ queue <- function(queue_name, packages=NULL, sources=NULL,
                   config=NULL) {
   if (!is.null(config)) {
     given <- as.list(sys.call())[-1] # -1 is the function name
-    dat <- modifyList(load_config(config), given)
+    cfg <- tmp_fix_redis_config(load_config(config))
+    dat <- modifyList(cfg, given)
     if (is.null(dat$queue_name)) {
       stop("queue_name must be given or specified in config")
     }
@@ -334,17 +335,8 @@ queue_clean <- function(con, queue_name, purge=FALSE, stop_workers=FALSE) {
     ##   con$DEL(keys$workers_name)
     ##   con$DEL(keys$workers_status)
     ##   con$DEL(keys$workers_task)
-
-    con$DEL(keys$tasks)
-    con$DEL(keys$tasks_counter)
-    con$DEL(keys$tasks_expr)
-    con$DEL(keys$tasks_status)
-    con$DEL(keys$tasks_result)
-    con$DEL(keys$tasks_envir)
-    con$DEL(keys$tasks_time_sub)
-    con$DEL(keys$tasks_time_beg)
-    con$DEL(keys$tasks_time_end)
-
+    to_del <- unlist(keys[grep("^tasks_", names(keys), value=TRUE)])
+    con$DEL(to_del)
     con$DEL(keys$envirs_contents)
   }
 }
@@ -354,7 +346,7 @@ queue_send_signal <- function(con, keys, signal, worker_ids) {
     worker_ids <- workers_list(con, keys)
   }
   for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
-    RedisHeartbeat::heartbeat_send_signal(key, signal, con)
+    RedisHeartbeat::heartbeat_send_signal(con, key, signal)
   }
 }
 

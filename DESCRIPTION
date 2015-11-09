@@ -8,8 +8,19 @@ Depends: R (>= 3.1.0)
 License: BSD_2_clause + file LICENSE
 LazyData: true
 SystemRequirements: Redis
-Imports: crayon, RedisAPI (>= 0.1.7), RedisHeartbeat (>= 0.1.1), R6, digest, docopt, storr, progress, ids
+Imports:
+  R6,
+  RedisAPI (>= 0.3.0),
+  RedisHeartbeat (>= 0.3.0),
+  crayon,
+  digest,
+  docopt,
+  ids,
+  progress,
+  redux (>= 0.3.0),
+  storr (>= 0.2.0)
 Suggests: testthat, tools,
-    knitr,
-    rmarkdown, yaml
+  knitr,
+  rmarkdown,
+  yaml
 VignetteBuilder: knitr

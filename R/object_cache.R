@@ -1,12 +1,12 @@
 ##' @importFrom storr storr
 object_cache <- function(prefix, con) {
-  con <- redis_connection(con)
-  dr <- storr::driver_redis(prefix, con$host, con$port)
+  dr <- storr::driver_redis(prefix, con$config())
   storr::storr(dr)
 }
 
+## TODO: weirdly this is the same thing as object_cache, but a
+## different prefix.
 file_cache <- function(prefix, con) {
-  con <- redis_connection(con)
-  dr <- storr::driver_redis(prefix, con$host, con$port)
+  dr <- storr::driver_redis(prefix, con$config())
   storr::storr(dr)
 }

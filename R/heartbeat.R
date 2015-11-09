@@ -4,7 +4,7 @@
 heartbeat <- function(con, key, period, expire) {
   RedisHeartbeat::heartbeat(key, period,
                             expire=expire, value=expire,
-                            host=con$host, port=con$port)
+                            con$config())
 }
 
 heartbeat_time <- function(obj) {
