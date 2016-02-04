@@ -18,8 +18,8 @@ install:
   - ./travis-tool.sh install_aptget libhiredis-dev
   - ./travis-tool.sh github_package gaborcsardi/progress
   - ./travis-tool.sh github_package ropensci/RedisAPI
-  - ./travis-tool.sh github_package richfitz/RedisHeartbeat
   - ./travis-tool.sh github_package richfitz/redux
+  - ./travis-tool.sh github_package richfitz/RedisHeartbeat
   - ./travis-tool.sh github_package richfitz/storr
   - ./travis-tool.sh github_package richfitz/ids
 

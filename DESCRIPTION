@@ -18,7 +18,7 @@ Imports:
   ids,
   progress,
   redux (>= 0.3.0),
-  storr (>= 0.2.0)
+  storr (>= 1.0.0)
 Suggests: testthat, tools,
   knitr,
   rmarkdown,
