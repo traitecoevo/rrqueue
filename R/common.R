@@ -80,7 +80,7 @@ rrqueue_key_task_complete <- function(queue, task_id) {
   sprintf("%s:tasks:%s:complete", queue, task_id)
 }
 rrqueue_key_worker_alive <- function(queue) {
-  sprintf("%s:workers:alive:%s", queue, ids::aa(1)())
+  sprintf("%s:workers:alive:%s", queue, ids::adjective_animal())
 }
 
 ## TODO: come up with a way of scheduling object deletion.  Things

@@ -15,7 +15,7 @@ Imports:
   crayon,
   digest,
   docopt,
-  ids,
+  ids (>= 0.0.2),
   progress,
   redux (>= 0.3.0),
   storr (>= 1.0.0)
