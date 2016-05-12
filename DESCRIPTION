@@ -4,23 +4,27 @@ Version: 0.2.1
 Author: "Rich FitzJohn <rich.fitzjohn@gmail.com> [aut, cre]"
 Maintainer: Richard G. FitzJohn <rich.fitzjohn@gmail.com>
 Description: Scalable queuing system for R, using 'Redis'.
-Depends: R (>= 3.1.0)
+Depends:
+    R (>= 3.1.0)
 License: BSD_2_clause + file LICENSE
 LazyData: true
 SystemRequirements: Redis
 Imports:
-  R6,
-  RedisAPI (>= 0.3.0),
-  RedisHeartbeat (>= 0.3.0),
-  crayon,
-  digest,
-  docopt,
-  ids (>= 0.0.2),
-  progress,
-  redux (>= 0.3.0),
-  storr (>= 1.0.0)
-Suggests: testthat, tools,
-  knitr,
-  rmarkdown,
-  yaml
+    R6,
+    RedisAPI (>= 0.3.0),
+    RedisHeartbeat (>= 0.3.0),
+    crayon,
+    digest,
+    docopt,
+    ids (>= 0.0.2),
+    progress,
+    redux (>= 0.3.0),
+    storr (>= 1.0.0)
+Suggests:
+    testthat,
+    tools,
+    knitr,
+    rmarkdown,
+    yaml
 VignetteBuilder: knitr
+RoxygenNote: 5.0.1
