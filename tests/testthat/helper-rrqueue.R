@@ -1,5 +1,5 @@
-object_to_string <- RedisAPI::object_to_string
-string_to_object <- RedisAPI::string_to_object
+object_to_string <- redux::object_to_string
+string_to_object <- redux::string_to_object
 
 ## TODO: run in db 15 or something?
 empty_named_list <- function() {

@@ -198,7 +198,7 @@ end
 redis.call("RPUSH", KEYS[1], task_id)'
 
   job_incr <- 'return {redis.call("INCR", KEYS[1]), redis.call("TIME")}'
-  RedisAPI::redis_scripts(con,
+  redux::redis_scripts(con,
                           scripts=list(set_hashes=set_hashes,
                                        job_incr=job_incr,
                                        job_submit=job_submit))

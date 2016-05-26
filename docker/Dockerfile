@@ -33,7 +33,7 @@ RUN install2.r --error  \
     stringr
 
 RUN installGithub.r  \
-    ropensci/RedisAPI \
+    richfitz/ids \
     richfitz/RedisHeartbeat \
     richfitz/storr \
     richfitz/remake \

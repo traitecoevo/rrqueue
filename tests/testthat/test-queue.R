@@ -77,7 +77,7 @@ test_that("queue", {
 
   t <- obj$tasks_times()
   expect_that(t, is_a("data.frame"))
-  now <- RedisAPI::redis_time_to_r(RedisAPI::redis_time(obj$con))
+  now <- redux::redis_time_to_r(redux::redis_time(obj$con))
   expect_that(t$task_id, equals(obj$tasks_list()))
   expect_that(all(t$submitted <= now), is_true())
   expect_that(all(t$waiting >= 0.0), is_true())
@@ -93,7 +93,7 @@ test_that("queue", {
                   keys$tasks_complete, keys$tasks_group,
                   keys$tasks_time_sub, key_queue)
 
-  tmp <- sort(as.character(RedisAPI::scan_find(con, "tmpjobs*")))
+  tmp <- sort(as.character(redux::scan_find(con, "tmpjobs*")))
   tmp <- tmp[!grepl(paste0(keys$files, ":.*"), tmp)]
   expect_that(tmp,
               equals(sort(c(keys_startup, keys_tasks))))

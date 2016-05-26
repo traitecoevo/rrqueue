@@ -1,4 +1,3 @@
-##' @importFrom storr storr
 object_cache <- function(prefix, con) {
   dr <- storr::driver_redis_api(prefix, con)
   storr::storr(dr)

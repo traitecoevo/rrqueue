@@ -11,14 +11,13 @@ LazyData: true
 SystemRequirements: Redis
 Imports:
     R6,
-    RedisAPI (>= 0.3.0),
-    RedisHeartbeat (>= 0.3.0),
+    RedisHeartbeat (>= 0.4.0),
     crayon,
     digest,
     docopt,
     ids (>= 0.0.2),
     progress,
-    redux (>= 0.3.0),
+    redux (>= 0.5.0),
     storr (>= 1.0.0)
 Suggests:
     testthat,

@@ -204,7 +204,7 @@ tasks_groups_list <- function(con, keys) {
 ## Then, the tasks associated with a given group:
 tasks_in_groups <- function(con, keys, groups) {
   ## TODO: This should be done with HSCAN do do it "properly", but
-  ## that should probably move into the RedisAPI before I try.
+  ## that should probably move into the redux before I try.
   groups_hash <- from_redis_hash(con, keys$tasks_group)
   names(groups_hash)[groups_hash %in% groups]
 }

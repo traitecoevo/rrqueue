@@ -324,7 +324,7 @@ queue_clean <- function(con, queue_name, purge=FALSE, stop_workers=FALSE) {
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
   if (purge) {
-    scan_del(con, paste0(queue_name, "*"))
+    redux::scan_del(con, paste0(queue_name, "*"))
   } else {
     ## TODO: This one here seems daft.  If there are workers they
     ## might still be around, and they might be working on tasks.

@@ -1,4 +1,3 @@
-##' @importFrom digest digest
 hash_string <- function(x) {
   digest::digest(x, serialize=FALSE)
 }
@@ -162,7 +161,6 @@ spin_symbols <- function() {
   }
 }
 
-##' @importFrom progress progress_bar
 progress <- function(total, ..., show=TRUE, prefix="") {
   if (show) {
     fmt <- paste0(prefix, "[:bar] :percent :spin")

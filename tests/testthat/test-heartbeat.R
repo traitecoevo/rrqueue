@@ -99,9 +99,9 @@ test_that("heartbeat with signals", {
   expect_that(obj$workers_delete_exited(), equals(character(0)))
 
   ## No worker keys, plenty of task keys:
-  expect_that(RedisAPI::scan_find(obj$con, "tmpjobs:tasks:*"),
+  expect_that(redux::scan_find(obj$con, "tmpjobs:tasks:*"),
               not(equals(character(0))))
-  expect_that(RedisAPI::scan_find(obj$con, "tmpjobs:workers:*"),
+  expect_that(redux::scan_find(obj$con, "tmpjobs:workers:*"),
               equals(character(0)))
 })
 
