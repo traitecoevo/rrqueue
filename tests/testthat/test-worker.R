@@ -1,87 +1,87 @@
 context("worker")
 
 test_that("config", {
-  expect_that(rrqueue_worker_args(character(0)),
-              throws_error("usage: rrqueue_worker"))
+  expect_error(rrqueue_worker_args(character(0)),
+               "usage: rrqueue_worker")
 
   queue_name <- "tmpjobs"
 
   opts <- rrqueue_worker_args(queue_name)
-  expect_that(opts$queue_name, equals(queue_name))
-  expect_that(opts$redis_host, equals("127.0.0.1"))
-  expect_that(opts$redis_port, equals(6379))
-  expect_that(opts$heartbeat_period, equals(30))
-  expect_that(opts$heartbeat_expire, equals(90))
-  expect_that(opts$key_worker_alive, is_null())
+  expect_equal(opts$queue_name, queue_name)
+  expect_equal(opts$redis_host, "127.0.0.1")
+  expect_equal(opts$redis_port, 6379)
+  expect_equal(opts$heartbeat_period, 30)
+  expect_equal(opts$heartbeat_expire, 90)
+  expect_null(opts$key_worker_alive)
 
   opts <- rrqueue_worker_args(c("--config", "config.yml"))
   dat <- yaml_read("config.yml")
-  expect_that(opts$queue_name, equals(dat$queue_name))
-  expect_that(opts$redis_host, equals(dat$redis$host))
-  expect_that(opts$redis_port, equals(dat$redis$port))
-  expect_that(opts$heartbeat_period, equals(dat$heartbeat_period))
-  expect_that(opts$heartbeat_expire, equals(dat$heartbeat_expire))
-  expect_that(opts$key_worker_alive, is_null())
+  expect_equal(opts$queue_name, dat$queue_name)
+  expect_equal(opts$redis_host, dat$redis$host)
+  expect_equal(opts$redis_port, dat$redis$port)
+  expect_equal(opts$heartbeat_period, dat$heartbeat_period)
+  expect_equal(opts$heartbeat_expire, dat$heartbeat_expire)
+  expect_null(opts$key_worker_alive)
 
   ## override some opts:
   opts <- rrqueue_worker_args(c("--config", "config.yml",
                                 "--key-worker-alive", "mykey"))
-  expect_that(opts$key_worker_alive, equals("mykey"))
+  expect_equal(opts$key_worker_alive, "mykey")
 
   opts <- rrqueue_worker_args(c("--config", "config.yml",
                                 "--redis-port", "9999"))
-  expect_that(opts$redis_port, equals("9999"))
+  expect_equal(opts$redis_port, "9999")
 
   opts <- rrqueue_worker_args(c("--config", "config.yml", queue_name))
-  expect_that(opts$queue_name, equals(queue_name))
+  expect_equal(opts$queue_name, queue_name)
 
   ## And again with a configuration that loads very little:
   opts <- rrqueue_worker_args(c("--config", "config2.yml",
                                 "--key-worker-alive", "mykey"))
-  expect_that(opts$key_worker_alive, equals("mykey"))
-  expect_that(opts$redis_host, equals(yaml_read("config2.yml")$redis$host))
-  expect_that(opts$redis_port, equals(6379))
+  expect_equal(opts$key_worker_alive, "mykey")
+  expect_equal(opts$redis_host, yaml_read("config2.yml")$redis$host)
+  expect_equal(opts$redis_port, 6379)
 
-  expect_that(rrqueue_worker_args(c("--config", "config3.yml")),
-              throws_error("queue name must be given"))
+  expect_error(rrqueue_worker_args(c("--config", "config3.yml")),
+               "queue name must be given")
   opts <- rrqueue_worker_args(c("--config", "config3.yml", queue_name))
-  expect_that(opts$queue_name, equals(queue_name))
+  expect_equal(opts$queue_name, queue_name)
 })
 
 test_that("workers_times - nonexistant worker", {
   obs <- observer("tmpjobs")
   name <- "no such worker"
   t <- obs$workers_times(name)
-  expect_that(t, is_a("data.frame"))
-  expect_that(nrow(t), equals(1))
-  expect_that(t, equals(data.frame(worker_id=name,
-                                   expire_max=NA_real_,
-                                   expire=-2.0,
-                                   last_seen=NA_real_,
-                                   last_action=NA_real_,
-                                   stringsAsFactors=FALSE)))
+  expect_is(t, "data.frame")
+  expect_equal(nrow(t), 1)
+  expect_equal(t, data.frame(worker_id=name,
+                             expire_max=NA_real_,
+                             expire=-2.0,
+                             last_seen=NA_real_,
+                             last_action=NA_real_,
+                             stringsAsFactors=FALSE))
 })
 
 test_that("workers_times - no workers", {
   obs <- observer("tmpjobs")
   t <- obs$workers_times()
-  expect_that(t, is_a("data.frame"))
-  expect_that(nrow(t), equals(0))
-  expect_that(t, equals(data.frame(worker_id=character(0),
-                                   expire_max=numeric(0),
-                                   expire=numeric(0),
-                                   last_seen=numeric(0),
-                                   last_action=numeric(0),
-                                   stringsAsFactors=FALSE)))
+  expect_is(t, "data.frame")
+  expect_equal(nrow(t), 0)
+  expect_equal(t, data.frame(worker_id=character(0),
+                             expire_max=numeric(0),
+                             expire=numeric(0),
+                             last_seen=numeric(0),
+                             last_action=numeric(0),
+                             stringsAsFactors=FALSE))
 
-  expect_that(obs$workers_list(), equals(character(0)))
-  expect_that(obs$workers_status(), equals(empty_named_character()))
+  expect_equal(obs$workers_list(), character(0))
+  expect_equal(obs$workers_status(), empty_named_character())
 
   log <- obs$workers_log_tail()
-  expect_that(log, equals(data.frame(worker_id=character(0),
-                                     time=character(0),
-                                     command=character(0),
-                                     message=character(0),
-                                     stringsAsFactors=FALSE)))
+  expect_equal(log, data.frame(worker_id=character(0),
+                               time=character(0),
+                               command=character(0),
+                               message=character(0),
+                               stringsAsFactors=FALSE))
   test_cleanup()
 })
