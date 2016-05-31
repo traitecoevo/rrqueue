@@ -16,9 +16,8 @@ install:
   - ./travis-tool.sh install_deps
   - ./travis-tool.sh install_aptget libhiredis-dev
   - ./travis-tool.sh install_aptget libcurl4-openssl-dev
-  - ./travis-tool.sh github_package gaborcsardi/progress
-  - ./travis-tool.sh github_package richfitz/redux
-  - ./travis-tool.sh github_package richfitz/RedisHeartbeat
+  - ./travis-tool.sh github_package richfitz/redux@merge_with_api
+  - ./travis-tool.sh github_package richfitz/RedisHeartbeat@remove_redis_api
   - ./travis-tool.sh github_package richfitz/ids
 
 script: ./travis-tool.sh run_tests
