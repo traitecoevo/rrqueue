@@ -346,7 +346,7 @@ queue_send_signal <- function(con, keys, signal, worker_ids) {
     worker_ids <- workers_list(con, keys)
   }
   for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
-    RedisHeartbeat::heartbeat_send_signal(con, key, signal)
+    heartbeatr::heartbeat_send_signal(con, key, signal)
   }
 }
 
