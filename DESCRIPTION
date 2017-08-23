@@ -12,7 +12,7 @@ SystemRequirements: Redis
 Imports:
     R6,
     RedisAPI (>= 0.3.0),
-    RedisHeartbeat (>= 0.3.0),
+    heartbeatr (>= 0.3.0),
     crayon,
     digest,
     docopt,
