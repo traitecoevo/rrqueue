@@ -36,7 +36,7 @@ test_that("Basic use", {
   ## w <- rrqueue::worker("tmpjobs", heartbeat_period=10)
 
   ## TODO:
-  Sys.sleep(0.5)
+  Sys.sleep(2)
   expect_equal(obj$tasks_status(task_ids),
                setNames(rep(TASK_COMPLETE, length(x)), task_ids))
 
