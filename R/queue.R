@@ -345,9 +345,10 @@ queue_send_signal <- function(con, keys, signal, worker_ids) {
   if (is.null(worker_ids)) {
     worker_ids <- workers_list(con, keys)
   }
-  for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
-    RedisHeartbeat::heartbeat_send_signal(con, key, signal)
-  }
+  stop("This functionality is disabled")
+  ## for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
+  ##   RedisHeartbeat::heartbeat_send_signal(con, key, signal)
+  ## }
 }
 
 queue_send_message <- function(con, keys, command, args=NULL,

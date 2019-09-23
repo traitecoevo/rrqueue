@@ -5,7 +5,6 @@ r_packages:
   - covr
 after_success:
   - Rscript -e 'covr::codecov()'
-dist: xenial
 
 addons:
   apt:
@@ -15,7 +14,3 @@ addons:
 
 services:
   - redis-server
-
-r_github_packages:
-  # This is the old version of RedisHeartbeat, before it changed to heartbeatr
-  - richfitz/heartbeatr@RedisHeartbeat
