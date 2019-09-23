@@ -334,7 +334,7 @@ test_that("cleanup", {
   Sys.sleep(.5)
   expect_equal(obj$workers_status(), setNames("BUSY", wid))
 
-  queue_clean(obj$con, "tmpjobs", stop_workers="kill")
+  queue_clean(obj$con, "tmpjobs", stop_workers="kill_local")
   Sys.sleep(.5)
 
   expect_false(pid_exists(pid))
