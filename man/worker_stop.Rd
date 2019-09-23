@@ -22,4 +22,3 @@ worker.}
 \description{
 Try to stop a worker.  You won't need to call this very often, hopefully.
 }
-

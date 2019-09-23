@@ -1,4 +1,4 @@
-##' @import RedisAPI
+##' @import redux
 redis_connection <- function(con, port=6379) {
   if (inherits(con, "redis_api")) {
     con

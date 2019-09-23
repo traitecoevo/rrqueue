@@ -2,9 +2,9 @@
 ## RedisHeartbeat and falling back on something informative if we have
 ## no support.
 heartbeat <- function(con, key, period, expire) {
-  RedisHeartbeat::heartbeat(key, period,
-                            expire=expire, value=expire,
-                            con$config())
+  ## RedisHeartbeat::heartbeat(key, period,
+  ##                           expire=expire, value=expire,
+  ##                           con$config())
 }
 
 heartbeat_time <- function(obj) {

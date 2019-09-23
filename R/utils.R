@@ -1,4 +1,3 @@
-##' @importFrom digest digest
 hash_string <- function(x) {
   digest::digest(x, serialize=FALSE)
 }
@@ -162,7 +161,6 @@ spin_symbols <- function() {
   }
 }
 
-##' @importFrom progress progress_bar
 progress <- function(total, ..., show=TRUE, prefix="") {
   if (show) {
     fmt <- paste0(prefix, "[:bar] :percent :spin")
@@ -240,9 +238,17 @@ install_scripts <- function(dest, overwrite=TRUE) {
   src <- system.file("scripts", package=.packageName)
   scripts <- dir(src)
   dir.create(dest, FALSE, TRUE)
-  ok <- file.copy(file.path(src, scripts),
-                  file.path(dest, scripts), overwrite=overwrite)
-  invisible(ok)
+
+  Rscript <- file.path(R.home("bin"), "Rscript")
+  for (i in scripts) {
+    contents <- readLines(file.path(src, i))
+    contents[[1]] <- paste0("#!", Rscript)
+    j <- file.path(dest, i)
+    if (!file.exists(j) || overwrite) {
+      writeLines(contents, j)
+      Sys.chmod(j, "0755")
+    }
+  }
 }
 
 yaml_load <- function(string) {

@@ -34,4 +34,3 @@ remote:
   REDIS_HOST: redis.marathon.mesos
 }
 }
-

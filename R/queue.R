@@ -324,7 +324,7 @@ queue_clean <- function(con, queue_name, purge=FALSE, stop_workers=FALSE) {
   con$SREM(keys$rrqueue_queues, keys$queue_name)
 
   if (purge) {
-    scan_del(con, paste0(queue_name, "*"))
+    redux::scan_del(con, paste0(queue_name, "*"))
   } else {
     ## TODO: This one here seems daft.  If there are workers they
     ## might still be around, and they might be working on tasks.
@@ -345,9 +345,10 @@ queue_send_signal <- function(con, keys, signal, worker_ids) {
   if (is.null(worker_ids)) {
     worker_ids <- workers_list(con, keys)
   }
-  for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
-    RedisHeartbeat::heartbeat_send_signal(con, key, signal)
-  }
+  stop("This functionality is disabled")
+  ## for (key in rrqueue_key_worker_heartbeat(keys$queue_name, worker_ids)) {
+  ##   RedisHeartbeat::heartbeat_send_signal(con, key, signal)
+  ## }
 }
 
 queue_send_message <- function(con, keys, command, args=NULL,
@@ -412,7 +413,7 @@ get_responses <- function(con, keys, message_id, worker_ids=NULL,
 }
 
 stop_workers <- function(con, keys, worker_ids=NULL,
-                         type="message", interrupt=TRUE, wait=0) {
+                         type="message", interrupt=FALSE, wait=0) {
   type <- match_value(type, c("message", "kill", "kill_local"))
   worker_ids <- workers_list(con, keys)
   if (length(worker_ids) == 0L) {

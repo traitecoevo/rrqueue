@@ -588,7 +588,6 @@ run_message_unknown <- function(cmd, args) {
             class=c("condition"))
 }
 
-##' @importFrom crayon make_style
 worker_styles <- function() {
   list(info=crayon::make_style("grey"),
        key=crayon::make_style("gold"),
@@ -679,7 +678,7 @@ workers_identify_lost <- function(con, keys, worker_ids=NULL) {
     task_ids <- as.character(unlist(task_ids))
 
     if (length(task_ids) > 0L) {
-      time <- RedisAPI::redis_time(con)
+      time <- redux::redis_time(con)
       n <- length(task_ids)
       con$HMSET(keys$tasks_time_end, task_ids, rep_len(time, n))
       con$HMSET(keys$tasks_status,   task_ids, rep_len(TASK_ORPHAN, n))

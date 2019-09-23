@@ -112,7 +112,7 @@ You can then install the required R packages:
 
 ```
 install.packages(c("RcppRedis", "R6", "digest", "docopt"))
-devtools::install_github(c("ropensci/RedisAPI", "richfitz/redux", "richfitz/RedisHeartbeat", "richfitz/ids"))
+devtools::install_github(c("richfitz/RedisHeartbeat", "richfitz/ids", "richfitz/redux"))
 devtools::install_github("traitecoevo/rrqueue")
 ```
 

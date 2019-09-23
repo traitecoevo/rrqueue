@@ -1,5 +1,5 @@
-object_to_string <- RedisAPI::object_to_string
-string_to_object <- RedisAPI::string_to_object
+object_to_string <- redux::object_to_string
+string_to_object <- redux::string_to_object
 
 ## TODO: run in db 15 or something?
 empty_named_list <- function() {
@@ -16,7 +16,8 @@ test_cleanup <- function() {
 }
 
 test_queue_clean <- function(name) {
-  queue_clean(redis_connection(NULL), name, purge=TRUE, stop_workers="kill")
+  queue_clean(redis_connection(NULL), name, purge=TRUE,
+              stop_workers="kill_local")
 }
 
 ## Looks like a bug to me, relative to the docs:

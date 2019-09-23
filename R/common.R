@@ -1,3 +1,9 @@
+##' @importFrom grDevices rgb
+##' @importFrom stats runif setNames
+##' @importFrom utils flush.console modifyList packageDescription
+##'   packageVersion sessionInfo
+NULL
+
 rrqueue_keys <- function(queue_name=NULL, worker_name=NULL) {
   if (is.null(queue_name)) {
     rrqueue_keys_global()
@@ -198,7 +204,7 @@ end
 redis.call("RPUSH", KEYS[1], task_id)'
 
   job_incr <- 'return {redis.call("INCR", KEYS[1]), redis.call("TIME")}'
-  RedisAPI::redis_scripts(con,
+  redux::redis_scripts(con,
                           scripts=list(set_hashes=set_hashes,
                                        job_incr=job_incr,
                                        job_submit=job_submit))

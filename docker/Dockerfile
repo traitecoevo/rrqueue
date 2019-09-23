@@ -26,19 +26,17 @@ RUN install2.r --error  \
     docopt \
     downloader \
     dplyr \
+    ids \
     inline \
     R6 \
     RCurl \
+    redux \
     rmarkdown \
+    storr \
     stringr
 
 RUN installGithub.r  \
-    ropensci/RedisAPI \
-    richfitz/RedisHeartbeat \
-    richfitz/storr \
     richfitz/remake \
-    gaborcsardi/progress \
-    traitecoevo/dockertest \
     traitecoevo/rrqueue
 
 RUN r -e 'remake:::install_remake("/usr/local/bin")'
