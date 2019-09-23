@@ -5,8 +5,9 @@
 \alias{rrqlapply_submit}
 \title{Parallel version of lapply using Redis queuing}
 \usage{
-rrqlapply(X, FUN, rrq, ..., group = NULL, timeout = Inf, time_poll = 1,
-  delete_tasks = FALSE, progress_bar = TRUE, env = parent.frame())
+rrqlapply(X, FUN, rrq, ..., group = NULL, timeout = Inf,
+  time_poll = 1, delete_tasks = FALSE, progress_bar = TRUE,
+  env = parent.frame())
 
 rrqlapply_submit(X, FUN, rrq, ..., group = NULL, progress_bar = TRUE,
   env = parent.frame())
@@ -41,4 +42,3 @@ returned), so the default of 1s should be reasonable.}
 \description{
 Parallel version of lapply using Redis queuing
 }
-

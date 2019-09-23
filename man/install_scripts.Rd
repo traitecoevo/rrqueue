@@ -16,4 +16,3 @@ Install rrqueue scripts.  This currently includes a script for
 starting a worker process.  The script is extremely simple and
 does not need upgrading when rrqueue is upgraded.
 }
-

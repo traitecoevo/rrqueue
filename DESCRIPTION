@@ -25,4 +25,4 @@ Suggests:
     rmarkdown,
     yaml
 VignetteBuilder: knitr
-RoxygenNote: 5.0.1
+RoxygenNote: 6.1.1

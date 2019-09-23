@@ -5,9 +5,9 @@
 \alias{enqueue_bulk_submit}
 \title{Bulk queuing}
 \usage{
-enqueue_bulk(X, FUN, rrq, do.call = FALSE, group = NULL, timeout = Inf,
-  time_poll = 1, delete_tasks = FALSE, progress_bar = TRUE,
-  env = parent.frame())
+enqueue_bulk(X, FUN, rrq, do.call = FALSE, group = NULL,
+  timeout = Inf, time_poll = 1, delete_tasks = FALSE,
+  progress_bar = TRUE, env = parent.frame())
 
 enqueue_bulk_submit(X, FUN, rrq, do.call = FALSE, group = NULL,
   progress_bar = TRUE, env = parent.frame())
@@ -66,4 +66,3 @@ as.list(X[1,]))}.
 Be careful, this one is going to change, including the name
 probably.  You have been warned.
 }
-

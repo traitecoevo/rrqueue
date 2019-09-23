@@ -4,8 +4,8 @@
 \alias{observer}
 \title{Creates an observer for an rrqueue}
 \usage{
-observer(queue_name = NULL, redis_host = "127.0.0.1", redis_port = 6379,
-  config = NULL)
+observer(queue_name = NULL, redis_host = "127.0.0.1",
+  redis_port = 6379, config = NULL)
 }
 \arguments{
 \item{queue_name}{Name of the queue, if not given then it will

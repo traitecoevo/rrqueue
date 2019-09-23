@@ -1,3 +1,9 @@
+##' @importFrom grDevices rgb
+##' @importFrom stats runif setNames
+##' @importFrom utils flush.console modifyList packageDescription
+##'   packageVersion sessionInfo
+NULL
+
 rrqueue_keys <- function(queue_name=NULL, worker_name=NULL) {
   if (is.null(queue_name)) {
     rrqueue_keys_global()
