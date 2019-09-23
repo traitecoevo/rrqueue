@@ -243,8 +243,10 @@ install_scripts <- function(dest, overwrite=TRUE) {
   for (i in scripts) {
     contents <- readLines(file.path(src, i))
     contents[[1]] <- paste0("#!", Rscript)
-    if (!file.exists(file.path(dest, i)) || overwrite) {
-      writeLines(contents, file.path(dest, i))
+    j <- file.path(dest, i)
+    if (!file.exists(j) || overwrite) {
+      writeLines(contents, j)
+      Sys.chmod(j, "0755")
     }
   }
 }
