@@ -238,9 +238,15 @@ install_scripts <- function(dest, overwrite=TRUE) {
   src <- system.file("scripts", package=.packageName)
   scripts <- dir(src)
   dir.create(dest, FALSE, TRUE)
-  ok <- file.copy(file.path(src, scripts),
-                  file.path(dest, scripts), overwrite=overwrite)
-  invisible(ok)
+
+  Rscript <- file.path(R.home("bin"), "Rscript")
+  for (i in scripts) {
+    contents <- readLines(file.path(src, i))
+    contents[[1]] <- paste0("#!", Rscript)
+    if (!file.exists(file.path(dest, i)) || overwrite) {
+      writeLines(contents, file.path(dest, i))
+    }
+  }
 }
 
 yaml_load <- function(string) {
