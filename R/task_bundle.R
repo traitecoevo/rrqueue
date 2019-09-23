@@ -147,9 +147,9 @@ task_bundle_wait <- function(obj, timeout, time_poll, progress_bar, follow_redir
     }
     res <- task_bundle_fetch1(obj, time_poll, follow_redirect)
     if (is.null(res)) {
-      p(0)
+      tryCatch(p(0), error = function(e) NULL)
     } else {
-      p(1)
+      tryCatch(p(1), error = function(e) NULL)
       task_id <- res[[1]]
       result <- res[[2]]
       done[[task_id]] <- TRUE
