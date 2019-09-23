@@ -413,7 +413,7 @@ get_responses <- function(con, keys, message_id, worker_ids=NULL,
 }
 
 stop_workers <- function(con, keys, worker_ids=NULL,
-                         type="message", interrupt=TRUE, wait=0) {
+                         type="message", interrupt=FALSE, wait=0) {
   type <- match_value(type, c("message", "kill", "kill_local"))
   worker_ids <- workers_list(con, keys)
   if (length(worker_ids) == 0L) {
