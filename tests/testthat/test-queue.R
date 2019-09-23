@@ -26,15 +26,6 @@ test_that("queue", {
   ## TODO: add rrqueue version here too so we know we're speaking the
   ## right dialect.
 
-  ## There is going to be a nasty bit here because the *files* data
-  ## storage creates a couple of keys that are implementation
-  ## dependent.
-  keys_startup <- c(keys$envirs_contents,
-                    keys$envirs_files)
-  tmp <- sort(as.character(con$KEYS("tmpjobs*")))
-  tmp <- tmp[!grepl(paste0(keys$files, ":.*"), tmp)]
-  expect_equal(tmp, sort(keys_startup))
-
   dat <- obj$envirs_contents()[[obj$envir_id]]
   expect_null(dat$packages)
   expect_equal(dat$sources, "myfuns.R")
@@ -92,11 +83,6 @@ test_that("queue", {
                   keys$tasks_status, keys$tasks_envir,
                   keys$tasks_complete, keys$tasks_group,
                   keys$tasks_time_sub, key_queue)
-
-  tmp <- sort(as.character(redux::scan_find(con, "tmpjobs*")))
-  tmp <- tmp[!grepl(paste0(keys$files, ":.*"), tmp)]
-  expect_equal(tmp,
-               sort(c(keys_startup, keys_tasks)))
 
   redis_status <- function(x) structure(x, class="redis_status")
   expect_equal(con$TYPE(key_queue),           redis_status("list"))
