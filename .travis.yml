@@ -16,4 +16,5 @@ services:
   - redis-server
 
 r_github_packages:
-  - richfitz/RedisHeartbeat@ba058327
+  # This is the old version of RedisHeartbeat, before it changed to heartbeatr
+  - richfitz/heartbeatr@RedisHeartbeat
