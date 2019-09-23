@@ -7,6 +7,7 @@ context("heartbeat")
 ## throughout, so many failures might just be caused by a single root
 ## thing.
 test_that("heartbeat with signals", {
+  skip("heartbeat disabled")
   test_cleanup()
 
   ## Fairly fast worker timeout:
@@ -103,6 +104,7 @@ test_that("heartbeat with signals", {
 })
 
 test_that("heartbeat shutdown when running job", {
+  skip("heartbeat disabled")
   expire <- 3
 
   test_cleanup()
@@ -146,6 +148,7 @@ test_that("heartbeat shutdown when running job", {
 })
 
 test_that("requeue orphaned jobs", {
+  skip("heartbeat disabled")
   expire <- 3
 
   test_cleanup()
@@ -194,6 +197,7 @@ test_that("requeue orphaned jobs", {
 
 
 test_that("workers stop", {
+  skip("heartbeat disabled")
   expire <- 3
 
   test_cleanup()
@@ -227,6 +231,7 @@ test_that("workers stop", {
 })
 
 test_that("stop_workers (simple case)", {
+  skip("heartbeat disabled")
   test_cleanup()
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_equal(obj$workers_list_exited(), character(0))
@@ -253,6 +258,7 @@ test_that("stop_workers (simple case)", {
 })
 
 test_that("stop_workers (running, interrupt)", {
+  skip("heartbeat disabled")
   test_cleanup()
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_equal(obj$workers_list_exited(), character(0))
@@ -287,6 +293,7 @@ test_that("stop_workers (running, interrupt)", {
 })
 
 test_that("stop_workers (running, wait)", {
+  skip("heartbeat disabled")
   test_cleanup()
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_equal(obj$workers_list_exited(), character(0))
@@ -316,6 +323,7 @@ test_that("stop_workers (running, wait)", {
 })
 
 test_that("stop_workers (blocking)", {
+  skip("heartbeat disabled")
   test_cleanup()
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_equal(obj$workers_list_exited(), character(0))
@@ -340,6 +348,7 @@ test_that("stop_workers (blocking)", {
 })
 
 test_that("clean up multiple workers", {
+  skip("heartbeat disabled")
   test_cleanup()
   obj <- queue("tmpjobs", sources="myfuns.R")
   expect_equal(obj$workers_list_exited(), character(0))
