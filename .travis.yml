@@ -1,32 +1,19 @@
-# Sample .travis.yml for R projects from https://github.com/craigcitro/r-travis
+language: R
+sudo: false
+cache: packages
+r_packages:
+  - covr
+after_success:
+  - Rscript -e 'covr::codecov()'
 
-language: c
-
-sudo: required
+addons:
+  apt:
+    packages:
+      - libhiredis-dev
+      - redis-server
 
 services:
   - redis-server
 
-before_install:
-  - curl -OL http://raw.github.com/craigcitro/r-travis/master/scripts/travis-tool.sh
-  - chmod 755 ./travis-tool.sh
-  - ./travis-tool.sh bootstrap
-
-install:
-  - ./travis-tool.sh install_deps
-  - ./travis-tool.sh install_aptget libhiredis-dev
-  - ./travis-tool.sh install_aptget libcurl4-openssl-dev
-  - ./travis-tool.sh github_package richfitz/redux@merge_with_api
-  - ./travis-tool.sh github_package richfitz/RedisHeartbeat@remove_redis_api
-  - ./travis-tool.sh github_package richfitz/ids
-
-script: ./travis-tool.sh run_tests
-
-after_failure:
-  - ./travis-tool.sh dump_logs
-
-notifications:
-  email:
-    on_success: change
-    on_failure: change
-  slack: bdkd:hY2eBCaH3bbsvNwlWwOfFdfr
+r_github_packages:
+  - richfitz/RedisHeartbeat@ba058327
