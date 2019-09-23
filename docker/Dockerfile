@@ -36,7 +36,6 @@ RUN install2.r --error  \
     stringr
 
 RUN installGithub.r  \
-    richfitz/heartbeatr@RedisHeartbeat \
     richfitz/remake \
     traitecoevo/rrqueue
 
